@@ -13,7 +13,7 @@ from .filters import (
     extract_throw_ins,
     tag_set_pieces,
 )
-from .loader import Match, load_events
+from .loader import Match, load_events, load_events_multi
 from .metrics import (
     delivery_locations,
     player_set_piece_counts,
@@ -37,11 +37,12 @@ from .zones import (
     zone_id,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Match",
     "load_events",
+    "load_events_multi",
     "extract_all",
     "extract_corners",
     "extract_free_kicks",

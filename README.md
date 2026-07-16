@@ -85,17 +85,30 @@ pip install -e ".[viz]"   # matplotlib + mplsoccer
 ```
 
 ```python
-from wa_setpieces.viz import plot_delivery_map, plot_zone_heatmap, plot_xt_grid, plot_second_phase
+from wa_setpieces.viz import (
+    plot_delivery_map,      # arrow map of deliveries, colored by outcome
+    plot_zone_heatmap,      # where events happen, gridded onto the pitch
+    plot_xt_grid,           # a fitted XTModel's grid, as a heatmap
+    plot_second_phase,      # one corner/free-kick's phase sequence, numbered
+    plot_team_comparison,   # grouped bars: both teams, every set-piece type
+    plot_xt_added_bars,     # diverging bar chart of xT added per delivery
+    plot_corner_sonar,      # polar plot of delivery angle + distance
+    plot_match_timeline,    # every set piece on one shared match-minute axis
+    plot_dashboard,         # one-figure report card combining several of the above
+)
 
 plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
-plot_zone_heatmap(extract_corners(match.events), title="Corner origin zones")
-plot_xt_grid(model)
-plot_second_phase(match.events, delivery_event_id=610)  # numbered touches through a phase
+plot_dashboard(match.events, team_id, set_piece_type="corner")  # the "hero" figure
 ```
 
-Every plotting function returns `(fig, ax)` for further customization. See
-the [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all of these with full source code.
+Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
+`fig`, being multi-panel) for further customization. Colors are assigned by
+the job they do — a validated categorical palette for team identity, a
+status pair for success/fail, single-hue sequential ramps for magnitude,
+and a diverging pair for signed quantities like xT added — not picked for
+looks; see `wa_setpieces/theme.py`. See the
+[gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
+for all nine plots with full source code.
 
 ## Command line
 
@@ -123,7 +136,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 
 ## Package layout
 
-- `wa_setpieces.loader` — parse F24 JSON into a tidy `pandas.DataFrame`.
+- `wa_setpieces.loader` — parse F24 JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
 - `wa_setpieces.constants` — Opta typeId / qualifierId reference.
 - `wa_setpieces.filters` — extract/tag each set-piece type.
 - `wa_setpieces.metrics` — team/player counts, success rates, delivery locations.
@@ -132,7 +145,8 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.phases` — second-phase detection for corners/free kicks.
 - `wa_setpieces.retention` — possession retention after any restart.
 - `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
-- `wa_setpieces.viz` — mplsoccer-based pitch plots (optional `viz` extra).
+- `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard (optional `viz` extra).
+- `wa_setpieces.theme` — the validated color palette every plot draws from.
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 
 ## Development

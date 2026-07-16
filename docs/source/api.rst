@@ -76,6 +76,14 @@ Requires the ``viz`` extra (``pip install "wa-setpieces[viz]"``). See the
    :undoc-members:
    :show-inheritance:
 
+theme
+-----
+
+.. automodule:: wa_setpieces.theme
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 constants
 ---------
 

@@ -17,6 +17,12 @@ named ``q_<id>``).
    match = load_events("match.json")
    match.events.head()
 
+Got more than one match? :func:`~wa_setpieces.load_events_multi` loads and
+stacks several exports into one events DataFrame (tagged with a
+``matchId`` column) for season-level aggregation -- see the "Multiple
+matches" section on the :doc:`advanced` page for what that is and isn't
+safe to use for.
+
 Extracting set pieces
 ----------------------
 

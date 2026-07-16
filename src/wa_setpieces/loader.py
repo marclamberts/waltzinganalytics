@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -83,3 +84,56 @@ def load_events(source: str | Path | dict) -> Match:
         ).reset_index(drop=True)
 
     return Match(match_details=data.get("matchDetails", {}), events=events)
+
+
+def load_events_multi(
+    sources: Sequence[str | Path | dict],
+    match_ids: Sequence[str] | None = None,
+) -> pd.DataFrame:
+    """Load and concatenate several F24 match exports into one events DataFrame.
+
+    Each source is parsed with :func:`load_events`, then stacked with a new
+    ``matchId`` column so rows stay attributable to their match (F24 itself
+    carries no match identifier, and per-match ``eventId`` numbering restarts
+    at 1, so without this column rows from different matches would collide).
+
+    Args:
+        sources: paths (or already-loaded dicts) for each match, in any order.
+        match_ids: optional label per source. Defaults to the file's stem
+            (``"2026-02-20_match"`` from ``2026-02-20_match.json``) for path
+            sources, or the source's position for dict sources.
+
+    Returns:
+        One combined events DataFrame, sorted within each match by time but
+        with no relationship implied *between* matches.
+
+    .. important::
+       This is for **match-independent aggregation only** -- team/player
+       set-piece counts, zone heatmaps, and fitting :meth:`XTModel.fit`
+       across a season all work fine on the combined frame, since those
+       operate row-by-row or via groupby. The temporal-window functions in
+       :mod:`wa_setpieces.phases` and :mod:`wa_setpieces.retention` assume a
+       single chronologically-ordered match, so feeding them this combined
+       frame directly would let a window bleed across a match boundary.
+       Run those per match (``for path in paths: ...``) and concatenate the
+       *results* instead.
+    """
+    if match_ids is not None and len(match_ids) != len(sources):
+        raise ValueError("match_ids must be the same length as sources")
+
+    frames = []
+    for i, source in enumerate(sources):
+        match = load_events(source)
+        if match_ids is not None:
+            match_id = match_ids[i]
+        elif isinstance(source, dict):
+            match_id = str(i)
+        else:
+            match_id = Path(source).stem
+        df = match.events.copy()
+        df.insert(0, "matchId", match_id)
+        frames.append(df)
+
+    if not frames:
+        return pd.DataFrame(columns=["matchId", *_CORE_FIELDS])
+    return pd.concat(frames, ignore_index=True)

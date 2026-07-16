@@ -110,11 +110,11 @@ method: fit a grid of zone values from data, then value any pass as
 
 .. code-block:: python
 
-   from wa_setpieces import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+   from wa_setpieces import XTModel, load_events_multi, set_piece_delivery_xt, set_piece_xt_summary
 
    # Fit once across as many matches as you have, then reuse:
-   # all_events = pd.concat([load_events(f).events for f in match_files])
-   model = XTModel.fit(match.events)
+   season_events = load_events_multi(match_files)  # see "Multiple matches" below
+   model = XTModel.fit(season_events)
 
    set_piece_delivery_xt(match.events, "corner", model)     # per-delivery xt_start/xt_end/xt_added
    set_piece_xt_summary(match.events, "free_kick", model)   # per-team total/average xT added
@@ -125,3 +125,39 @@ method: fit a grid of zone values from data, then value any pass as
 ``xt_added`` is ``NaN`` for unsuccessful deliveries -- there's no reliable
 end location for a pass that didn't find a teammate, so no threat value can
 be attributed to where it *would* have gone.
+
+Multiple matches
+-------------------
+
+:func:`~wa_setpieces.load_events_multi` loads and stacks several F24
+exports into one events DataFrame, tagged with a ``matchId`` column (F24
+carries no match identifier of its own, and per-match ``eventId``
+numbering restarts at 1, so without this rows from different matches would
+collide).
+
+.. code-block:: python
+
+   from wa_setpieces import load_events_multi, team_set_piece_counts
+
+   season = load_events_multi(["2026-02-20_match.json", "2026-02-27_match.json"])
+   team_set_piece_counts(season)   # aggregated across every match passed in
+
+.. important::
+
+   This is for **match-independent aggregation only** -- team/player counts,
+   zone heatmaps, and :meth:`XTModel.fit` all work fine on the combined
+   frame, since those operate row-by-row or via groupby. The temporal-window
+   functions in :mod:`wa_setpieces.phases` and :mod:`wa_setpieces.retention`
+   assume one chronologically-ordered match; feeding them the combined frame
+   directly would let a window bleed across a match boundary. Run those per
+   match and concatenate the *results*:
+
+   .. code-block:: python
+
+      import pandas as pd
+      from wa_setpieces import load_events
+      from wa_setpieces.phases import second_phases
+
+      all_second_phases = pd.concat(
+          [second_phases(load_events(f).events, "corner") for f in match_files]
+      )
