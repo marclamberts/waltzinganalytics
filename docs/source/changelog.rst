@@ -1,6 +1,17 @@
 Changelog
 =========
 
+0.5.1
+-----
+
+- Fixed the README's hero image not rendering on the PyPI project page --
+  it used a repo-relative path, which GitHub resolves but PyPI's README
+  renderer can't (no access to the repo tree); switched to an absolute
+  URL and verified the whole README renders correctly through the actual
+  PyPI renderer.
+- Added ``Repository``, ``Changelog`` and ``Bug Tracker`` links to the
+  PyPI project sidebar, alongside the existing ``Homepage``/``Documentation``.
+
 0.5.0
 -----
 
