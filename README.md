@@ -111,19 +111,28 @@ from wa_setpieces.viz import (
     plot_set_piece_outcomes,  # shot map: every delivery, colored by outcome category
 )
 
-plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
+plot_delivery_map(
+    delivery_locations(match.events, "corner"), title="Corner deliveries",
+    subtitle="20 June 2026 · Delivery map", footer="Data: Opta", dark=False,  # or dark=True (default)
+)
 plot_dashboard(match.events, team_id, set_piece_type="corner")  # the "hero" figure
 plot_set_piece_radar(corner_report(match.events, model=model))  # team A vs. team B, one glance
 ```
 
 Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
-`fig`, being multi-panel) for further customization. Colors are assigned by
-the job they do — a validated categorical palette for team identity, a
-status pair for success/fail, single-hue sequential ramps for magnitude,
+`fig`, being multi-panel) for further customization, and takes `dark: bool
+= True` -- the whole figure switches between a validated dark (navy) and
+light (white) palette with that one argument, see
+`wa_setpieces.theme.get_palette`. Colors are assigned by the job they do —
+a validated categorical palette for team identity (team-vs-team charts use
+a fixed orange-then-blue pairing in both modes), a status pair for
+success/fail, gold for goals, single-hue sequential ramps for magnitude,
 and a diverging pair for signed quantities like xT added — not picked for
-looks; see `wa_setpieces/theme.py`. See the
+looks; see `wa_setpieces/theme.py`. `subtitle` (a muted line under the
+title) and `footer` (a small credit/source line, bottom-right) are
+optional on every plot. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all eleven plots with full source code.
+for all eleven plots (in both modes) with full source code.
 
 ## Command line
 
@@ -164,7 +173,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
 - `wa_setpieces.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
 - `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
-- `wa_setpieces.theme` — the validated color palette every plot draws from.
+- `wa_setpieces.theme` — the validated dark/light color palettes every plot draws from.
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 
 ## Development

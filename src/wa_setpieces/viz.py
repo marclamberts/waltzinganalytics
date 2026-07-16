@@ -13,9 +13,12 @@ team's own attacking direction -- see :mod:`wa_setpieces.zones`) map
 directly onto :class:`mplsoccer.Pitch`'s built-in ``pitch_type="opta"``, so
 no coordinate conversion is needed.
 
-Colors follow :mod:`wa_setpieces.theme` -- assigned by the job they do
-(status, category, magnitude, sign), not picked for looks. See that
-module's docstring before adding a new plot.
+Every function takes ``dark: bool = True`` -- the whole figure (pitch,
+chart chrome, team colors) switches between the validated dark and light
+palettes in :mod:`wa_setpieces.theme` with that one argument. Colors
+otherwise follow :mod:`wa_setpieces.theme` -- assigned by the job they do
+(status, category, magnitude, sign, team identity), not picked for looks.
+See that module's docstring before adding a new plot.
 """
 
 from __future__ import annotations
@@ -32,21 +35,21 @@ except ImportError as exc:  # pragma: no cover
 
 from . import theme
 
-# Backwards-compatible aliases (pre-theme-module names).
+# Backwards-compatible aliases (pre-theme-module names, dark palette).
 PITCH_COLOR = theme.SURFACE
 LINE_COLOR = theme.PITCH_LINE
 SUCCESS_COLOR = theme.GOOD
 FAIL_COLOR = theme.CRITICAL
 
 
-def _new_pitch(pitch_type: str = "opta", **pitch_kwargs) -> Pitch:
-    kwargs = dict(pitch_color=theme.SURFACE, line_color=theme.PITCH_LINE, linewidth=1.5)
+def _new_pitch(pal: theme.Palette, pitch_type: str = "opta", **pitch_kwargs) -> Pitch:
+    kwargs = dict(pitch_color=pal.surface, line_color=pal.pitch_line, linewidth=1.5)
     kwargs.update(pitch_kwargs)
     return Pitch(pitch_type=pitch_type, **kwargs)
 
 
-def _draw_pitch(ax, pitch_kwargs, figsize=(8, 5.2)):
-    pitch = _new_pitch(**(pitch_kwargs or {}))
+def _draw_pitch(pal: theme.Palette, ax, pitch_kwargs, figsize=(8, 5.2)):
+    pitch = _new_pitch(pal, **(pitch_kwargs or {}))
     fig = None
     if ax is None:
         fig, ax = pitch.draw(figsize=figsize)
@@ -55,20 +58,30 @@ def _draw_pitch(ax, pitch_kwargs, figsize=(8, 5.2)):
     return pitch, fig, ax
 
 
-def _style_chart_axis(ax, title: str | None = None):
-    ax.set_facecolor(theme.SURFACE)
+def _style_chart_axis(pal: theme.Palette, ax, title: str | None = None, subtitle: str | None = None):
+    ax.set_facecolor(pal.surface)
     for spine in ax.spines.values():
-        spine.set_color(theme.GRIDLINE)
-    ax.tick_params(colors=theme.INK_SECONDARY)
-    ax.xaxis.label.set_color(theme.INK_SECONDARY)
-    ax.yaxis.label.set_color(theme.INK_SECONDARY)
+        spine.set_color(pal.gridline)
+    ax.tick_params(colors=pal.ink_secondary)
+    ax.xaxis.label.set_color(pal.ink_secondary)
+    ax.yaxis.label.set_color(pal.ink_secondary)
     if title:
-        ax.set_title(title, color=theme.INK_PRIMARY, fontsize=13, pad=10)
+        pal.style_axis_text(ax, title, subtitle)
+
+
+def _finish_figure(pal: theme.Palette, fig, footer: str | None):
+    if fig is not None:
+        fig.patch.set_facecolor(pal.surface)
+        if footer:
+            pal.style_footer(fig, footer)
 
 
 def plot_delivery_map(
     deliveries: pd.DataFrame,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -78,10 +91,18 @@ def plot_delivery_map(
     color, unsuccessful ones in "critical" -- outcome is a status, not a
     team identity, so it never borrows the categorical team palette.
 
+    Args:
+        dark: render on the dark (default) or light palette from
+            :mod:`wa_setpieces.theme`.
+        subtitle: optional muted line under the title (e.g. a date/venue).
+        footer: optional small credit/source line, bottom-right of the
+            figure -- never defaulted.
+
     Returns:
         ``(fig, ax)``. ``fig`` is ``None`` if an existing ``ax`` was passed in.
     """
-    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
 
     success = deliveries[deliveries["outcome"] == 1]
     fail = deliveries[deliveries["outcome"] != 1]
@@ -89,18 +110,17 @@ def plot_delivery_map(
     if not fail.empty:
         pitch.arrows(
             fail["x"], fail["y"], fail["end_x"], fail["end_y"],
-            ax=ax, color=theme.CRITICAL, width=2, headwidth=6, alpha=0.9, label="Unsuccessful",
+            ax=ax, color=pal.critical, width=2, headwidth=6, alpha=0.9, label="Unsuccessful",
         )
     if not success.empty:
         pitch.arrows(
             success["x"], success["y"], success["end_x"], success["end_y"],
-            ax=ax, color=theme.GOOD, width=2, headwidth=6, alpha=0.95, label="Successful",
+            ax=ax, color=pal.good, width=2, headwidth=6, alpha=0.95, label="Successful",
         )
 
-    theme.style_legend(ax)
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_legend(ax)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -111,6 +131,9 @@ def plot_zone_heatmap(
     x_bins: int = 6,
     y_bins: int = 3,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     cmap=None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -124,32 +147,36 @@ def plot_zone_heatmap(
     """
     import matplotlib.patheffects as path_effects
 
-    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
-    cmap = cmap if cmap is not None else theme.sequential_blue_cmap()
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    cmap = cmap if cmap is not None else pal.sequential_blue_cmap()
 
     x = pd.to_numeric(events[x_col], errors="coerce")
     y = pd.to_numeric(events[y_col], errors="coerce")
     valid = x.notna() & y.notna()
 
     stats = pitch.bin_statistic(x[valid], y[valid], statistic="count", bins=(x_bins, y_bins))
-    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=theme.SURFACE)
+    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
     labels = pitch.label_heatmap(
-        stats, ax=ax, str_format="{:.0f}", color=theme.INK_PRIMARY, fontsize=11,
+        stats, ax=ax, str_format="{:.0f}", color=pal.ink_primary, fontsize=11,
         ha="center", va="center",
     )
+    stroke_color = "black" if dark else "white"
     for label in labels:
         label.set_path_effects(
-            [path_effects.Stroke(linewidth=2.5, foreground="black"), path_effects.Normal()]
+            [path_effects.Stroke(linewidth=2.5, foreground=stroke_color), path_effects.Normal()]
         )
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
 def plot_xt_grid(
     model,
     title: str | None = "Expected Threat (xT) grid",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     cmap=None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -162,17 +189,17 @@ def plot_xt_grid(
     implying they're the same quantity. Brighter cells are worth more xT --
     should climb steadily towards the opponent's goal (``x=100``).
     """
-    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
-    cmap = cmap if cmap is not None else theme.sequential_green_cmap()
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    cmap = cmap if cmap is not None else pal.sequential_green_cmap()
 
     stats = pitch.bin_statistic(
         [50.0], [50.0], statistic="count", bins=(model.x_bins, model.y_bins)
     )
     stats["statistic"] = model.grid
-    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=theme.SURFACE)
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -181,6 +208,9 @@ def plot_second_phase(
     delivery_event_id: int,
     contestant_id: str | None = None,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
     **phase_kwargs,
@@ -189,8 +219,8 @@ def plot_second_phase(
 
     Draws the delivery as a solid arrow, then each subsequent touch in the
     phase window as a numbered, faded marker so you can follow the passage
-    of play. The second-phase shot (if any) is highlighted in the
-    categorical yellow slot (a specific touch to pick out, not a status).
+    of play. The second-phase shot (if any) is highlighted in gold (the
+    same "this is a goal-adjacent moment" accent used for goals elsewhere).
 
     Args:
         delivery_event_id: the ``eventId`` of a corner or free-kick delivery
@@ -209,6 +239,8 @@ def plot_second_phase(
     from .filters import extract_corners, extract_free_kicks
     from .phases import _phase_window, _seconds, classify_phase
     from .zones import to_reference_frame
+
+    pal = theme.get_palette(dark)
 
     candidates = pd.concat([extract_corners(events), extract_free_kicks(events)])
     matches = candidates[candidates["eventId"] == delivery_event_id]
@@ -247,30 +279,30 @@ def plot_second_phase(
     if not window.empty:
         window = to_reference_frame(window, attacking_team)
 
-    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
 
     pitch.arrows(
         [delivery_row["x"]], [delivery_row["y"]],
         [window.iloc[0]["x"]] if not window.empty else [delivery_row["x"]],
         [window.iloc[0]["y"]] if not window.empty else [delivery_row["y"]],
-        ax=ax, color=theme.INK_PRIMARY, width=2.5, headwidth=7, label="Delivery",
+        ax=ax, color=pal.ink_primary, width=2.5, headwidth=7, label="Delivery",
     )
 
-    highlight = theme.CATEGORICAL[3]  # yellow -- picking out one touch, not a status/team
     for i, (_, row) in enumerate(window.iterrows()):
         is_second_phase_shot = row["eventId"] == result.second_phase_event_id
-        color = highlight if is_second_phase_shot else theme.INK_MUTED
+        color = pal.gold if is_second_phase_shot else pal.ink_muted
         size = 260 if is_second_phase_shot else 140
         pitch.scatter(
             row["x"], row["y"], ax=ax, color=color, s=size,
-            edgecolors=theme.INK_PRIMARY, zorder=3,
+            edgecolors=pal.ink_primary, zorder=3,
         )
+        text_color = "black" if is_second_phase_shot else pal.ink_primary
         ax.annotate(
-            str(i + 1), (row["x"], row["y"]), color="black", fontsize=8,
+            str(i + 1), (row["x"], row["y"]), color=text_color, fontsize=8,
             ha="center", va="center", zorder=4,
         )
 
-    theme.style_legend(ax)
+    pal.style_legend(ax)
     if title is None:
         outcome = (
             "second-phase shot" if result.second_phase_shot
@@ -278,9 +310,8 @@ def plot_second_phase(
             else "no clear resolution"
         )
         title = f"{result.set_piece_type or 'set piece'} — eventId {delivery_event_id} ({outcome})"
-    theme.style_axis_text(ax, title, fontsize=12)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_axis_text(ax, title, subtitle, fontsize=12)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -290,6 +321,9 @@ def plot_team_comparison(
     team_names: dict | None = None,
     team_order: list | None = None,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
 ):
     """Grouped horizontal bar chart comparing (up to two) teams across set-piece types.
@@ -303,7 +337,7 @@ def plot_team_comparison(
         team_names: optional ``{contestantId: display name}`` to label bars;
             defaults to a truncated ``contestantId``.
         team_order: optional ``[contestantId, ...]`` fixing which team gets
-            the first (blue) categorical slot -- otherwise it falls out of
+            the first (orange) team-color slot -- otherwise it falls out of
             row order in ``summary``, which isn't meaningful. Pass this
             whenever "our team" should consistently be the same color
             across a set of charts (see :func:`plot_dashboard`).
@@ -312,6 +346,8 @@ def plot_team_comparison(
         ``(fig, ax)``.
     """
     import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
 
     teams = team_order if team_order is not None else list(summary["contestantId"].drop_duplicates())
     if len(teams) > 2:
@@ -334,19 +370,22 @@ def plot_team_comparison(
         label = (team_names or {}).get(team, f"{team[:8]}…")
         ax.barh(
             y + offset, values, height=bar_height * 0.92,
-            color=theme.CATEGORICAL[i], label=label,
+            color=pal.team_colors[i], label=label,
         )
 
     ax.set_yticks(y)
-    ax.set_yticklabels([t.replace("_", " ") for t in types], color=theme.INK_PRIMARY)
+    ax.set_yticklabels([t.replace("_", " ") for t in types], color=pal.ink_primary)
     ax.set_xlabel(metric.replace("_", " "))
     ax.invert_yaxis()
-    ax.grid(axis="x", color=theme.GRIDLINE, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
-    theme.style_legend(ax, loc="lower right")
-    _style_chart_axis(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    # upper right: the longest bars in practice (throw-ins) sit at the
+    # bottom of the chart, so this is the corner least likely to collide --
+    # verified against the sample match, where lower right clipped into the
+    # throw-in bars.
+    pal.style_legend(ax, loc="upper right")
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -356,6 +395,9 @@ def plot_xt_added_bars(
     label_col: str = "playerName",
     top_n: int = 15,
     title: str | None = "xT added per delivery",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
 ):
     """Diverging bar chart of a signed per-delivery value (positive vs. negative).
@@ -378,6 +420,8 @@ def plot_xt_added_bars(
     """
     import matplotlib.pyplot as plt
 
+    pal = theme.get_palette(dark)
+
     valid = delivery_xt.dropna(subset=[value_col]).copy()
     valid = valid.reindex(valid[value_col].abs().sort_values(ascending=False).index)
     valid = valid.head(top_n).sort_values(value_col)
@@ -386,26 +430,28 @@ def plot_xt_added_bars(
     if ax is None:
         fig, ax = plt.subplots(figsize=(7, 0.4 * len(valid) + 1.5))
 
-    colors = [theme.DIVERGING_POSITIVE if v >= 0 else theme.DIVERGING_NEGATIVE
+    colors = [pal.diverging_positive if v >= 0 else pal.diverging_negative
               for v in valid[value_col]]
     y = np.arange(len(valid))
     ax.barh(y, valid[value_col], color=colors)
-    ax.axvline(0, color=theme.BASELINE, linewidth=1)
+    ax.axvline(0, color=pal.baseline, linewidth=1)
     labels = valid[label_col].fillna(valid["eventId"].astype(str)) if label_col in valid else valid["eventId"]
     ax.set_yticks(y)
-    ax.set_yticklabels(labels, color=theme.INK_PRIMARY, fontsize=9)
+    ax.set_yticklabels(labels, color=pal.ink_primary, fontsize=9)
     ax.set_xlabel(value_col.replace("_", " "))
-    ax.grid(axis="x", color=theme.GRIDLINE, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
-    _style_chart_axis(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
 def plot_corner_sonar(
     deliveries: pd.DataFrame,
     title: str | None = "Corner sonar",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
 ):
     """Polar "sonar" plot of corner (or free-kick) delivery angle and distance.
@@ -420,6 +466,8 @@ def plot_corner_sonar(
     """
     import matplotlib.pyplot as plt
 
+    pal = theme.get_palette(dark)
+
     fig = None
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"projection": "polar"})
@@ -429,17 +477,16 @@ def plot_corner_sonar(
     dy = d["end_y"] - d["y"]
     angle = np.arctan2(dy, dx)
     radius = np.hypot(dx, dy)
-    colors = np.where(d["outcome"] == 1, theme.GOOD, theme.CRITICAL)
+    colors = np.where(d["outcome"] == 1, pal.good, pal.critical)
 
-    ax.scatter(angle, radius, c=colors, s=90, edgecolors=theme.INK_PRIMARY, linewidths=0.8, zorder=3)
-    ax.set_facecolor(theme.SURFACE)
+    ax.scatter(angle, radius, c=colors, s=90, edgecolors=pal.ink_primary, linewidths=0.8, zorder=3)
+    ax.set_facecolor(pal.surface)
     ax.set_theta_zero_location("E")
-    ax.tick_params(colors=theme.INK_SECONDARY)
-    ax.spines["polar"].set_color(theme.GRIDLINE)
-    ax.grid(color=theme.GRIDLINE)
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    ax.tick_params(colors=pal.ink_secondary)
+    ax.spines["polar"].set_color(pal.gridline)
+    ax.grid(color=pal.gridline)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -447,6 +494,9 @@ def plot_match_timeline(
     events: pd.DataFrame,
     team_names: dict | None = None,
     title: str | None = "Set pieces through the match",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
 ):
     """Swim-lane timeline of every set piece across the match.
@@ -456,14 +506,16 @@ def plot_match_timeline(
     periods (period 2 starts at ~45, not 0 -- verified against
     ``tests/data/sample_match.json``, where period 1 spans timeMin 0-51 and
     period 2 spans 45-96), so it's used as-is with no per-period offset.
-    Colored by team (a 2-category comparison, the safe end of the
-    validated categorical order) -- the set-piece *type* is already
+    Colored by team (orange then blue, the same two-team convention as
+    :func:`plot_team_comparison`) -- the set-piece *type* is already
     encoded by row, so it doesn't need its own color too.
     """
     import matplotlib.pyplot as plt
 
     from .constants import SET_PIECE_TYPES
     from .filters import tag_set_pieces
+
+    pal = theme.get_palette(dark)
 
     tagged = tag_set_pieces(events)
     sp = tagged[tagged["set_piece_type"].notna()].copy()
@@ -472,7 +524,7 @@ def plot_match_timeline(
     types = [t for t in SET_PIECE_TYPES if t in set(sp["set_piece_type"])]
     type_pos = {t: i for i, t in enumerate(types)}
     teams = list(sp["contestantId"].drop_duplicates())[:2]
-    team_color = {team: theme.CATEGORICAL[i] for i, team in enumerate(teams)}
+    team_color = {team: pal.team_colors[i] for i, team in enumerate(teams)}
 
     fig = None
     if ax is None:
@@ -484,21 +536,20 @@ def plot_match_timeline(
         label = (team_names or {}).get(team, f"{team[:8]}…")
         ax.scatter(
             team_rows["match_minute"], y, color=team_color[team], s=70,
-            edgecolors=theme.INK_PRIMARY, linewidths=0.6, label=label, zorder=3,
+            edgecolors=pal.ink_primary, linewidths=0.6, label=label, zorder=3,
         )
 
     for i in type_pos.values():
-        ax.axhline(i, color=theme.GRIDLINE, linewidth=0.8, zorder=1)
-    ax.axvline(45, color=theme.BASELINE, linewidth=1, linestyle="--", zorder=1, label="Half-time")
+        ax.axhline(i, color=pal.gridline, linewidth=0.8, zorder=1)
+    ax.axvline(45, color=pal.baseline, linewidth=1, linestyle="--", zorder=1, label="Half-time")
 
     ax.set_yticks(list(type_pos.values()))
-    ax.set_yticklabels([t.replace("_", " ") for t in types], color=theme.INK_PRIMARY)
+    ax.set_yticklabels([t.replace("_", " ") for t in types], color=pal.ink_primary)
     ax.set_xlabel("Match minute")
     ax.invert_yaxis()
-    theme.style_legend(ax, loc="upper right", ncol=1)
-    _style_chart_axis(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_legend(ax, loc="upper right", ncol=1)
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -508,6 +559,9 @@ def plot_dashboard(
     set_piece_type: str = "corner",
     team_names: dict | None = None,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
 ):
     """One-figure set-piece report card for a team: delivery map, end-zone
     heatmap, and attempts/success-rate comparison against their opponent.
@@ -525,7 +579,9 @@ def plot_dashboard(
 
     from .metrics import delivery_locations, set_piece_summary
 
-    fig = plt.figure(figsize=(13, 9), facecolor=theme.SURFACE)
+    pal = theme.get_palette(dark)
+
+    fig = plt.figure(figsize=(13, 9), facecolor=pal.surface)
     gs = fig.add_gridspec(2, 2, height_ratios=[1.3, 1], hspace=0.35, wspace=0.25)
 
     deliveries = delivery_locations(events, set_piece_type)
@@ -533,12 +589,12 @@ def plot_dashboard(
     label = (team_names or {}).get(team_id, f"{team_id[:8]}…")
 
     ax_map = fig.add_subplot(gs[0, 0])
-    plot_delivery_map(team_deliveries, title=f"{label} — {set_piece_type} deliveries", ax=ax_map)
+    plot_delivery_map(team_deliveries, title=f"{label} — {set_piece_type} deliveries", dark=dark, ax=ax_map)
 
     ax_heat = fig.add_subplot(gs[0, 1])
     plot_zone_heatmap(
         team_deliveries, x_col="end_x", y_col="end_y",
-        title=f"{label} — {set_piece_type} end zones", ax=ax_heat,
+        title=f"{label} — {set_piece_type} end zones", dark=dark, ax=ax_heat,
     )
 
     summary = set_piece_summary(events)
@@ -551,16 +607,20 @@ def plot_dashboard(
     ax_attempts = fig.add_subplot(gs[1, 0])
     plot_team_comparison(
         both_teams, metric="attempts", team_names=team_names, team_order=team_order,
-        title="Attempts by set-piece type", ax=ax_attempts,
+        title="Attempts by set-piece type", dark=dark, ax=ax_attempts,
     )
 
     ax_rate = fig.add_subplot(gs[1, 1])
     plot_team_comparison(
         both_teams, metric="success_rate", team_names=team_names, team_order=team_order,
-        title="Success rate by set-piece type", ax=ax_rate,
+        title="Success rate by set-piece type", dark=dark, ax=ax_rate,
     )
 
-    fig.suptitle(title or f"{label} — set-piece report", color=theme.INK_PRIMARY, fontsize=16, y=0.98)
+    fig.suptitle(title or f"{label} — set-piece report", color=pal.ink_primary, fontsize=16, fontweight="bold", y=0.98)
+    if subtitle:
+        fig.text(0.5, 0.945, subtitle, ha="center", va="top", color=pal.ink_secondary, fontsize=11)
+    if footer:
+        pal.style_footer(fig, footer)
     return fig
 
 
@@ -578,6 +638,9 @@ def plot_set_piece_radar(
     metrics: list[str] | None = None,
     team_names: dict | None = None,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
 ):
     """Two-team radar comparing set-piece metrics, from :func:`~wa_setpieces.set_piece_report`.
@@ -600,6 +663,8 @@ def plot_set_piece_radar(
         ``(fig, ax)``.
     """
     from mplsoccer import Radar
+
+    pal = theme.get_palette(dark)
 
     if len(report) != 2:
         raise ValueError(f"plot_set_piece_radar needs exactly 2 teams, got {len(report)}")
@@ -642,26 +707,26 @@ def plot_set_piece_radar(
 
     fig = None
     if ax is None:
-        fig, ax = radar.setup_axis(facecolor=theme.SURFACE, figsize=(9, 9))
+        fig, ax = radar.setup_axis(facecolor=pal.surface, figsize=(9, 9))
     else:
-        radar.setup_axis(facecolor=theme.SURFACE, ax=ax)
+        radar.setup_axis(facecolor=pal.surface, ax=ax)
 
-    radar.draw_circles(ax=ax, facecolor=theme.SURFACE, edgecolor=theme.GRIDLINE)
+    radar.draw_circles(ax=ax, facecolor=pal.surface, edgecolor=pal.gridline)
     radar.draw_radar_compare(
         values_a, values_b, ax=ax,
-        kwargs_radar={"facecolor": theme.CATEGORICAL[0], "alpha": 0.6},
-        kwargs_compare={"facecolor": theme.CATEGORICAL[1], "alpha": 0.6},
+        kwargs_radar={"facecolor": pal.team_colors[0], "alpha": 0.6},
+        kwargs_compare={"facecolor": pal.team_colors[1], "alpha": 0.6},
     )
-    radar.draw_range_labels(ax=ax, color=theme.INK_SECONDARY, fontsize=9)
-    radar.draw_param_labels(ax=ax, color=theme.INK_PRIMARY, fontsize=11)
+    radar.draw_range_labels(ax=ax, color=pal.ink_secondary, fontsize=9)
+    radar.draw_param_labels(ax=ax, color=pal.ink_primary, fontsize=11)
 
     import matplotlib.patches as mpatches
 
     label_a = (team_names or {}).get(row_a["contestantId"], f"{row_a['contestantId'][:8]}…")
     label_b = (team_names or {}).get(row_b["contestantId"], f"{row_b['contestantId'][:8]}…")
     handles = [
-        mpatches.Patch(color=theme.CATEGORICAL[0], label=label_a),
-        mpatches.Patch(color=theme.CATEGORICAL[1], label=label_b),
+        mpatches.Patch(color=pal.team_colors[0], label=label_a),
+        mpatches.Patch(color=pal.team_colors[1], label=label_b),
     ]
     # loc="upper right" with no bbox_to_anchor keeps the legend inside the
     # axes' own bounding box (radar param labels leave the corners empty) --
@@ -670,11 +735,10 @@ def plot_set_piece_radar(
     # default scraper), losing the text entirely.
     ax.legend(
         handles=handles, loc="upper right",
-        facecolor=theme.SURFACE, edgecolor="none", labelcolor=theme.INK_PRIMARY,
+        facecolor=pal.surface, edgecolor="none", labelcolor=pal.ink_primary,
     )
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax
 
 
@@ -693,6 +757,9 @@ _OUTCOME_LABELS = {
 def plot_set_piece_outcomes(
     outcomes: pd.DataFrame,
     title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -703,7 +770,9 @@ def plot_set_piece_outcomes(
     (see :mod:`wa_setpieces.outcomes` for the category definitions and
     where each category's point is placed -- e.g. the first-contact spot
     for a won/lost/aerial duel, the shot spot for a direct or second-phase
-    shot). Deliveries that ended in a goal get a ring around the marker.
+    shot). Deliveries that ended in a goal get a gold ring around the
+    marker -- the same fixed goal accent used elsewhere in the package,
+    distinct from both the category colors and the status colors.
 
     Colors follow the fixed categorical order in
     :data:`~wa_setpieces.outcomes.OUTCOME_CATEGORIES`, not the order
@@ -715,16 +784,17 @@ def plot_set_piece_outcomes(
     """
     from .outcomes import OUTCOME_CATEGORIES
 
-    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
 
-    color_map = {cat: theme.CATEGORICAL[i % len(theme.CATEGORICAL)] for i, cat in enumerate(OUTCOME_CATEGORIES)}
+    color_map = {cat: pal.categorical[i % len(pal.categorical)] for i, cat in enumerate(OUTCOME_CATEGORIES)}
     present = [cat for cat in OUTCOME_CATEGORIES if (outcomes["category"] == cat).any()]
 
     for cat in present:
         rows = outcomes[outcomes["category"] == cat]
         pitch.scatter(
             rows["x"], rows["y"], ax=ax, color=color_map[cat], s=110,
-            edgecolors=theme.INK_PRIMARY, linewidths=0.7,
+            edgecolors=pal.ink_primary, linewidths=0.7,
             label=_OUTCOME_LABELS.get(cat, cat), zorder=3,
         )
 
@@ -732,11 +802,10 @@ def plot_set_piece_outcomes(
     if not goals.empty:
         pitch.scatter(
             goals["x"], goals["y"], ax=ax, facecolors="none",
-            edgecolors=theme.INK_PRIMARY, linewidths=2, s=240, zorder=4, label="Goal",
+            edgecolors=pal.gold, linewidths=2.5, s=240, zorder=4, label="Goal",
         )
 
-    theme.style_legend(ax, loc="upper left", fontsize=8, ncol=1)
-    theme.style_axis_text(ax, title)
-    if fig is not None:
-        fig.patch.set_facecolor(theme.SURFACE)
+    pal.style_legend(ax, loc="upper left", fontsize=8, ncol=1)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
     return fig, ax

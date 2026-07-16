@@ -1,6 +1,43 @@
 Changelog
 =========
 
+0.7.0
+-----
+
+- **Restyled the whole plotting suite and added light/dark mode.** Every
+  function in ``wa_setpieces.viz`` now takes ``dark: bool = True`` --
+  the pitch, chart chrome and team colors all switch between two
+  validated palettes in ``wa_setpieces.theme`` (``get_palette(dark)``)
+  with that one argument. Both a navy dark surface (``#0d1117``) and a
+  clean white light surface (``#ffffff``) pass the full colorblind-safety
+  and contrast validator, run against their own chart surface.
+- Two-team charts (``plot_team_comparison``, ``plot_match_timeline``,
+  ``plot_dashboard``, ``plot_set_piece_radar``) now use a fixed,
+  validated orange-then-blue ``team_colors`` pairing instead of the
+  general 8-slot categorical order's blue/green -- the first team is
+  always orange, the second always blue, consistent across a whole
+  report. This is a separate, standalone-validated 2-color convention;
+  the general ``CATEGORICAL`` order (used by e.g.
+  ``plot_set_piece_outcomes``'s 8 outcome categories) is unchanged.
+- New fixed ``theme.GOLD`` accent for goals, used for the "Goal" ring in
+  ``plot_set_piece_outcomes`` and the second-phase-shot highlight in
+  ``plot_second_phase`` (previously the categorical yellow slot and a
+  plain white ring, respectively) -- distinct from both team colors and
+  the good/critical status colors, never reused for series identity.
+- Every plotting function gained optional ``subtitle`` (a muted line
+  under the title) and ``footer`` (a small credit/source line,
+  bottom-right of the figure) parameters. Neither is set by default --
+  a source credit belongs to whoever is publishing the chart.
+- Fixed a legend/bar overlap in ``plot_team_comparison``: the default
+  ``loc="lower right"`` legend clipped into the throw-in bars (the
+  longest, at the bottom of the chart, in the sample match); moved to
+  ``upper right``, verified against the sample match with no collision.
+- ``theme.Palette`` and ``theme.get_palette(dark)`` are the new
+  recommended API; the old module-level constants (``theme.SURFACE``,
+  ``theme.CATEGORICAL``, ...) still work, pinned to the dark palette.
+- Gallery grew from 13 examples to 14, with a new light/dark
+  side-by-side example.
+
 0.6.0
 -----
 
