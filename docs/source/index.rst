@@ -1,21 +1,43 @@
 opta-setpieces
 ===============
 
-Set-piece metrics for football (soccer) matches from **Opta / Stats Perform
-F24** event-feed JSON exports: penalties, kick-offs, free kicks, corners,
-throw-ins and goal kicks.
+**Set-piece metrics and pitch visualizations for Opta / Stats Perform F24
+event data**, built on `pandas <https://pandas.pydata.org>`_ and
+`mplsoccer <https://mplsoccer.readthedocs.io>`_.
 
-Given a raw F24 match file, this package tags every set-piece restart,
-aggregates attempts and success rates by team and player, tracks pass end
-locations for delivery maps, and links each set piece to the shot or goal
-it produced.
+Point it at an F24 match export and get: penalty, kick-off, free-kick,
+corner, throw-in and goal-kick detection; team/player attempt and success
+rates; second-phase shot detection for corners and free kicks; possession
+retention; pitch zones/thirds/channels; and a grid-based Expected Threat
+(xT) model -- all as tidy DataFrames, plus ready-made pitch plots.
 
 .. code-block:: python
 
    from opta_setpieces import load_events, set_piece_summary
+   from opta_setpieces.viz import plot_delivery_map
+   from opta_setpieces import delivery_locations
 
    match = load_events("match.json")
-   print(set_piece_summary(match.events))
+   set_piece_summary(match.events)
+
+   corners = delivery_locations(match.events, "corner")
+   plot_delivery_map(corners, title="Corner deliveries")
+
+.. image:: _static/hero_corners.png
+   :alt: Corner delivery map drawn with mplsoccer
+   :align: center
+   :width: 640px
+
+See the :ref:`gallery` for the full set of plots (delivery maps, zone
+heatmaps, second-phase sequences, xT grids) with source code for each.
+
+Install
+-------
+
+.. code-block:: bash
+
+   pip install -e .              # core package
+   pip install -e ".[viz]"       # + matplotlib/mplsoccer for the plotting helpers
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +45,7 @@ it produced.
 
    installation
    quickstart
+   gallery/index
    advanced
    qualifiers
    api

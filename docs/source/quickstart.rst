@@ -107,3 +107,18 @@ Command line
 
    opta-setpieces match.json
    opta-setpieces match.json --csv summary.csv
+
+Plotting
+---------
+
+``pip install "opta-setpieces[viz]"`` adds :mod:`opta_setpieces.viz`,
+pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_ for
+everything above -- delivery maps, zone heatmaps, second-phase sequences,
+xT grids. See the :ref:`gallery` for the full set with source code.
+
+.. code-block:: python
+
+   from opta_setpieces.viz import plot_delivery_map
+
+   corners = delivery_locations(match.events, "corner")
+   fig, ax = plot_delivery_map(corners, title="Corner deliveries")

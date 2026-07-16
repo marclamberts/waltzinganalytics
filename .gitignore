@@ -5,5 +5,7 @@ build/
 dist/
 .pytest_cache/
 docs/_build/
+docs/source/gallery/
+docs/source/sg_execution_times.rst
 .venv/
 *.egg

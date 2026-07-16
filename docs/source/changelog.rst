@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.3.0
+-----
+
+- ``opta_setpieces.viz``: mplsoccer-based pitch plots -- delivery maps,
+  zone heatmaps, xT grids, and second-phase sequence plots (new ``viz``
+  optional extra).
+- ``opta_setpieces.zones.to_reference_frame``: mirrors one team's events
+  onto a shared pitch frame, fixing a real bug where plotting both teams'
+  raw coordinates together produced nonsensical positions (each event's
+  x/y is in *that team's own* attacking direction).
+- Docs rebuilt on ``pydata-sphinx-theme`` + ``sphinx-gallery`` (mplsoccer's
+  stack): a runnable example gallery with embedded plots and DataFrame
+  output, executed fresh on every docs build.
+
 0.2.0
 -----
 

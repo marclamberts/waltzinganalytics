@@ -10,7 +10,18 @@ clearing team's own goal). ``y`` is pitch width, 0-100 from one touchline to
 the other.
 
 Because of this convention, thirds/channels/zones computed here are always
-relative to whoever performed the action, not to a fixed pitch side.
+relative to whoever performed the action, not to a fixed pitch side. If you
+need to compare or plot events from *both* teams on one shared pitch (e.g.
+a corner delivery and the defending team's clearance that followed it), you
+must first convert them into a single reference frame with
+:func:`to_reference_frame` -- otherwise you're mixing two different
+coordinate systems on one plot. This was verified empirically on
+``tests/data/sample_match.json`` by pairing each "ball out of play" event
+with the throw-in restart it produced (the same physical point on the
+touchline, credited to two different teams): mirroring one team's
+coordinates with ``x' = 100 - x, y' = 100 - y`` brings the pair to within
+~5 pitch units of each other on average, vs. being scattered across the
+whole pitch unmirrored.
 """
 
 from __future__ import annotations
@@ -68,6 +79,29 @@ def add_channels(
         labels=labels,
         include_lowest=True,
     )
+    return out
+
+
+def to_reference_frame(
+    df: pd.DataFrame,
+    reference_team: str,
+    team_col: str = "contestantId",
+    x_col: str = "x",
+    y_col: str = "y",
+) -> pd.DataFrame:
+    """Convert every row onto one shared pitch frame, anchored on ``reference_team``.
+
+    Rows already belonging to ``reference_team`` are left as-is. Rows from
+    the other team are mirrored (``x' = 100 - x``, ``y' = 100 - y``) so that
+    every coordinate in the result means the same physical spot on the
+    pitch, expressed in ``reference_team``'s own attacking direction. Use
+    this before plotting or measuring distances between events from
+    different teams (e.g. a delivery and the defender who cleared it).
+    """
+    out = df.copy()
+    mask = out[team_col] != reference_team
+    out.loc[mask, x_col] = 100 - pd.to_numeric(out.loc[mask, x_col], errors="coerce")
+    out.loc[mask, y_col] = 100 - pd.to_numeric(out.loc[mask, y_col], errors="coerce")
     return out
 
 

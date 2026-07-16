@@ -28,9 +28,16 @@ from .phases import (
 )
 from .retention import retention_detail, retention_rate
 from .xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
-from .zones import add_channels, add_thirds, add_zone_grid, zone_counts, zone_id
+from .zones import (
+    add_channels,
+    add_thirds,
+    add_zone_grid,
+    to_reference_frame,
+    zone_counts,
+    zone_id,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "Match",
@@ -61,6 +68,7 @@ __all__ = [
     "add_thirds",
     "add_channels",
     "add_zone_grid",
+    "to_reference_frame",
     "zone_id",
     "zone_counts",
     "__version__",

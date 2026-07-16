@@ -9,9 +9,14 @@ aggregates attempts/success rates by team and player, tracks pass end
 locations for delivery maps, and links each set piece to the shot or goal
 it produced (via Opta's assist-chain qualifier). It also covers, for
 corners and free kicks specifically: second-phase detection, Expected
-Threat (xT), pitch zones/thirds/channels, and possession retention.
+Threat (xT), pitch zones/thirds/channels, and possession retention —
+with pitch plots built on [mplsoccer](https://mplsoccer.readthedocs.io).
 
-Full documentation: https://waltzinganalytics.readthedocs.io
+<p align="center">
+  <img src="docs/source/_static/hero_corners.png" alt="Corner delivery map drawn with mplsoccer" width="640">
+</p>
+
+**Full documentation, with a runnable plot gallery: https://waltzinganalytics.readthedocs.io**
 
 ## Install
 
@@ -65,6 +70,25 @@ All four are **derived heuristics**, not raw Opta fields — see
 `docs/source/advanced.rst` (or the hosted docs) for the exact assumptions
 and tunable thresholds behind each one.
 
+## Plots
+
+```bash
+pip install -e ".[viz]"   # matplotlib + mplsoccer
+```
+
+```python
+from opta_setpieces.viz import plot_delivery_map, plot_zone_heatmap, plot_xt_grid, plot_second_phase
+
+plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
+plot_zone_heatmap(extract_corners(match.events), title="Corner origin zones")
+plot_xt_grid(model)
+plot_second_phase(match.events, delivery_event_id=610)  # numbered touches through a phase
+```
+
+Every plotting function returns `(fig, ax)` for further customization. See
+the [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
+for all of these with full source code.
+
 ## Command line
 
 ```bash
@@ -100,6 +124,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `opta_setpieces.phases` — second-phase detection for corners/free kicks.
 - `opta_setpieces.retention` — possession retention after any restart.
 - `opta_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
+- `opta_setpieces.viz` — mplsoccer-based pitch plots (optional `viz` extra).
 - `opta_setpieces.cli` — `opta-setpieces` command-line tool.
 
 ## Development
@@ -111,8 +136,11 @@ pytest
 
 ## Docs
 
-Docs are built with Sphinx and hosted on Read the Docs (`.readthedocs.yaml`
-at the repo root). To build locally:
+Docs are built with Sphinx (`pydata-sphinx-theme` + `sphinx-gallery`, the
+same stack mplsoccer's docs use) and hosted on Read the Docs
+(`.readthedocs.yaml` at the repo root). The gallery under `examples_gallery/`
+is executed at build time, so its plots and DataFrame outputs are always
+current. To build locally:
 
 ```bash
 pip install -e ".[docs]"

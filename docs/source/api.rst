@@ -65,6 +65,17 @@ xt
    :undoc-members:
    :show-inheritance:
 
+viz
+---
+
+Requires the ``viz`` extra (``pip install "opta-setpieces[viz]"``). See the
+:ref:`gallery` for these in action.
+
+.. automodule:: opta_setpieces.viz
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 constants
 ---------
 

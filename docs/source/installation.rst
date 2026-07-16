@@ -9,18 +9,21 @@ From source (this repository):
    cd waltzinganalytics
    pip install -e .
 
-For running the test suite or building the docs:
+For the plotting helpers (:mod:`opta_setpieces.viz`, the :ref:`gallery`),
+running the test suite, or building the docs:
 
 .. code-block:: bash
 
+   pip install -e ".[viz]"    # matplotlib, mplsoccer -- pitch plots
    pip install -e ".[dev]"    # pytest
-   pip install -e ".[docs]"   # sphinx, furo, myst-parser
+   pip install -e ".[docs]"   # sphinx, pydata-sphinx-theme, sphinx-gallery, viz
 
 Requirements
 ------------
 
 - Python 3.9+
 - pandas >= 1.5
+- matplotlib >= 3.6 and mplsoccer >= 1.2 (only for :mod:`opta_setpieces.viz`)
 
 Input data
 ----------

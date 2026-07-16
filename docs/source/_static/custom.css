@@ -1,0 +1,27 @@
+:root {
+  --pst-color-primary: 42, 143, 87;
+  --pst-color-secondary: 201, 92, 66;
+}
+
+html[data-theme="dark"] {
+  --pst-color-primary: 92, 189, 134;
+}
+
+.bd-main .bd-content {
+  max-width: 62rem;
+}
+
+/* Gallery thumbnails: pitch plots read better with a touch of breathing room */
+.sphx-glr-thumbcontainer {
+  border-radius: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sphx-glr-thumbcontainer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+code, .highlight {
+  border-radius: 6px;
+}
