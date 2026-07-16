@@ -73,6 +73,14 @@ value
    :undoc-members:
    :show-inheritance:
 
+outcomes
+--------
+
+.. automodule:: wa_setpieces.outcomes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 report
 ------
 

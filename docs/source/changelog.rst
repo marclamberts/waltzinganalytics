@@ -1,6 +1,31 @@
 Changelog
 =========
 
+0.6.0
+-----
+
+- ``wa_setpieces.outcomes``: per-delivery outcome classification for
+  corners and free kicks -- ``short_corner``, ``direct_shot``,
+  ``second_phase_shot``, ``aerial_duel`` ("50/50", ``typeId`` 44),
+  ``cleared``, ``first_touch_won``, ``first_touch_lost`` or ``no_action``.
+  ``delivery_outcomes`` (per-delivery) and ``outcome_summary`` (per-team
+  rollup). Built on ``wa_setpieces.phases``, which now also records
+  whether a set piece produced a direct shot on the delivery itself
+  (``PhaseResult.direct_shot``/``direct_shot_event_id``/``direct_shot_is_goal``)
+  -- previously that information was discarded once a direct shot was
+  detected.
+- ``viz.plot_set_piece_outcomes``: a colored-scatter shot map, one point
+  per delivery at the outcome location, colored by category, with a ring
+  around goals. Gallery grew from 12 examples to 13.
+- Fixed a threshold contradiction in the short-corner heuristic: the
+  original ``max_distance=15.0`` *and* ``max_end_x=85.0`` conditions were
+  nearly mutually exclusive given corners start at x≈99.5 (at most ~0.5
+  units of overlap, eliminated entirely by any y-component), so almost no
+  short corner could ever satisfy both. Dropped the end-x condition and
+  lowered the distance threshold to a more realistic 12.0; verified this
+  correctly reclassifies a real short corner in the sample match that the
+  old thresholds mislabeled as a lost first touch.
+
 0.5.1
 -----
 

@@ -13,6 +13,7 @@ from wa_setpieces import (  # noqa: E402
     load_events,
     set_piece_summary,
 )
+from wa_setpieces.outcomes import OUTCOME_CATEGORIES, delivery_outcomes  # noqa: E402
 from wa_setpieces.phases import second_phases  # noqa: E402
 from wa_setpieces.report import corner_report  # noqa: E402
 from wa_setpieces.xt import XTModel, set_piece_delivery_xt  # noqa: E402
@@ -206,3 +207,63 @@ def test_plot_set_piece_radar_rejects_no_usable_metrics(events):
     report = corner_report(events)[["contestantId"]]
     with pytest.raises(ValueError, match="no usable metric columns"):
         viz.plot_set_piece_radar(report)
+
+
+def test_plot_set_piece_outcomes_returns_fig_and_ax(events):
+    outcomes = delivery_outcomes(events, "corner")
+    fig, ax = viz.plot_set_piece_outcomes(outcomes, title="Corner outcomes")
+    assert fig is not None
+    assert ax is not None
+
+
+def test_plot_set_piece_outcomes_legend_matches_present_categories(events):
+    outcomes = delivery_outcomes(events, "corner")
+    fig, ax = viz.plot_set_piece_outcomes(outcomes)
+    legend_labels = {t.get_text() for t in ax.get_legend().get_texts()}
+    present_categories = set(outcomes["category"].unique())
+    expected_labels = {viz._OUTCOME_LABELS[cat] for cat in present_categories}
+    assert expected_labels.issubset(legend_labels)
+
+
+def test_plot_set_piece_outcomes_goal_ring_only_when_goals_exist(events):
+    outcomes = delivery_outcomes(events, "corner")
+    fig, ax = viz.plot_set_piece_outcomes(outcomes)
+    legend_labels = {t.get_text() for t in ax.get_legend().get_texts()}
+    # No goals from corners in the sample match.
+    assert not outcomes["is_goal"].any()
+    assert "Goal" not in legend_labels
+
+
+def test_plot_set_piece_outcomes_handles_free_kicks(events):
+    outcomes = delivery_outcomes(events, "free_kick")
+    fig, ax = viz.plot_set_piece_outcomes(outcomes, title="Free-kick outcomes")
+    assert fig is not None
+
+
+def test_plot_set_piece_outcomes_color_stable_across_category_order():
+    # Colors are assigned by OUTCOME_CATEGORIES' fixed order, not by
+    # whichever categories happen to appear first in a given match -- so
+    # the same category is always the same color across different plots,
+    # regardless of which order the categories appear in the data.
+    import pandas as pd
+
+    outcomes_a = pd.DataFrame(
+        {"category": ["cleared", "aerial_duel"], "x": [50, 60], "y": [50, 60], "is_goal": [False, False]}
+    )
+    outcomes_b = pd.DataFrame(
+        {"category": ["aerial_duel", "cleared"], "x": [60, 50], "y": [60, 50], "is_goal": [False, False]}
+    )
+    _, ax_a = viz.plot_set_piece_outcomes(outcomes_a)
+    _, ax_b = viz.plot_set_piece_outcomes(outcomes_b)
+
+    def color_for_label(ax, label):
+        for coll in ax.collections:
+            if coll.get_label() == label:
+                return tuple(coll.get_facecolor()[0])
+        raise AssertionError(f"no series labelled {label!r}")
+
+    cleared_label = viz._OUTCOME_LABELS["cleared"]
+    aerial_label = viz._OUTCOME_LABELS["aerial_duel"]
+    assert color_for_label(ax_a, cleared_label) == color_for_label(ax_b, cleared_label)
+    assert color_for_label(ax_a, aerial_label) == color_for_label(ax_b, aerial_label)
+    assert color_for_label(ax_a, cleared_label) != color_for_label(ax_a, aerial_label)

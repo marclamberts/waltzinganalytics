@@ -26,6 +26,7 @@ from .phases import (
     second_phase_summary,
     second_phases,
 )
+from .outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
 from .report import corner_report, free_kick_report, set_piece_report
 from .retention import retention_detail, retention_rate
 from .value import set_piece_added_value, set_piece_value_summary
@@ -39,7 +40,7 @@ from .zones import (
     zone_id,
 )
 
-__version__ = "0.5.1"
+__version__ = "0.6.0"
 
 __all__ = [
     "Match",
@@ -73,6 +74,9 @@ __all__ = [
     "set_piece_report",
     "corner_report",
     "free_kick_report",
+    "OUTCOME_CATEGORIES",
+    "delivery_outcomes",
+    "outcome_summary",
     "add_thirds",
     "add_channels",
     "add_zone_grid",

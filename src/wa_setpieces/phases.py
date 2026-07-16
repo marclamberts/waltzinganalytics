@@ -12,8 +12,8 @@ delivery and classifies what happened to the ball:
   ``clear_safe_x`` (using the confirmed F24 convention that every event's
   ``x`` is in *that event's own team's* attacking direction, i.e. low ``x``
   = deep in that team's own defensive zone -- see :mod:`wa_setpieces.zones`).
-- **First-phase shot**: the attacking team shoots directly off the delivery
-  (the very next event in the window is a shot).
+- **Direct shot**: the attacking team shoots directly off the delivery
+  (the very first event in the window is a shot).
 - **Second-phase shot**: the ball stays alive near the defending team's goal
   (a loose ball, knockdown, or blocked/partial clearance) and the attacking
   team gets a further shot away before the danger is cleared or the ball
@@ -94,6 +94,9 @@ class PhaseResult:
     first_contact_team: str | None
     first_contact_type_id: float | None
     cleared_immediately: bool
+    direct_shot: bool
+    direct_shot_event_id: float | None
+    direct_shot_is_goal: bool
     second_phase_shot: bool
     second_phase_event_id: float | None
     second_phase_is_goal: bool
@@ -138,6 +141,9 @@ def classify_phase(
         first_contact_team=None,
         first_contact_type_id=None,
         cleared_immediately=False,
+        direct_shot=False,
+        direct_shot_event_id=None,
+        direct_shot_is_goal=False,
         second_phase_shot=False,
         second_phase_event_id=None,
         second_phase_is_goal=False,
@@ -159,6 +165,9 @@ def classify_phase(
         if row["typeId"] in c.SHOT_TYPE_IDS and row["contestantId"] == attacking_team:
             if i == 0:
                 # Direct shot off the delivery itself -- first-phase, not second.
+                result.direct_shot = True
+                result.direct_shot_event_id = row["eventId"]
+                result.direct_shot_is_goal = row["typeId"] == c.TYPE_GOAL
                 break
             result.second_phase_shot = True
             result.second_phase_event_id = row["eventId"]

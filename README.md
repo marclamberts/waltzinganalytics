@@ -52,7 +52,7 @@ cxb4hqite921i...    throw_in        20          16         0.800      1      0
 ...
 ```
 
-## Second phases, xT, zones, retention and added value
+## Second phases, xT, zones, retention, added value and outcomes
 
 ```python
 from wa_setpieces import (
@@ -62,6 +62,7 @@ from wa_setpieces import (
     XTModel, set_piece_delivery_xt, set_piece_xt_summary,  # Expected Threat
     set_piece_added_value, set_piece_value_summary,  # xT + shot quality + goals, blended
     corner_report, free_kick_report,       # all of the above, merged into one table per team
+    delivery_outcomes, outcome_summary,    # per-delivery outcome category, for a shot map
 )
 
 second_phases(match.events, "corner")           # per-corner: cleared / first-phase shot / second-phase shot
@@ -77,6 +78,9 @@ set_piece_xt_summary(match.events, "corner", model)  # total/average xT added pe
 
 set_piece_added_value(match.events, "corner", model)  # per-delivery: xT added + resulting shot quality + goal
 corner_report(match.events, model=model)              # attempts, success/retention/second-phase rate, added value -- one table
+
+delivery_outcomes(match.events, "corner")  # per-delivery: short_corner / direct_shot / second_phase_shot /
+                                            # aerial_duel (50/50) / cleared / first_touch_won / first_touch_lost
 ```
 
 All of the above are **derived heuristics**, not raw Opta fields — see
@@ -104,6 +108,7 @@ from wa_setpieces.viz import (
     plot_match_timeline,    # every set piece on one shared match-minute axis
     plot_dashboard,         # one-figure report card combining several of the above
     plot_set_piece_radar,   # two-team radar over a corner_report/free_kick_report
+    plot_set_piece_outcomes,  # shot map: every delivery, colored by outcome category
 )
 
 plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
@@ -118,7 +123,7 @@ status pair for success/fail, single-hue sequential ramps for magnitude,
 and a diverging pair for signed quantities like xT added — not picked for
 looks; see `wa_setpieces/theme.py`. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all ten plots with full source code.
+for all eleven plots with full source code.
 
 ## Command line
 
@@ -156,6 +161,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.retention` — possession retention after any restart.
 - `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
 - `wa_setpieces.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
+- `wa_setpieces.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
 - `wa_setpieces.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
 - `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
 - `wa_setpieces.theme` — the validated color palette every plot draws from.

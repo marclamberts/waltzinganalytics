@@ -676,3 +676,67 @@ def plot_set_piece_radar(
     if fig is not None:
         fig.patch.set_facecolor(theme.SURFACE)
     return fig, ax
+
+
+_OUTCOME_LABELS = {
+    "short_corner": "Short corner",
+    "direct_shot": "Direct shot",
+    "second_phase_shot": "Second-phase shot",
+    "aerial_duel": "Aerial duel (50/50)",
+    "cleared": "Cleared",
+    "first_touch_lost": "First touch lost",
+    "first_touch_won": "First touch won",
+    "no_action": "No action",
+}
+
+
+def plot_set_piece_outcomes(
+    outcomes: pd.DataFrame,
+    title: str | None = None,
+    ax=None,
+    pitch_kwargs: dict | None = None,
+):
+    """Shot-map-style scatter of corner/free-kick outcomes, from
+    :func:`~wa_setpieces.outcomes.delivery_outcomes`.
+
+    Each point is one delivery, colored by what happened right after it
+    (see :mod:`wa_setpieces.outcomes` for the category definitions and
+    where each category's point is placed -- e.g. the first-contact spot
+    for a won/lost/aerial duel, the shot spot for a direct or second-phase
+    shot). Deliveries that ended in a goal get a ring around the marker.
+
+    Colors follow the fixed categorical order in
+    :data:`~wa_setpieces.outcomes.OUTCOME_CATEGORIES`, not the order
+    categories happen to appear in this particular match, so the same
+    category is always the same color across different plots. With up to
+    8 categories in play, identity leans on the legend (direct labels),
+    not on hue alone, per the palette's own rule for categorical sets
+    past 4 series.
+    """
+    from .outcomes import OUTCOME_CATEGORIES
+
+    pitch, fig, ax = _draw_pitch(ax, pitch_kwargs)
+
+    color_map = {cat: theme.CATEGORICAL[i % len(theme.CATEGORICAL)] for i, cat in enumerate(OUTCOME_CATEGORIES)}
+    present = [cat for cat in OUTCOME_CATEGORIES if (outcomes["category"] == cat).any()]
+
+    for cat in present:
+        rows = outcomes[outcomes["category"] == cat]
+        pitch.scatter(
+            rows["x"], rows["y"], ax=ax, color=color_map[cat], s=110,
+            edgecolors=theme.INK_PRIMARY, linewidths=0.7,
+            label=_OUTCOME_LABELS.get(cat, cat), zorder=3,
+        )
+
+    goals = outcomes[outcomes["is_goal"]]
+    if not goals.empty:
+        pitch.scatter(
+            goals["x"], goals["y"], ax=ax, facecolors="none",
+            edgecolors=theme.INK_PRIMARY, linewidths=2, s=240, zorder=4, label="Goal",
+        )
+
+    theme.style_legend(ax, loc="upper left", fontsize=8, ncol=1)
+    theme.style_axis_text(ax, title)
+    if fig is not None:
+        fig.patch.set_facecolor(theme.SURFACE)
+    return fig, ax
