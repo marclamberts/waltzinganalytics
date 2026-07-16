@@ -7,7 +7,9 @@ throw-ins and goal kicks.
 Given a raw F24 match file, this package tags every set-piece restart,
 aggregates attempts/success rates by team and player, tracks pass end
 locations for delivery maps, and links each set piece to the shot or goal
-it produced (via Opta's assist-chain qualifier).
+it produced (via Opta's assist-chain qualifier). It also covers, for
+corners and free kicks specifically: second-phase detection, Expected
+Threat (xT), pitch zones/thirds/channels, and possession retention.
 
 Full documentation: https://waltzinganalytics.readthedocs.io
 
@@ -37,11 +39,38 @@ cxb4hqite921i...    throw_in        20          16         0.800      1      0
 ...
 ```
 
+## Second phases, xT, zones and retention
+
+```python
+from opta_setpieces import (
+    second_phases, second_phase_summary,   # corner/free-kick second-phase shots
+    retention_detail, retention_rate,      # possession retained N seconds later
+    add_thirds, add_channels, add_zone_grid,  # pitch location tagging
+    XTModel, set_piece_delivery_xt, set_piece_xt_summary,  # Expected Threat
+)
+
+second_phases(match.events, "corner")           # per-corner: cleared / first-phase shot / second-phase shot
+second_phase_summary(match.events, "free_kick") # per-team roll-up
+
+retention_rate(match.events, "corner")          # per-team: % of corners where the ball is retained ~8s later
+
+tagged = add_thirds(match.events)               # defensive_third / middle_third / attacking_third
+tagged = add_channels(tagged, n=5)              # wide / half-space / central
+
+model = XTModel.fit(match.events)               # fit an xT grid (fit on many matches for real use!)
+set_piece_xt_summary(match.events, "corner", model)  # total/average xT added per team
+```
+
+All four are **derived heuristics**, not raw Opta fields — see
+`docs/source/advanced.rst` (or the hosted docs) for the exact assumptions
+and tunable thresholds behind each one.
+
 ## Command line
 
 ```bash
 opta-setpieces match.json
 opta-setpieces match.json --csv summary.csv
+opta-setpieces match.json --xt   # also fit + print xT for this match (illustrative on one match)
 ```
 
 ## What counts as a set piece
@@ -67,6 +96,10 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `opta_setpieces.filters` — extract/tag each set-piece type.
 - `opta_setpieces.metrics` — team/player counts, success rates, delivery locations.
 - `opta_setpieces.chains` — link set pieces to the shots/goals they produced.
+- `opta_setpieces.zones` — pitch thirds, channels and a configurable zone grid.
+- `opta_setpieces.phases` — second-phase detection for corners/free kicks.
+- `opta_setpieces.retention` — possession retention after any restart.
+- `opta_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
 - `opta_setpieces.cli` — `opta-setpieces` command-line tool.
 
 ## Development

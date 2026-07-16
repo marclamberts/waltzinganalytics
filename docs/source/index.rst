@@ -23,6 +23,7 @@ it produced.
 
    installation
    quickstart
+   advanced
    qualifiers
    api
    changelog

@@ -20,8 +20,17 @@ from .metrics import (
     set_piece_summary,
     team_set_piece_counts,
 )
+from .phases import (
+    PhaseResult,
+    classify_phase,
+    second_phase_summary,
+    second_phases,
+)
+from .retention import retention_detail, retention_rate
+from .xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+from .zones import add_channels, add_thirds, add_zone_grid, zone_counts, zone_id
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Match",
@@ -40,5 +49,19 @@ __all__ = [
     "player_set_piece_counts",
     "delivery_locations",
     "set_piece_summary",
+    "PhaseResult",
+    "classify_phase",
+    "second_phases",
+    "second_phase_summary",
+    "retention_detail",
+    "retention_rate",
+    "XTModel",
+    "set_piece_delivery_xt",
+    "set_piece_xt_summary",
+    "add_thirds",
+    "add_channels",
+    "add_zone_grid",
+    "zone_id",
+    "zone_counts",
     "__version__",
 ]

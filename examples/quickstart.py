@@ -8,10 +8,15 @@ Run from the repo root:
 from pathlib import Path
 
 from opta_setpieces import (
+    XTModel,
+    add_channels,
     delivery_locations,
     load_events,
+    retention_rate,
+    second_phase_summary,
     set_piece_goal_summary,
     set_piece_summary,
+    set_piece_xt_summary,
 )
 
 DATA = Path(__file__).parent.parent / "tests" / "data" / "sample_match.json"
@@ -33,7 +38,27 @@ def main() -> None:
     print()
 
     print("== Corner delivery end locations ==")
-    print(delivery_locations(match.events, "corner").to_string(index=False))
+    corners = delivery_locations(match.events, "corner")
+    print(corners.to_string(index=False))
+    print()
+
+    print("== Corner delivery end channel (wide / half-space / central) ==")
+    print(add_channels(corners, y_col="end_y", n=5)["channel"].value_counts())
+    print()
+
+    print("== Corner second phases (per team) ==")
+    print(second_phase_summary(match.events, "corner").to_string(index=False))
+    print()
+
+    print("== Free-kick retention: still in possession ~8s later ==")
+    print(retention_rate(match.events, "free_kick").to_string(index=False))
+    print()
+
+    print("== xT added by corner/free-kick deliveries ==")
+    print("(fit on this single match -- illustrative only, see docs)")
+    model = XTModel.fit(match.events)
+    print(set_piece_xt_summary(match.events, "corner", model).to_string(index=False))
+    print(set_piece_xt_summary(match.events, "free_kick", model).to_string(index=False))
 
 
 if __name__ == "__main__":

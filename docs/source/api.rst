@@ -33,6 +33,38 @@ chains
    :undoc-members:
    :show-inheritance:
 
+zones
+-----
+
+.. automodule:: opta_setpieces.zones
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+phases
+------
+
+.. automodule:: opta_setpieces.phases
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+retention
+---------
+
+.. automodule:: opta_setpieces.retention
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+xt
+--
+
+.. automodule:: opta_setpieces.xt
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 constants
 ---------
 
