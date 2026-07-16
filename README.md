@@ -142,6 +142,20 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Releasing
+
+Publishing to PyPI is automated via GitHub Actions trusted publishing
+(`.github/workflows/publish.yml`) — no API token stored anywhere. **One-time
+setup** (only a PyPI project owner can do this, since it requires logging
+into PyPI):
+
+1. On PyPI: <https://pypi.org/manage/account/publishing/> → add a pending
+   trusted publisher with project name `wa-setpieces`, owner
+   `marclamberts`, repository `waltzinganalytics`, workflow `publish.yml`,
+   environment `pypi`.
+2. From then on, publishing a GitHub Release (or pushing a `v*` tag) builds
+   the sdist/wheel and uploads them automatically.
+
 ## Docs
 
 Docs are built with Sphinx (`pydata-sphinx-theme` + `sphinx-gallery`, the

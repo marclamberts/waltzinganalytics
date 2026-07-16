@@ -1,0 +1,55 @@
+name: Publish to PyPI
+
+# Trusted publishing (PEP 740 / PyPI OIDC): no API token is stored in this
+# repo. PyPI exchanges a short-lived GitHub Actions OIDC token for upload
+# rights at publish time -- see the one-time setup this workflow requires:
+# https://docs.pypi.org/trusted-publishers/
+#
+# One-time setup (only a PyPI project owner can do this):
+#   1. On PyPI, go to https://pypi.org/manage/account/publishing/
+#   2. Add a pending trusted publisher:
+#        PyPI project name: wa-setpieces
+#        Owner:             marclamberts
+#        Repository name:   waltzinganalytics
+#        Workflow name:     publish.yml
+#        Environment name:  pypi
+#   3. Push a GitHub Release (or a v* tag) -- this workflow builds and
+#      publishes automatically. No secrets to create or rotate.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/wa-setpieces
+    permissions:
+      id-token: write  # required for OIDC trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
