@@ -26,7 +26,9 @@ from .phases import (
     second_phase_summary,
     second_phases,
 )
+from .report import corner_report, free_kick_report, set_piece_report
 from .retention import retention_detail, retention_rate
+from .value import set_piece_added_value, set_piece_value_summary
 from .xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 from .zones import (
     add_channels,
@@ -37,7 +39,7 @@ from .zones import (
     zone_id,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "Match",
@@ -66,6 +68,11 @@ __all__ = [
     "XTModel",
     "set_piece_delivery_xt",
     "set_piece_xt_summary",
+    "set_piece_added_value",
+    "set_piece_value_summary",
+    "set_piece_report",
+    "corner_report",
+    "free_kick_report",
     "add_thirds",
     "add_channels",
     "add_zone_grid",

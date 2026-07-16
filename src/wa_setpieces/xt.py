@@ -68,6 +68,28 @@ class XTModel:
         """xT added by moving the ball from (start_x, start_y) to (end_x, end_y)."""
         return self.value(end_x, end_y) - self.value(start_x, start_y)
 
+    def shot_value(self, x: float, y: float) -> float:
+        """Scoring probability of a shot taken from (x, y): ``shot_probability * goal_probability``.
+
+        Unlike :meth:`value` (the value of *having the ball* in a zone,
+        counting both shooting and continuing to play), this is specifically
+        "if a shot is taken from here, how often does it go in" -- the
+        component :mod:`wa_setpieces.value` uses to score a set piece's
+        resulting shot, separately from the delivery's own xT added.
+
+        Only available on a model produced by :meth:`fit` (not one loaded
+        via :meth:`from_csv`, which only persists the value grid).
+        """
+        if self.shot_probability is None or self.goal_probability is None:
+            raise ValueError(
+                "shot_value requires a model fit with XTModel.fit() -- "
+                "shot/goal probability grids aren't persisted by to_csv/from_csv"
+            )
+        if pd.isna(x) or pd.isna(y):
+            return float("nan")
+        row, col = self.cell(x, y)
+        return float(self.shot_probability[row, col] * self.goal_probability[row, col])
+
     def value_series(self, x: pd.Series, y: pd.Series) -> pd.Series:
         """Vectorized :meth:`value` over two aligned coordinate Series."""
         xn = pd.to_numeric(x, errors="coerce").to_numpy()

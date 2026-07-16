@@ -1,10 +1,11 @@
-Zones, second phases, retention and xT
-=========================================
+Zones, second phases, retention, xT and added value
+=======================================================
 
-These four pieces build on the core extractors to answer questions the raw
+These pieces build on the core extractors to answer questions the raw
 qualifiers alone can't: *where* on the pitch did this happen, *did the
 danger continue* after the initial contact, *did the team keep the ball*,
-and *how much threat did the delivery create*.
+*how much threat did the delivery create*, and -- combining several of
+those -- *how much value did a set piece add, all in*.
 
 Everything on this page is a **derived heuristic** layered on top of the F24
 feed, not a field the provider gives you directly -- read each section's
@@ -161,3 +162,48 @@ collide).
       all_second_phases = pd.concat(
           [second_phases(load_events(f).events, "corner") for f in match_files]
       )
+
+Set-piece added value
+-------------------------
+
+:mod:`wa_setpieces.value` blends two things into one number per delivery:
+the xT added by the delivery itself, and -- if it produced a shot, whether
+straight off the ball or via a second-phase loose ball -- how good a
+chance that shot was (``model.shot_value``, the scoring probability of
+the zone the shot came from). ``added_value = delivery_xt_added +
+shot_value``, always a real number (0 where nothing happened), so it's
+always summable across a whole match or season.
+
+.. code-block:: python
+
+   from wa_setpieces import set_piece_added_value, set_piece_value_summary, XTModel
+
+   model = XTModel.fit(match.events)
+   set_piece_added_value(match.events, "corner", model)      # per-delivery breakdown
+   set_piece_value_summary(match.events, "corner", model)    # per-team total/average
+
+:func:`~wa_setpieces.corner_report` and :func:`~wa_setpieces.free_kick_report`
+(``set_piece_report`` generalized to any type) merge attempts, success
+rate, second-phase rate, retention rate, and -- with a model -- added
+value and goals into one table per team:
+
+.. code-block:: python
+
+   from wa_setpieces import corner_report
+
+   corner_report(match.events, model=model)
+
+.. important::
+
+   The shot a delivery "produced" is resolved via Opta's own assist-chain
+   qualifier (:func:`~wa_setpieces.link_set_piece_shots`), not a
+   positional guess. Getting this right required a real fix: **F24's
+   ``eventId`` is only unique within one team's own event stream** -- both
+   teams number their events 1, 2, 3, ... independently (confirmed against
+   the sample match: 1464 of 1613 rows share an ``eventId`` with a
+   same-numbered row from the *other* team). Every place in this package
+   that resolves one delivery/shot by ``eventId`` scopes the lookup to a
+   team (or narrows the search to just corner/free-kick deliveries and
+   raises on remaining ambiguity, as :func:`~wa_setpieces.viz.plot_second_phase`
+   does) -- an unscoped ``events[events["eventId"] == x]`` lookup on the raw
+   feed is not safe.

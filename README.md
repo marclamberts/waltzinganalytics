@@ -52,7 +52,7 @@ cxb4hqite921i...    throw_in        20          16         0.800      1      0
 ...
 ```
 
-## Second phases, xT, zones and retention
+## Second phases, xT, zones, retention and added value
 
 ```python
 from wa_setpieces import (
@@ -60,6 +60,8 @@ from wa_setpieces import (
     retention_detail, retention_rate,      # possession retained N seconds later
     add_thirds, add_channels, add_zone_grid,  # pitch location tagging
     XTModel, set_piece_delivery_xt, set_piece_xt_summary,  # Expected Threat
+    set_piece_added_value, set_piece_value_summary,  # xT + shot quality + goals, blended
+    corner_report, free_kick_report,       # all of the above, merged into one table per team
 )
 
 second_phases(match.events, "corner")           # per-corner: cleared / first-phase shot / second-phase shot
@@ -72,11 +74,17 @@ tagged = add_channels(tagged, n=5)              # wide / half-space / central
 
 model = XTModel.fit(match.events)               # fit an xT grid (fit on many matches for real use!)
 set_piece_xt_summary(match.events, "corner", model)  # total/average xT added per team
+
+set_piece_added_value(match.events, "corner", model)  # per-delivery: xT added + resulting shot quality + goal
+corner_report(match.events, model=model)              # attempts, success/retention/second-phase rate, added value -- one table
 ```
 
-All four are **derived heuristics**, not raw Opta fields — see
+All of the above are **derived heuristics**, not raw Opta fields — see
 `docs/source/advanced.rst` (or the hosted docs) for the exact assumptions
-and tunable thresholds behind each one.
+and tunable thresholds behind each one. That page also documents a real bug
+this uncovered and fixed: F24's `eventId` is only unique *within one team's
+own event stream*, not globally — every delivery/shot lookup in this
+package is scoped accordingly.
 
 ## Plots
 
@@ -95,10 +103,12 @@ from wa_setpieces.viz import (
     plot_corner_sonar,      # polar plot of delivery angle + distance
     plot_match_timeline,    # every set piece on one shared match-minute axis
     plot_dashboard,         # one-figure report card combining several of the above
+    plot_set_piece_radar,   # two-team radar over a corner_report/free_kick_report
 )
 
 plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
 plot_dashboard(match.events, team_id, set_piece_type="corner")  # the "hero" figure
+plot_set_piece_radar(corner_report(match.events, model=model))  # team A vs. team B, one glance
 ```
 
 Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
@@ -108,7 +118,7 @@ status pair for success/fail, single-hue sequential ramps for magnitude,
 and a diverging pair for signed quantities like xT added — not picked for
 looks; see `wa_setpieces/theme.py`. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all nine plots with full source code.
+for all ten plots with full source code.
 
 ## Command line
 
@@ -145,7 +155,9 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.phases` — second-phase detection for corners/free kicks.
 - `wa_setpieces.retention` — possession retention after any restart.
 - `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
-- `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard (optional `viz` extra).
+- `wa_setpieces.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
+- `wa_setpieces.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
+- `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
 - `wa_setpieces.theme` — the validated color palette every plot draws from.
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 

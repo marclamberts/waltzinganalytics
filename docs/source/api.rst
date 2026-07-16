@@ -65,6 +65,22 @@ xt
    :undoc-members:
    :show-inheritance:
 
+value
+-----
+
+.. automodule:: wa_setpieces.value
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+report
+------
+
+.. automodule:: wa_setpieces.report
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 viz
 ---
 

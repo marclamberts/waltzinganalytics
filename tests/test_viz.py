@@ -14,6 +14,7 @@ from wa_setpieces import (  # noqa: E402
     set_piece_summary,
 )
 from wa_setpieces.phases import second_phases  # noqa: E402
+from wa_setpieces.report import corner_report  # noqa: E402
 from wa_setpieces.xt import XTModel, set_piece_delivery_xt  # noqa: E402
 from wa_setpieces import viz  # noqa: E402
 
@@ -69,6 +70,30 @@ def test_plot_second_phase_shot_is_highlighted(events):
     corners = second_phases(events, "corner")
     shot_id = int(corners.loc[corners["second_phase_shot"], "delivery_event_id"].iloc[0])
     fig, ax = viz.plot_second_phase(events, shot_id)
+    assert fig is not None
+
+
+def test_plot_second_phase_raises_on_ambiguous_eventid(events):
+    # Regression test: eventId is only unique per team (see chains.py's
+    # docstring), so a bare eventId lookup across both teams' corners can be
+    # ambiguous. Fabricate that collision and confirm it's rejected loudly
+    # rather than silently plotting the wrong delivery.
+    corners = second_phases(events, "corner")
+    delivery_id = int(corners["delivery_event_id"].iloc[0])
+    real_row = events[events["eventId"] == delivery_id].iloc[0].copy()
+    other_team = next(t for t in events["contestantId"].unique() if t != real_row["contestantId"])
+    fake_row = real_row.copy()
+    fake_row["contestantId"] = other_team
+    fake_row["q_6"] = True  # tag as a corner too
+    events_with_collision = pd.concat([events, pd.DataFrame([fake_row])], ignore_index=True)
+
+    with pytest.raises(ValueError, match="matches 2 corner/free-kick deliveries"):
+        viz.plot_second_phase(events_with_collision, delivery_id)
+
+    # Disambiguated with contestant_id, it works again.
+    fig, ax = viz.plot_second_phase(
+        events_with_collision, delivery_id, contestant_id=real_row["contestantId"]
+    )
     assert fig is not None
 
 
@@ -140,3 +165,44 @@ def test_plot_dashboard_returns_figure(events):
     fig = viz.plot_dashboard(events, team_id, set_piece_type="corner")
     assert fig is not None
     assert len(fig.axes) == 4
+
+
+def test_plot_set_piece_radar_returns_fig_and_ax(events):
+    report = corner_report(events)
+    fig, ax = viz.plot_set_piece_radar(report, title="Corner profile")
+    assert fig is not None
+    assert ax is not None
+
+
+def test_plot_set_piece_radar_with_model_includes_value_axis(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    report = corner_report(events, model=model)
+    fig, ax = viz.plot_set_piece_radar(report)
+    # 5 default metrics all present when a model is supplied
+    assert len(ax.texts) >= 5 + 5  # param labels + range labels, roughly
+
+
+def test_plot_set_piece_radar_rejects_wrong_team_count(events):
+    report = corner_report(events)
+    with pytest.raises(ValueError, match="needs exactly 2 teams"):
+        viz.plot_set_piece_radar(report.iloc[:1])
+
+
+def test_plot_set_piece_radar_custom_metrics(events):
+    report = corner_report(events)
+    fig, ax = viz.plot_set_piece_radar(
+        report, metrics=["attempts", "success_rate", "retention_rate"]
+    )
+    assert fig is not None
+
+
+def test_plot_set_piece_radar_rejects_too_few_metrics(events):
+    report = corner_report(events)
+    with pytest.raises(ValueError, match="at least 3 metrics"):
+        viz.plot_set_piece_radar(report, metrics=["attempts", "success_rate"])
+
+
+def test_plot_set_piece_radar_rejects_no_usable_metrics(events):
+    report = corner_report(events)[["contestantId"]]
+    with pytest.raises(ValueError, match="no usable metric columns"):
+        viz.plot_set_piece_radar(report)

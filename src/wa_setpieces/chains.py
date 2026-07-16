@@ -4,6 +4,15 @@ Opta connects a shot to the pass that created it via qualifier 55
 ("related event id"), which stores the ``eventId`` of the assisting pass.
 A shot can also *be* a set piece directly (e.g. a direct free kick or a
 penalty), in which case there is no separate assisting pass to look up.
+
+``eventId`` is only unique *within one team's own event stream* -- both
+teams number their events 1, 2, 3, ... independently (confirmed against
+``tests/data/sample_match.json``: 1464 of 1613 rows share an ``eventId``
+with a same-numbered row from the other team; the globally unique field is
+``id``). An assist is always played by a teammate, so qualifier 55's
+``eventId`` is resolved scoped to the shot's own ``contestantId`` --
+without that scoping, a lookup by ``eventId`` alone can silently resolve
+to the *other* team's event of the same number.
 """
 
 from __future__ import annotations
@@ -28,7 +37,9 @@ def link_set_piece_shots(events: pd.DataFrame) -> pd.DataFrame:
     tagged = tag_set_pieces(events)
     shots = tagged.loc[tagged["typeId"].isin(c.SHOT_TYPE_IDS)].copy()
 
-    by_event_id = tagged.set_index("eventId", drop=False)
+    # Indexed by (contestantId, eventId), which is the actually-unique key --
+    # see module docstring for why eventId alone is not safe to index on.
+    by_team_event = tagged.set_index(["contestantId", "eventId"], drop=False)
 
     set_piece_type: list[str | None] = []
     set_piece_event_id: list[int | None] = []
@@ -39,7 +50,8 @@ def link_set_piece_shots(events: pd.DataFrame) -> pd.DataFrame:
             set_piece_event_id.append(shot["eventId"])
             continue
 
-        # Case 2: walk back to the assisting pass via qualifier 55.
+        # Case 2: walk back to the assisting pass via qualifier 55, scoped to
+        # the shooting team's own event stream (an assist is always a teammate).
         related_raw = shot.get(f"q_{c.QUALIFIER_RELATED_EVENT_ID}")
         origin_type = None
         origin_event_id = None
@@ -48,9 +60,10 @@ def link_set_piece_shots(events: pd.DataFrame) -> pd.DataFrame:
                 related_id = int(float(related_raw))
             except (TypeError, ValueError):
                 related_id = None
-            if related_id is not None and related_id in by_event_id.index:
-                origin = by_event_id.loc[related_id]
-                if isinstance(origin, pd.DataFrame):  # duplicate eventId guard
+            key = (shot["contestantId"], related_id)
+            if related_id is not None and key in by_team_event.index:
+                origin = by_team_event.loc[key]
+                if isinstance(origin, pd.DataFrame):  # defensive; shouldn't occur
                     origin = origin.iloc[0]
                 if origin["set_piece_type"] is not None:
                     origin_type = origin["set_piece_type"]

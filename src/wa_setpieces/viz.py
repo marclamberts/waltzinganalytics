@@ -179,6 +179,7 @@ def plot_xt_grid(
 def plot_second_phase(
     events: pd.DataFrame,
     delivery_event_id: int,
+    contestant_id: str | None = None,
     title: str | None = None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -194,14 +195,38 @@ def plot_second_phase(
     Args:
         delivery_event_id: the ``eventId`` of a corner or free-kick delivery
             (as returned by :func:`~wa_setpieces.extract_corners` /
-            :func:`~wa_setpieces.extract_free_kicks`).
+            :func:`~wa_setpieces.extract_free_kicks`). ``eventId`` is only
+            unique *within one team's own event stream* (both teams number
+            their events 1, 2, 3, ... independently), so this is resolved
+            against corner/free-kick deliveries specifically rather than
+            all events, and raises if that's still ambiguous -- pass
+            ``contestant_id`` to disambiguate when it is.
+        contestant_id: required if ``delivery_event_id`` matches more than
+            one corner/free-kick delivery (rare, but not impossible).
         **phase_kwargs: forwarded to :func:`wa_setpieces.phases.classify_phase`
             (e.g. ``clear_safe_x``, ``max_gap_seconds``).
     """
+    from .filters import extract_corners, extract_free_kicks
     from .phases import _phase_window, _seconds, classify_phase
     from .zones import to_reference_frame
 
-    delivery_row = events.loc[events["eventId"] == delivery_event_id].iloc[0]
+    candidates = pd.concat([extract_corners(events), extract_free_kicks(events)])
+    matches = candidates[candidates["eventId"] == delivery_event_id]
+    if contestant_id is not None:
+        matches = matches[matches["contestantId"] == contestant_id]
+    if matches.empty:
+        raise ValueError(
+            f"No corner or free-kick delivery with eventId={delivery_event_id}"
+            + (f" and contestantId={contestant_id!r}" if contestant_id else "")
+            + " found."
+        )
+    if len(matches) > 1:
+        raise ValueError(
+            f"eventId={delivery_event_id} matches {len(matches)} corner/free-kick "
+            f"deliveries (eventId is only unique per team in F24) -- pass "
+            f"contestant_id to disambiguate."
+        )
+    delivery_row = matches.iloc[0]
     result = classify_phase(events, delivery_row, **phase_kwargs)
     attacking_team = delivery_row["contestantId"]
 
@@ -327,41 +352,49 @@ def plot_team_comparison(
 
 def plot_xt_added_bars(
     delivery_xt: pd.DataFrame,
+    value_col: str = "xt_added",
     label_col: str = "playerName",
     top_n: int = 15,
     title: str | None = "xT added per delivery",
     ax=None,
 ):
-    """Diverging bar chart of xT added per delivery (positive vs. negative).
+    """Diverging bar chart of a signed per-delivery value (positive vs. negative).
+
+    Works for either :func:`~wa_setpieces.xt.set_piece_delivery_xt`'s
+    ``xt_added`` (the default) or :func:`~wa_setpieces.value.set_piece_added_value`'s
+    ``added_value`` -- pass ``value_col="added_value"`` for the latter, which
+    also folds in shot quality and goals, not just the delivery itself.
 
     Args:
-        delivery_xt: output of :func:`~wa_setpieces.xt.set_piece_delivery_xt`.
+        delivery_xt: a DataFrame with an ``eventId`` column and a signed
+            numeric ``value_col``.
+        value_col: which column holds the signed value to plot.
         label_col: column to label each bar with (``playerName`` by default).
-        top_n: keep only the N deliveries with the largest ``|xt_added|``
-            (unsuccessful deliveries with no ``xt_added`` are dropped first).
+        top_n: keep only the N deliveries with the largest ``|value_col|``
+            (rows where ``value_col`` is NaN are dropped first).
 
     Returns:
         ``(fig, ax)``.
     """
     import matplotlib.pyplot as plt
 
-    valid = delivery_xt.dropna(subset=["xt_added"]).copy()
-    valid = valid.reindex(valid["xt_added"].abs().sort_values(ascending=False).index)
-    valid = valid.head(top_n).sort_values("xt_added")
+    valid = delivery_xt.dropna(subset=[value_col]).copy()
+    valid = valid.reindex(valid[value_col].abs().sort_values(ascending=False).index)
+    valid = valid.head(top_n).sort_values(value_col)
 
     fig = None
     if ax is None:
         fig, ax = plt.subplots(figsize=(7, 0.4 * len(valid) + 1.5))
 
     colors = [theme.DIVERGING_POSITIVE if v >= 0 else theme.DIVERGING_NEGATIVE
-              for v in valid["xt_added"]]
+              for v in valid[value_col]]
     y = np.arange(len(valid))
-    ax.barh(y, valid["xt_added"], color=colors)
+    ax.barh(y, valid[value_col], color=colors)
     ax.axvline(0, color=theme.BASELINE, linewidth=1)
     labels = valid[label_col].fillna(valid["eventId"].astype(str)) if label_col in valid else valid["eventId"]
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=theme.INK_PRIMARY, fontsize=9)
-    ax.set_xlabel("xT added")
+    ax.set_xlabel(value_col.replace("_", " "))
     ax.grid(axis="x", color=theme.GRIDLINE, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
     _style_chart_axis(ax, title)
@@ -529,3 +562,117 @@ def plot_dashboard(
 
     fig.suptitle(title or f"{label} — set-piece report", color=theme.INK_PRIMARY, fontsize=16, y=0.98)
     return fig
+
+
+_DEFAULT_RADAR_METRICS = [
+    "attempts",
+    "success_rate",
+    "second_phase_rate",
+    "retention_rate",
+    "avg_added_value",
+]
+
+
+def plot_set_piece_radar(
+    report: pd.DataFrame,
+    metrics: list[str] | None = None,
+    team_names: dict | None = None,
+    title: str | None = None,
+    ax=None,
+):
+    """Two-team radar comparing set-piece metrics, from :func:`~wa_setpieces.set_piece_report`.
+
+    Built on :class:`mplsoccer.Radar`, which (unlike a hand-rolled polar
+    plot) scales each spoke to its own min/max range -- necessary here
+    since ``attempts`` (a raw count) and ``success_rate`` (0-1) aren't on
+    the same scale.
+
+    Args:
+        report: exactly 2 rows, e.g. ``corner_report(events, model=model)``.
+        metrics: which columns to plot as spokes. Defaults to whichever of
+            ``attempts``, ``success_rate``, ``second_phase_rate``,
+            ``retention_rate``, ``avg_added_value`` are present in
+            ``report`` (``second_phase_rate``/``avg_added_value`` need
+            ``second_phase_summary``/a fitted model to have been included).
+        team_names: optional ``{contestantId: display name}``.
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    from mplsoccer import Radar
+
+    if len(report) != 2:
+        raise ValueError(f"plot_set_piece_radar needs exactly 2 teams, got {len(report)}")
+
+    metrics = metrics or [m for m in _DEFAULT_RADAR_METRICS if m in report.columns]
+    if not metrics:
+        raise ValueError(
+            "no usable metric columns found in `report` -- pass `metrics` explicitly"
+        )
+    if len(metrics) < 3:
+        raise ValueError(
+            f"plot_set_piece_radar needs at least 3 metrics for a readable radar, "
+            f"got {len(metrics)}: {metrics}"
+        )
+
+    row_a, row_b = report.iloc[0], report.iloc[1]
+    values_a = [float(row_a[m]) for m in metrics]
+    values_b = [float(row_b[m]) for m in metrics]
+
+    min_range, max_range = [], []
+    for m, va, vb in zip(metrics, values_a, values_b):
+        if m.endswith("_rate"):
+            min_range.append(0.0)
+            max_range.append(1.0)
+        else:
+            # Auto-range with headroom, scaled to this metric's own span --
+            # a fixed fallback range (e.g. 0-1) would flatten a small-magnitude
+            # metric like avg_added_value (~0.01-0.02) to an invisible sliver.
+            lo, hi = min(0.0, va, vb), max(0.0, va, vb)
+            span = hi - lo
+            if span == 0:
+                span = max(abs(va), abs(vb), 1e-6)
+                hi = lo + span
+            pad = span * 0.15
+            min_range.append(lo - pad if lo < 0 else lo)
+            max_range.append(hi + pad)
+
+    labels = [m.replace("_", " ").title() for m in metrics]
+    radar = Radar(labels, min_range, max_range, num_rings=4, ring_width=1, center_circle_radius=1)
+
+    fig = None
+    if ax is None:
+        fig, ax = radar.setup_axis(facecolor=theme.SURFACE, figsize=(9, 9))
+    else:
+        radar.setup_axis(facecolor=theme.SURFACE, ax=ax)
+
+    radar.draw_circles(ax=ax, facecolor=theme.SURFACE, edgecolor=theme.GRIDLINE)
+    radar.draw_radar_compare(
+        values_a, values_b, ax=ax,
+        kwargs_radar={"facecolor": theme.CATEGORICAL[0], "alpha": 0.6},
+        kwargs_compare={"facecolor": theme.CATEGORICAL[1], "alpha": 0.6},
+    )
+    radar.draw_range_labels(ax=ax, color=theme.INK_SECONDARY, fontsize=9)
+    radar.draw_param_labels(ax=ax, color=theme.INK_PRIMARY, fontsize=11)
+
+    import matplotlib.patches as mpatches
+
+    label_a = (team_names or {}).get(row_a["contestantId"], f"{row_a['contestantId'][:8]}…")
+    label_b = (team_names or {}).get(row_b["contestantId"], f"{row_b['contestantId'][:8]}…")
+    handles = [
+        mpatches.Patch(color=theme.CATEGORICAL[0], label=label_a),
+        mpatches.Patch(color=theme.CATEGORICAL[1], label=label_b),
+    ]
+    # loc="upper right" with no bbox_to_anchor keeps the legend inside the
+    # axes' own bounding box (radar param labels leave the corners empty) --
+    # placing it outside via bbox_to_anchor got silently clipped by any
+    # savefig call that doesn't pass bbox_inches="tight" (e.g. sphinx-gallery's
+    # default scraper), losing the text entirely.
+    ax.legend(
+        handles=handles, loc="upper right",
+        facecolor=theme.SURFACE, edgecolor="none", labelcolor=theme.INK_PRIMARY,
+    )
+    theme.style_axis_text(ax, title)
+    if fig is not None:
+        fig.patch.set_facecolor(theme.SURFACE)
+    return fig, ax
