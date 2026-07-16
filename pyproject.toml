@@ -46,6 +46,9 @@ wa-setpieces = "wa_setpieces.cli:main"
 [project.urls]
 Homepage = "https://github.com/marclamberts/waltzinganalytics"
 Documentation = "https://waltzinganalytics.readthedocs.io"
+Repository = "https://github.com/marclamberts/waltzinganalytics"
+Changelog = "https://waltzinganalytics.readthedocs.io/en/latest/changelog.html"
+"Bug Tracker" = "https://github.com/marclamberts/waltzinganalytics/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

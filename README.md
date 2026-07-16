@@ -13,7 +13,7 @@ Threat (xT), pitch zones/thirds/channels, and possession retention —
 with pitch plots built on [mplsoccer](https://mplsoccer.readthedocs.io).
 
 <p align="center">
-  <img src="docs/source/_static/hero_corners.png" alt="Corner delivery map drawn with mplsoccer" width="640">
+  <img src="https://raw.githubusercontent.com/marclamberts/waltzinganalytics/main/docs/source/_static/hero_corners.png" alt="Corner delivery map drawn with mplsoccer" width="640">
 </p>
 
 **Full documentation, with a runnable plot gallery: https://waltzinganalytics.readthedocs.io**
