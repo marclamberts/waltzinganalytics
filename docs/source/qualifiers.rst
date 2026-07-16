@@ -56,11 +56,11 @@ Other qualifiers used by this package
      - Used for
    * - 55
      - Related event id
-     - :func:`opta_setpieces.link_set_piece_shots` walks this from a shot
+     - :func:`wa_setpieces.link_set_piece_shots` walks this from a shot
        back to its assisting pass to detect set-piece-created shots/goals.
    * - 140 / 141
      - Pass end X / end Y
-     - :func:`opta_setpieces.delivery_locations` uses these for delivery
+     - :func:`wa_setpieces.delivery_locations` uses these for delivery
        maps (e.g. where a corner ended up).
    * - 123
      - Keeper throw
@@ -75,7 +75,7 @@ Other qualifiers used by this package
 A note on "success"
 ----------------------
 
-Attempts/success counts in :mod:`opta_setpieces.metrics` use Opta's own
+Attempts/success counts in :mod:`wa_setpieces.metrics` use Opta's own
 ``outcome`` field on the restart event (``1`` = successful, ``0`` =
 unsuccessful) as reported by the data provider -- e.g. for a throw-in this
 usually means "won by the throwing team", and for a free kick/corner it

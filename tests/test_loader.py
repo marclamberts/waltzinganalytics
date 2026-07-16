@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from opta_setpieces import load_events
+from wa_setpieces import load_events
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

@@ -5,7 +5,7 @@ that one pass found a teammate. "Retention" here is broader and answers a
 different question: did the team that took the set piece still have the
 ball ``window_seconds`` later, or did the opponent win it back?
 
-This is a derived heuristic (see :mod:`opta_setpieces.phases` for the same
+This is a derived heuristic (see :mod:`wa_setpieces.phases` for the same
 caveat): it looks at which team's event is chronologically last inside the
 time window following the restart.
 """

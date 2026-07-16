@@ -1,4 +1,4 @@
-# opta-setpieces
+# wa-setpieces
 
 Set-piece metrics for football (soccer) matches from **Opta / Stats Perform F24**
 event-feed JSON exports: penalties, kick-offs, free kicks, corners,
@@ -21,13 +21,21 @@ with pitch plots built on [mplsoccer](https://mplsoccer.readthedocs.io).
 ## Install
 
 ```bash
+pip install wa-setpieces
+```
+
+Not yet published to PyPI? Install from source instead:
+
+```bash
+git clone https://github.com/marclamberts/waltzinganalytics.git
+cd waltzinganalytics
 pip install -e .
 ```
 
 ## Quickstart
 
 ```python
-from opta_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_events, set_piece_summary
 
 match = load_events("match.json")
 summary = set_piece_summary(match.events)
@@ -47,7 +55,7 @@ cxb4hqite921i...    throw_in        20          16         0.800      1      0
 ## Second phases, xT, zones and retention
 
 ```python
-from opta_setpieces import (
+from wa_setpieces import (
     second_phases, second_phase_summary,   # corner/free-kick second-phase shots
     retention_detail, retention_rate,      # possession retained N seconds later
     add_thirds, add_channels, add_zone_grid,  # pitch location tagging
@@ -77,7 +85,7 @@ pip install -e ".[viz]"   # matplotlib + mplsoccer
 ```
 
 ```python
-from opta_setpieces.viz import plot_delivery_map, plot_zone_heatmap, plot_xt_grid, plot_second_phase
+from wa_setpieces.viz import plot_delivery_map, plot_zone_heatmap, plot_xt_grid, plot_second_phase
 
 plot_delivery_map(delivery_locations(match.events, "corner"), title="Corner deliveries")
 plot_zone_heatmap(extract_corners(match.events), title="Corner origin zones")
@@ -92,9 +100,9 @@ for all of these with full source code.
 ## Command line
 
 ```bash
-opta-setpieces match.json
-opta-setpieces match.json --csv summary.csv
-opta-setpieces match.json --xt   # also fit + print xT for this match (illustrative on one match)
+wa-setpieces match.json
+wa-setpieces match.json --csv summary.csv
+wa-setpieces match.json --xt   # also fit + print xT for this match (illustrative on one match)
 ```
 
 ## What counts as a set piece
@@ -115,17 +123,17 @@ location (corner arc, touchline, centre spot, six-yard line).
 
 ## Package layout
 
-- `opta_setpieces.loader` — parse F24 JSON into a tidy `pandas.DataFrame`.
-- `opta_setpieces.constants` — Opta typeId / qualifierId reference.
-- `opta_setpieces.filters` — extract/tag each set-piece type.
-- `opta_setpieces.metrics` — team/player counts, success rates, delivery locations.
-- `opta_setpieces.chains` — link set pieces to the shots/goals they produced.
-- `opta_setpieces.zones` — pitch thirds, channels and a configurable zone grid.
-- `opta_setpieces.phases` — second-phase detection for corners/free kicks.
-- `opta_setpieces.retention` — possession retention after any restart.
-- `opta_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
-- `opta_setpieces.viz` — mplsoccer-based pitch plots (optional `viz` extra).
-- `opta_setpieces.cli` — `opta-setpieces` command-line tool.
+- `wa_setpieces.loader` — parse F24 JSON into a tidy `pandas.DataFrame`.
+- `wa_setpieces.constants` — Opta typeId / qualifierId reference.
+- `wa_setpieces.filters` — extract/tag each set-piece type.
+- `wa_setpieces.metrics` — team/player counts, success rates, delivery locations.
+- `wa_setpieces.chains` — link set pieces to the shots/goals they produced.
+- `wa_setpieces.zones` — pitch thirds, channels and a configurable zone grid.
+- `wa_setpieces.phases` — second-phase detection for corners/free kicks.
+- `wa_setpieces.retention` — possession retention after any restart.
+- `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
+- `wa_setpieces.viz` — mplsoccer-based pitch plots (optional `viz` extra).
+- `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 
 ## Development
 

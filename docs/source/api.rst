@@ -4,7 +4,7 @@ API reference
 loader
 ------
 
-.. automodule:: opta_setpieces.loader
+.. automodule:: wa_setpieces.loader
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,7 +12,7 @@ loader
 filters
 -------
 
-.. automodule:: opta_setpieces.filters
+.. automodule:: wa_setpieces.filters
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ filters
 metrics
 -------
 
-.. automodule:: opta_setpieces.metrics
+.. automodule:: wa_setpieces.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ metrics
 chains
 ------
 
-.. automodule:: opta_setpieces.chains
+.. automodule:: wa_setpieces.chains
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,7 +36,7 @@ chains
 zones
 -----
 
-.. automodule:: opta_setpieces.zones
+.. automodule:: wa_setpieces.zones
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,7 +44,7 @@ zones
 phases
 ------
 
-.. automodule:: opta_setpieces.phases
+.. automodule:: wa_setpieces.phases
    :members:
    :undoc-members:
    :show-inheritance:
@@ -52,7 +52,7 @@ phases
 retention
 ---------
 
-.. automodule:: opta_setpieces.retention
+.. automodule:: wa_setpieces.retention
    :members:
    :undoc-members:
    :show-inheritance:
@@ -60,7 +60,7 @@ retention
 xt
 --
 
-.. automodule:: opta_setpieces.xt
+.. automodule:: wa_setpieces.xt
    :members:
    :undoc-members:
    :show-inheritance:
@@ -68,10 +68,10 @@ xt
 viz
 ---
 
-Requires the ``viz`` extra (``pip install "opta-setpieces[viz]"``). See the
+Requires the ``viz`` extra (``pip install "wa-setpieces[viz]"``). See the
 :ref:`gallery` for these in action.
 
-.. automodule:: opta_setpieces.viz
+.. automodule:: wa_setpieces.viz
    :members:
    :undoc-members:
    :show-inheritance:
@@ -79,7 +79,7 @@ Requires the ``viz`` extra (``pip install "opta-setpieces[viz]"``). See the
 constants
 ---------
 
-.. automodule:: opta_setpieces.constants
+.. automodule:: wa_setpieces.constants
    :members:
    :undoc-members:
    :show-inheritance:
@@ -87,7 +87,7 @@ constants
 cli
 ---
 
-.. automodule:: opta_setpieces.cli
+.. automodule:: wa_setpieces.cli
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,4 +1,4 @@
-"""opta-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
+"""wa-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
 corners, throw-ins, goal kicks) from Opta / Stats Perform F24 event data.
 """
 

@@ -1,7 +1,11 @@
 Installation
 ============
 
-From source (this repository):
+.. code-block:: bash
+
+   pip install wa-setpieces
+
+Not yet published to PyPI? Install from source instead:
 
 .. code-block:: bash
 
@@ -9,7 +13,7 @@ From source (this repository):
    cd waltzinganalytics
    pip install -e .
 
-For the plotting helpers (:mod:`opta_setpieces.viz`, the :ref:`gallery`),
+For the plotting helpers (:mod:`wa_setpieces.viz`, the :ref:`gallery`),
 running the test suite, or building the docs:
 
 .. code-block:: bash
@@ -23,12 +27,12 @@ Requirements
 
 - Python 3.9+
 - pandas >= 1.5
-- matplotlib >= 3.6 and mplsoccer >= 1.2 (only for :mod:`opta_setpieces.viz`)
+- matplotlib >= 3.6 and mplsoccer >= 1.2 (only for :mod:`wa_setpieces.viz`)
 
 Input data
 ----------
 
-``opta_setpieces`` reads **Opta / Stats Perform F24** match event JSON
+``wa_setpieces`` reads **Opta / Stats Perform F24** match event JSON
 exports -- the feed with top-level ``matchDetails`` and ``event`` keys,
 where each event carries a ``typeId`` and a list of ``qualifier`` objects.
 This is the standard "F24" feed used across most Opta-powered football data

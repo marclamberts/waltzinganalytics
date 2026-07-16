@@ -1,4 +1,4 @@
-"""Command-line entry point: ``opta-setpieces <match.json>``."""
+"""Command-line entry point: ``wa-setpieces <match.json>``."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ _RETENTION_TYPES = ("kick_off", "free_kick", "corner", "throw_in", "goal_kick")
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="opta-setpieces",
+        prog="wa-setpieces",
         description="Summarize set-piece metrics from an Opta F24 JSON export.",
     )
     parser.add_argument("match_file", help="Path to an Opta F24 match JSON file")

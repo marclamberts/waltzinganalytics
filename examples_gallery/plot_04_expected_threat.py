@@ -2,7 +2,7 @@
 Expected Threat (xT) for corners and free kicks
 ==================================================
 
-:class:`opta_setpieces.XTModel` implements Karun Singh's grid-based xT
+:class:`wa_setpieces.XTModel` implements Karun Singh's grid-based xT
 method: fit a grid of zone values from data, then value any pass as
 ``xT[end_zone] - xT[start_zone]``.
 
@@ -10,15 +10,15 @@ method: fit a grid of zone values from data, then value any pass as
    The grid below is fit on a **single match**, purely to demonstrate the
    mechanism -- it is far too little data for a trustworthy grid. Fit on a
    full season (concatenate many matches' events) for real analysis, then
-   reuse it with :meth:`~opta_setpieces.XTModel.to_csv` /
-   :meth:`~opta_setpieces.XTModel.from_csv`.
+   reuse it with :meth:`~wa_setpieces.XTModel.to_csv` /
+   :meth:`~wa_setpieces.XTModel.from_csv`.
 """
 
 from pathlib import Path
 
-from opta_setpieces import load_events
-from opta_setpieces.viz import plot_xt_grid
-from opta_setpieces.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+from wa_setpieces import load_events
+from wa_setpieces.viz import plot_xt_grid
+from wa_setpieces.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 
 try:
     _here = Path(__file__).resolve().parent

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from opta_setpieces import link_set_piece_shots, load_events, set_piece_goal_summary
-from opta_setpieces import constants as c
+from wa_setpieces import link_set_piece_shots, load_events, set_piece_goal_summary
+from wa_setpieces import constants as c
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

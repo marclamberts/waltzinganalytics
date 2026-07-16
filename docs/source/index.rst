@@ -1,4 +1,4 @@
-opta-setpieces
+wa-setpieces
 ===============
 
 **Set-piece metrics and pitch visualizations for Opta / Stats Perform F24
@@ -13,9 +13,9 @@ retention; pitch zones/thirds/channels; and a grid-based Expected Threat
 
 .. code-block:: python
 
-   from opta_setpieces import load_events, set_piece_summary
-   from opta_setpieces.viz import plot_delivery_map
-   from opta_setpieces import delivery_locations
+   from wa_setpieces import load_events, set_piece_summary
+   from wa_setpieces.viz import plot_delivery_map
+   from wa_setpieces import delivery_locations
 
    match = load_events("match.json")
    set_piece_summary(match.events)
@@ -36,8 +36,8 @@ Install
 
 .. code-block:: bash
 
-   pip install -e .              # core package
-   pip install -e ".[viz]"       # + matplotlib/mplsoccer for the plotting helpers
+   pip install wa-setpieces          # core package
+   pip install "wa-setpieces[viz]"   # + matplotlib/mplsoccer for the plotting helpers
 
 .. toctree::
    :maxdepth: 2

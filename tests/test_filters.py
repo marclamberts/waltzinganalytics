@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from opta_setpieces import (
+from wa_setpieces import (
     extract_all,
     extract_corners,
     extract_free_kicks,
@@ -13,7 +13,7 @@ from opta_setpieces import (
     load_events,
     tag_set_pieces,
 )
-from opta_setpieces import constants as c
+from wa_setpieces import constants as c
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

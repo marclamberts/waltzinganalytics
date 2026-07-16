@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from opta_setpieces import load_events
-from opta_setpieces.filters import extract_corners, extract_free_kicks
-from opta_setpieces.phases import second_phase_summary, second_phases
+from wa_setpieces import load_events
+from wa_setpieces.filters import extract_corners, extract_free_kicks
+from wa_setpieces.phases import second_phase_summary, second_phases
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

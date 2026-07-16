@@ -7,7 +7,7 @@ Run from the repo root:
 
 from pathlib import Path
 
-from opta_setpieces import (
+from wa_setpieces import (
     XTModel,
     add_channels,
     delivery_locations,

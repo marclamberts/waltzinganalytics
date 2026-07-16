@@ -13,15 +13,15 @@ caveats before relying on the numbers.
 Zones, thirds and channels
 -----------------------------
 
-:mod:`opta_setpieces.zones` classifies pitch location using the confirmed
+:mod:`wa_setpieces.zones` classifies pitch location using the confirmed
 F24 convention that every event's ``x``/``y`` are in *that event's own
 team's* attacking direction (``x=0`` own goal, ``x=100`` opponent's goal;
-see :mod:`opta_setpieces.zones` module docstring for how this was verified
+see :mod:`wa_setpieces.zones` module docstring for how this was verified
 against the sample match).
 
 .. code-block:: python
 
-   from opta_setpieces import add_thirds, add_channels, add_zone_grid, zone_counts
+   from wa_setpieces import add_thirds, add_channels, add_zone_grid, zone_counts
 
    tagged = add_thirds(match.events)          # "defensive_third" / "middle_third" / "attacking_third"
    tagged = add_channels(tagged, n=5)          # wide / half-space / central (or n=3 for left/central/right)
@@ -29,13 +29,13 @@ against the sample match).
 
    zone_counts(match.events, group_cols=["contestantId"])  # heatmap-ready counts per zone per team
 
-Apply these to :func:`~opta_setpieces.delivery_locations` output to see
+Apply these to :func:`~wa_setpieces.delivery_locations` output to see
 which channel/third corners or free kicks are delivered *into*:
 
 .. code-block:: python
 
-   from opta_setpieces import delivery_locations
-   from opta_setpieces.zones import add_channels
+   from wa_setpieces import delivery_locations
+   from wa_setpieces.zones import add_channels
 
    corners = delivery_locations(match.events, "corner")
    corners_end = add_channels(corners, y_col="end_y", n=5)
@@ -44,7 +44,7 @@ which channel/third corners or free kicks are delivered *into*:
 Second phases
 ----------------
 
-:mod:`opta_setpieces.phases` walks forward from every corner/free-kick
+:mod:`wa_setpieces.phases` walks forward from every corner/free-kick
 delivery and classifies what happened: did the defence clear it
 immediately, was there a shot straight off the delivery, or did the ball
 stay alive (a knockdown, blocked clearance, loose ball) long enough for the
@@ -52,7 +52,7 @@ attacking team to get a **second-phase shot** away.
 
 .. code-block:: python
 
-   from opta_setpieces import second_phases, second_phase_summary
+   from wa_setpieces import second_phases, second_phase_summary
 
    second_phases(match.events, "corner")        # one row per corner, with the classification
    second_phase_summary(match.events, "corner") # per-team roll-up: deliveries, second phases, goals
@@ -66,7 +66,7 @@ enough up the pitch). The thresholds are tunable:
 
 .. code-block:: python
 
-   from opta_setpieces.phases import second_phases
+   from wa_setpieces.phases import second_phases
 
    second_phases(
        match.events, "corner",
@@ -78,14 +78,14 @@ enough up the pitch). The thresholds are tunable:
 Retention
 ------------
 
-:mod:`opta_setpieces.retention` asks a broader question than the raw pass
+:mod:`wa_setpieces.retention` asks a broader question than the raw pass
 ``outcome`` flag: did the team that took the set piece still have the ball
 some seconds later (default 8s), regardless of whether the very first pass
 found a teammate.
 
 .. code-block:: python
 
-   from opta_setpieces import retention_detail, retention_rate
+   from wa_setpieces import retention_detail, retention_rate
 
    retention_detail(match.events, "corner")     # per-delivery: outcome vs. retained
    retention_rate(match.events, "throw_in")     # per-team retention rate
@@ -98,7 +98,7 @@ restart with a meaningful "possession after" question).
 Expected Threat (xT)
 ------------------------
 
-:class:`opta_setpieces.XTModel` implements Karun Singh's grid-based xT
+:class:`wa_setpieces.XTModel` implements Karun Singh's grid-based xT
 method: fit a grid of zone values from data, then value any pass as
 ``xT[end_zone] - xT[start_zone]``.
 
@@ -110,7 +110,7 @@ method: fit a grid of zone values from data, then value any pass as
 
 .. code-block:: python
 
-   from opta_setpieces import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+   from wa_setpieces import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 
    # Fit once across as many matches as you have, then reuse:
    # all_events = pd.concat([load_events(f).events for f in match_files])

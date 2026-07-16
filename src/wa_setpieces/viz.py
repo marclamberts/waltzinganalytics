@@ -2,14 +2,14 @@
 <https://mplsoccer.readthedocs.io>`_.
 
 Every plotting function here takes the same DataFrames the rest of the
-package produces (:func:`~opta_setpieces.delivery_locations`,
-:func:`~opta_setpieces.zones.zone_counts`, an :class:`~opta_setpieces.XTModel`
+package produces (:func:`~wa_setpieces.delivery_locations`,
+:func:`~wa_setpieces.zones.zone_counts`, an :class:`~wa_setpieces.XTModel`
 grid, ...) and returns the ``(fig, ax)`` matplotlib pair, so you can keep
 customizing the plot afterwards.
 
-Requires the optional ``viz`` extra: ``pip install "opta-setpieces[viz]"``.
+Requires the optional ``viz`` extra: ``pip install "wa-setpieces[viz]"``.
 Opta F24 coordinates (0-100 both axes, each event already in the acting
-team's own attacking direction -- see :mod:`opta_setpieces.zones`) map
+team's own attacking direction -- see :mod:`wa_setpieces.zones`) map
 directly onto :class:`mplsoccer.Pitch`'s built-in ``pitch_type="opta"``, so
 no coordinate conversion is needed.
 """
@@ -22,7 +22,7 @@ try:
     from mplsoccer import Pitch
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "opta_setpieces.viz requires the 'viz' extra: pip install \"opta-setpieces[viz]\""
+        "wa_setpieces.viz requires the 'viz' extra: pip install \"wa-setpieces[viz]\""
     ) from exc
 
 PITCH_COLOR = "#0e1117"
@@ -43,7 +43,7 @@ def plot_delivery_map(
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
-    """Arrow map of set-piece deliveries, from :func:`~opta_setpieces.delivery_locations`.
+    """Arrow map of set-piece deliveries, from :func:`~wa_setpieces.delivery_locations`.
 
     Successful deliveries (``outcome == 1``) are drawn in green, unsuccessful
     ones in red.
@@ -91,10 +91,10 @@ def plot_zone_heatmap(
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
-    """Zone heatmap (see :mod:`opta_setpieces.zones`) of event counts.
+    """Zone heatmap (see :mod:`wa_setpieces.zones`) of event counts.
 
     Any events DataFrame works -- pass a filtered/extracted set (e.g.
-    :func:`~opta_setpieces.extract_corners`) to see where a specific
+    :func:`~wa_setpieces.extract_corners`) to see where a specific
     set-piece type happens most often.
     """
     pitch = _new_pitch(**(pitch_kwargs or {}))
@@ -132,7 +132,7 @@ def plot_xt_grid(
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
-    """Heatmap of a fitted :class:`~opta_setpieces.XTModel` grid.
+    """Heatmap of a fitted :class:`~wa_setpieces.XTModel` grid.
 
     Darker/brighter cells (per ``cmap``) are worth more xT -- should climb
     steadily towards the opponent's goal (``x=100``) if the fit is sane.
@@ -172,9 +172,9 @@ def plot_second_phase(
 
     Args:
         delivery_event_id: the ``eventId`` of a corner or free-kick delivery
-            (as returned by :func:`~opta_setpieces.extract_corners` /
-            :func:`~opta_setpieces.extract_free_kicks`).
-        **phase_kwargs: forwarded to :func:`opta_setpieces.phases.classify_phase`
+            (as returned by :func:`~wa_setpieces.extract_corners` /
+            :func:`~wa_setpieces.extract_free_kicks`).
+        **phase_kwargs: forwarded to :func:`wa_setpieces.phases.classify_phase`
             (e.g. ``clear_safe_x``, ``max_gap_seconds``).
     """
     from .phases import _phase_window, _seconds, classify_phase

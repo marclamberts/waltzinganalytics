@@ -2,7 +2,7 @@
 Where deliveries end up: zone heatmaps
 =========================================
 
-:mod:`opta_setpieces.zones` splits the pitch into thirds, wide/half-space/
+:mod:`wa_setpieces.zones` splits the pitch into thirds, wide/half-space/
 central channels, or a configurable zone grid. Here we grid where corner
 and free-kick deliveries *land* (their end location), which is far more
 informative than where they start (always the corner arc / free-kick spot).
@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from opta_setpieces import delivery_locations, load_events
-from opta_setpieces.viz import plot_zone_heatmap
-from opta_setpieces.zones import add_channels
+from wa_setpieces import delivery_locations, load_events
+from wa_setpieces.viz import plot_zone_heatmap
+from wa_setpieces.zones import add_channels
 
 try:
     _here = Path(__file__).resolve().parent

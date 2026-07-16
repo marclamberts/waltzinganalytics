@@ -95,7 +95,7 @@ def set_piece_summary(events: pd.DataFrame) -> pd.DataFrame:
     This is the main "headline numbers" table: how often each team used
     each restart type, how often it kept the ball / won the duel, and how
     often that restart directly produced a shot or a goal (via the assist
-    chain in :mod:`opta_setpieces.chains`).
+    chain in :mod:`wa_setpieces.chains`).
     """
     counts = team_set_piece_counts(events)
     if counts.empty:

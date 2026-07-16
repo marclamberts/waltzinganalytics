@@ -5,12 +5,12 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../../src"))
 
-project = "opta-setpieces"
+project = "wa-setpieces"
 copyright = "2026, Waltzing Analytics"
 author = "Waltzing Analytics"
 
 try:
-    from opta_setpieces import __version__ as release
+    from wa_setpieces import __version__ as release
 except ImportError:
     release = "0.1.0"
 version = release
@@ -60,7 +60,7 @@ sphinx_gallery_conf = {
 
 # -- Theme: pydata-sphinx-theme, same family mplsoccer's docs use ---------
 html_theme = "pydata_sphinx_theme"
-html_title = "opta-setpieces"
+html_title = "wa-setpieces"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 

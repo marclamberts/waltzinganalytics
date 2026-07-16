@@ -6,10 +6,10 @@ matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 pytest.importorskip("mplsoccer")
 
-from opta_setpieces import delivery_locations, extract_corners, load_events  # noqa: E402
-from opta_setpieces.phases import second_phases  # noqa: E402
-from opta_setpieces.xt import XTModel  # noqa: E402
-from opta_setpieces import viz  # noqa: E402
+from wa_setpieces import delivery_locations, extract_corners, load_events  # noqa: E402
+from wa_setpieces.phases import second_phases  # noqa: E402
+from wa_setpieces.xt import XTModel  # noqa: E402
+from wa_setpieces import viz  # noqa: E402
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

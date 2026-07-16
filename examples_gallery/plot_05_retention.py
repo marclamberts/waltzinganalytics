@@ -2,7 +2,7 @@
 Possession retention after a restart
 =======================================
 
-:mod:`opta_setpieces.retention` asks a broader question than the raw pass
+:mod:`wa_setpieces.retention` asks a broader question than the raw pass
 ``outcome`` flag: did the team that took the set piece still have the ball
 ~8 seconds later, regardless of whether the very first pass found a
 teammate. Not every plot needs a pitch underneath it -- a simple bar chart
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from opta_setpieces import load_events
-from opta_setpieces.retention import retention_rate
+from wa_setpieces import load_events
+from wa_setpieces.retention import retention_rate
 
 try:
     _here = Path(__file__).resolve().parent

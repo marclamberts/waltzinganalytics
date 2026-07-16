@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from opta_setpieces import (
+from wa_setpieces import (
     delivery_locations,
     load_events,
     player_set_piece_counts,
