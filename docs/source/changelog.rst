@@ -1,6 +1,35 @@
 Changelog
 =========
 
+0.8.0
+-----
+
+- **New (experimental)** ``wa_setpieces.shot_value``: five pre-trained
+  gradient-boosted models (xgboost + isotonic calibration), bundled with
+  the package (``wa_setpieces/models/*.pkl``, new ``ml`` optional extra --
+  xgboost, scikit-learn, joblib), score every shot in a match:
+  ``on_target_prob``, ``xgot`` (xG On Target), ``psxg`` (Post-Shot xG),
+  ``situational_prob``, a 4-class outcome distribution, and a blended
+  ``shot_value`` column. ``build_shot_features()`` reconstructs the
+  models' training feature schema from Opta F24 qualifiers, reusing
+  already-tested logic elsewhere in this package (``chains.link_set_piece_shots``,
+  ``phases.second_phases``, the validated ``QUALIFIER_ASSIST`` constant)
+  wherever possible. **Read the module's docstring before trusting the
+  output**: several situational flags (big chance, one-on-one, fast
+  break, scramble, header/volley) have no reliable qualifier signal in
+  the real match data this was checked against and default to ``False``
+  rather than a guessed-and-possibly-wrong mapping -- documented
+  explicitly as a known limitation, not silently assumed correct.
+- **Fixed a real bug found by the new test suite**: ``bool(float('nan'))``
+  is ``True`` in Python, so the first implementation of the qualifier-flag
+  read (``bool(raw_event.get("q_20"))``) treated *every* absent qualifier
+  column as present -- every shot came out "assisted" and often "both
+  right- and left-footed" regardless of the real data. Fixed with a
+  ``pd.notna()``-aware helper (``_qualifier_flag``); verified against the
+  sample match that assisted/unassisted and left/right-foot splits are
+  now correctly mutually exclusive and match the real qualifier data.
+- Gallery grew from 14 examples to 15.
+
 0.7.0
 -----
 

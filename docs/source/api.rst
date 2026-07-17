@@ -81,6 +81,18 @@ outcomes
    :undoc-members:
    :show-inheritance:
 
+shot_value
+----------
+
+Requires the ``ml`` extra (``pip install "wa-setpieces[ml]"``). Read the
+module docstring in full before trusting the output -- several input
+features are experimental best-effort defaults, not verified ground truth.
+
+.. automodule:: wa_setpieces.shot_value
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 report
 ------
 

@@ -90,6 +90,36 @@ this uncovered and fixed: F24's `eventId` is only unique *within one team's
 own event stream*, not globally — every delivery/shot lookup in this
 package is scoped accordingly.
 
+## Shot value (experimental)
+
+Five pre-trained gradient-boosted models, bundled with the package, score
+every shot in a match:
+
+```bash
+pip install -e ".[ml]"   # xgboost + scikit-learn + joblib
+```
+
+```python
+from wa_setpieces.shot_value import ShotValueModels, shot_value
+
+models = ShotValueModels.load()          # loads once; reuse across matches
+shots = shot_value(match.events, models)
+# eventId, playerName, is_goal, set_piece_type, on_target_prob, xgot, psxg,
+# situational_prob, outcome_class_0..3, shot_value (blended)
+```
+
+**Read `wa_setpieces/shot_value.py`'s module docstring before trusting this
+for anything real.** The five models were trained elsewhere against a
+feature schema this package has to reconstruct from Opta F24 qualifiers on
+each shot event; some inputs (shot geometry, set-piece origin, assist,
+left/right foot, goal-mouth placement) are confidently derived from
+already-tested logic elsewhere in this package, but several situational
+flags (big chance, one-on-one, fast break, scramble, header/volley) have no
+reliable qualifier signal in the two real matches this was checked against
+and default to `False` rather than a guessed-and-possibly-wrong qualifier
+ID — that gap is documented, not hidden, but it does mean predictions are
+degraded relative to the models' original training data.
+
 ## Plots
 
 ```bash
@@ -171,6 +201,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
 - `wa_setpieces.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
 - `wa_setpieces.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
+- `wa_setpieces.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
 - `wa_setpieces.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
 - `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
 - `wa_setpieces.theme` — the validated dark/light color palettes every plot draws from.

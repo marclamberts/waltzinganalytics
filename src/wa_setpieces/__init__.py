@@ -29,6 +29,7 @@ from .phases import (
 from .outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
 from .report import corner_report, free_kick_report, set_piece_report
 from .retention import retention_detail, retention_rate
+from .shot_value import ShotValueModels, build_shot_features, shot_value
 from .value import set_piece_added_value, set_piece_value_summary
 from .xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 from .zones import (
@@ -40,7 +41,7 @@ from .zones import (
     zone_id,
 )
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "Match",
@@ -77,6 +78,9 @@ __all__ = [
     "OUTCOME_CATEGORIES",
     "delivery_outcomes",
     "outcome_summary",
+    "ShotValueModels",
+    "build_shot_features",
+    "shot_value",
     "add_thirds",
     "add_channels",
     "add_zone_grid",
