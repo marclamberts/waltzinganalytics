@@ -4,7 +4,7 @@ API reference
 loader
 ------
 
-.. automodule:: wa_setpieces.loader
+.. automodule:: wa_setpieces.core.loader
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,7 +12,7 @@ loader
 filters
 -------
 
-.. automodule:: wa_setpieces.filters
+.. automodule:: wa_setpieces.core.filters
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ filters
 metrics
 -------
 
-.. automodule:: wa_setpieces.metrics
+.. automodule:: wa_setpieces.core.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ metrics
 chains
 ------
 
-.. automodule:: wa_setpieces.chains
+.. automodule:: wa_setpieces.core.chains
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,7 +36,7 @@ chains
 zones
 -----
 
-.. automodule:: wa_setpieces.zones
+.. automodule:: wa_setpieces.core.zones
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,7 +44,7 @@ zones
 phases
 ------
 
-.. automodule:: wa_setpieces.phases
+.. automodule:: wa_setpieces.core.phases
    :members:
    :undoc-members:
    :show-inheritance:
@@ -52,7 +52,7 @@ phases
 retention
 ---------
 
-.. automodule:: wa_setpieces.retention
+.. automodule:: wa_setpieces.core.retention
    :members:
    :undoc-members:
    :show-inheritance:
@@ -60,7 +60,7 @@ retention
 xt
 --
 
-.. automodule:: wa_setpieces.xt
+.. automodule:: wa_setpieces.core.xt
    :members:
    :undoc-members:
    :show-inheritance:
@@ -68,7 +68,7 @@ xt
 value
 -----
 
-.. automodule:: wa_setpieces.value
+.. automodule:: wa_setpieces.core.value
    :members:
    :undoc-members:
    :show-inheritance:
@@ -76,7 +76,7 @@ value
 outcomes
 --------
 
-.. automodule:: wa_setpieces.outcomes
+.. automodule:: wa_setpieces.core.outcomes
    :members:
    :undoc-members:
    :show-inheritance:
@@ -88,7 +88,7 @@ Requires the ``ml`` extra (``pip install "wa-setpieces[ml]"``). Read the
 module docstring in full before trusting the output -- several input
 features are experimental best-effort defaults, not verified ground truth.
 
-.. automodule:: wa_setpieces.shot_value
+.. automodule:: wa_setpieces.ml.shot_value
    :members:
    :undoc-members:
    :show-inheritance:
@@ -96,7 +96,7 @@ features are experimental best-effort defaults, not verified ground truth.
 report
 ------
 
-.. automodule:: wa_setpieces.report
+.. automodule:: wa_setpieces.core.report
    :members:
    :undoc-members:
    :show-inheritance:
@@ -107,7 +107,7 @@ viz
 Requires the ``viz`` extra (``pip install "wa-setpieces[viz]"``). See the
 :ref:`gallery` for these in action.
 
-.. automodule:: wa_setpieces.viz
+.. automodule:: wa_setpieces.viz.plots
    :members:
    :undoc-members:
    :show-inheritance:
@@ -115,7 +115,7 @@ Requires the ``viz`` extra (``pip install "wa-setpieces[viz]"``). See the
 theme
 -----
 
-.. automodule:: wa_setpieces.theme
+.. automodule:: wa_setpieces.viz.theme
    :members:
    :undoc-members:
    :show-inheritance:
@@ -123,7 +123,20 @@ theme
 constants
 ---------
 
-.. automodule:: wa_setpieces.constants
+.. automodule:: wa_setpieces.core.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+convert.corners
+----------------
+
+Requires the ``convert`` extra (``pip install "wa-setpieces[convert]"``).
+Turns a directory of Opta F24 match exports plus a match-list CSV into a
+flat corners table -- see the module docstring for the schema and CSV
+column contract.
+
+.. automodule:: wa_setpieces.convert.corners
    :members:
    :undoc-members:
    :show-inheritance:

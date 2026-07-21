@@ -1,9 +1,9 @@
 """One-stop team-level report per set-piece type.
 
 :func:`set_piece_report` merges the pieces that otherwise live in separate
-modules -- attempts/success rate (:mod:`wa_setpieces.metrics`), second-phase
-rate (:mod:`wa_setpieces.phases`, corners/free-kicks only), retention
-(:mod:`wa_setpieces.retention`), and added value (:mod:`wa_setpieces.value`,
+modules -- attempts/success rate (:mod:`wa_setpieces.core.metrics`), second-phase
+rate (:mod:`wa_setpieces.core.phases`, corners/free-kicks only), retention
+(:mod:`wa_setpieces.core.retention`), and added value (:mod:`wa_setpieces.core.value`,
 if you pass a fitted :class:`~wa_setpieces.XTModel`) -- into one table, so
 "how are we doing at corners" is one function call instead of five.
 """
@@ -32,7 +32,7 @@ def set_piece_report(
         set_piece_type: any of ``constants.SET_PIECE_TYPES``.
         model: optional fitted :class:`~wa_setpieces.XTModel`. When given,
             adds ``total_added_value``, ``avg_added_value`` and ``goals``
-            columns (see :mod:`wa_setpieces.value`); only valid for
+            columns (see :mod:`wa_setpieces.core.value`); only valid for
             ``"corner"`` and ``"free_kick"`` (the pass-based types with a
             delivery end location).
 

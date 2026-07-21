@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.report import corner_report, free_kick_report, set_piece_report
-from wa_setpieces.xt import XTModel
+from wa_setpieces.core.report import corner_report, free_kick_report, set_piece_report
+from wa_setpieces.core.xt import XTModel
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

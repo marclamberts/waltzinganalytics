@@ -5,7 +5,7 @@ Loading a match
 ----------------
 
 :func:`wa_setpieces.load_events` reads an F24 JSON file (or an already
-parsed ``dict``) and returns a :class:`~wa_setpieces.loader.Match`
+parsed ``dict``) and returns a :class:`~wa_setpieces.core.loader.Match`
 containing the raw ``matchDetails`` block and a tidy events
 :class:`pandas.DataFrame` (one row per event, one column per qualifierId,
 named ``q_<id>``).
@@ -117,14 +117,14 @@ Command line
 Plotting
 ---------
 
-``pip install "wa-setpieces[viz]"`` adds :mod:`wa_setpieces.viz`,
+``pip install "wa-setpieces[viz]"`` adds :mod:`wa_setpieces.viz.plots`,
 pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_ for
 everything above -- delivery maps, zone heatmaps, second-phase sequences,
 xT grids. See the :ref:`gallery` for the full set with source code.
 
 .. code-block:: python
 
-   from wa_setpieces.viz import plot_delivery_map
+   from wa_setpieces.viz.plots import plot_delivery_map
 
    corners = delivery_locations(match.events, "corner")
    fig, ax = plot_delivery_map(corners, title="Corner deliveries")

@@ -8,8 +8,8 @@ outcome was -- short corner, direct shot, second-phase shot, aerial duel
 ("50/50"), cleared, or which team won the first touch. Goals get a ring
 around the marker.
 
-:mod:`wa_setpieces.outcomes` builds this on top of
-:mod:`wa_setpieces.phases`, adding short-corner detection (a short pass
+:mod:`wa_setpieces.core.outcomes` builds this on top of
+:mod:`wa_setpieces.core.phases`, adding short-corner detection (a short pass
 along the byline rather than a cross -- inferred from delivery distance,
 since a corner starts right at the corner arc already) and aerial-duel
 detection (``typeId`` 44, a contested header -- football's "50/50").
@@ -18,8 +18,8 @@ detection (``typeId`` 44, a contested header -- football's "50/50").
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.outcomes import delivery_outcomes, outcome_summary
-from wa_setpieces.viz import plot_set_piece_outcomes
+from wa_setpieces.core.outcomes import delivery_outcomes, outcome_summary
+from wa_setpieces.viz.plots import plot_set_piece_outcomes
 
 try:
     _here = Path(__file__).resolve().parent

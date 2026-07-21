@@ -74,7 +74,7 @@ class XTModel:
         Unlike :meth:`value` (the value of *having the ball* in a zone,
         counting both shooting and continuing to play), this is specifically
         "if a shot is taken from here, how often does it go in" -- the
-        component :mod:`wa_setpieces.value` uses to score a set piece's
+        component :mod:`wa_setpieces.core.value` uses to score a set piece's
         resulting shot, separately from the delivery's own xT added.
 
         Only available on a model produced by :meth:`fit` (not one loaded

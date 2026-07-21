@@ -10,7 +10,7 @@ single shareable image with :func:`~wa_setpieces.viz.plot_dashboard`.
 from pathlib import Path
 
 from wa_setpieces import delivery_locations, load_events
-from wa_setpieces.viz import plot_dashboard
+from wa_setpieces.viz.plots import plot_dashboard
 
 try:
     _here = Path(__file__).resolve().parent

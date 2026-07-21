@@ -1,9 +1,22 @@
 """wa-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
 corners, throw-ins, goal kicks) from Opta / Stats Perform F24 event data.
+
+Layout:
+
+- :mod:`wa_setpieces.core` -- loading, extraction, metrics, phases,
+  retention, xT and added-value (no extra dependencies; imported eagerly).
+- :mod:`wa_setpieces.ml` -- pre-trained shot-value scoring (``ml`` extra).
+- :mod:`wa_setpieces.viz` -- mplsoccer/matplotlib plots (``viz`` extra).
+- :mod:`wa_setpieces.convert` -- turn raw Opta F24 exports plus a match
+  list into the flat corner/delivery table other tools expect.
+
+The names below are the stable public API and are re-exported here so
+``from wa_setpieces import load_events`` keeps working regardless of which
+submodule they actually live in.
 """
 
-from .chains import link_set_piece_shots, set_piece_goal_summary
-from .filters import (
+from .core.chains import link_set_piece_shots, set_piece_goal_summary
+from .core.filters import (
     extract_all,
     extract_corners,
     extract_free_kicks,
@@ -13,26 +26,26 @@ from .filters import (
     extract_throw_ins,
     tag_set_pieces,
 )
-from .loader import Match, load_events, load_events_multi
-from .metrics import (
+from .core.loader import Match, load_events, load_events_multi
+from .core.metrics import (
     delivery_locations,
     player_set_piece_counts,
     set_piece_summary,
     team_set_piece_counts,
 )
-from .phases import (
+from .core.phases import (
     PhaseResult,
     classify_phase,
     second_phase_summary,
     second_phases,
 )
-from .outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
-from .report import corner_report, free_kick_report, set_piece_report
-from .retention import retention_detail, retention_rate
-from .shot_value import ShotValueModels, build_shot_features, shot_value
-from .value import set_piece_added_value, set_piece_value_summary
-from .xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
-from .zones import (
+from .core.outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
+from .core.report import corner_report, free_kick_report, set_piece_report
+from .core.retention import retention_detail, retention_rate
+from .ml.shot_value import ShotValueModels, build_shot_features, shot_value
+from .core.value import set_piece_added_value, set_piece_value_summary
+from .core.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+from .core.zones import (
     add_channels,
     add_thirds,
     add_zone_grid,
@@ -41,7 +54,7 @@ from .zones import (
     zone_id,
 )
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 __all__ = [
     "Match",

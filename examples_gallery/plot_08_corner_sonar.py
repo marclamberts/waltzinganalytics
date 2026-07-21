@@ -11,7 +11,7 @@ in a way an on-pitch arrow map doesn't.
 from pathlib import Path
 
 from wa_setpieces import delivery_locations, load_events
-from wa_setpieces.viz import plot_corner_sonar
+from wa_setpieces.viz.plots import plot_corner_sonar
 
 try:
     _here = Path(__file__).resolve().parent

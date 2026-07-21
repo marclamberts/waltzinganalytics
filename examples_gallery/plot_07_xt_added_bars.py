@@ -11,8 +11,8 @@ team colors, and not the green/red success-status colors used elsewhere.
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.viz import plot_xt_added_bars
-from wa_setpieces.xt import XTModel, set_piece_delivery_xt
+from wa_setpieces.viz.plots import plot_xt_added_bars
+from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt
 
 try:
     _here = Path(__file__).resolve().parent

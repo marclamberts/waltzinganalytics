@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.filters import extract_corners, extract_free_kicks
-from wa_setpieces.outcomes import (
+from wa_setpieces.core.filters import extract_corners, extract_free_kicks
+from wa_setpieces.core.outcomes import (
     OUTCOME_CATEGORIES,
     delivery_outcomes,
     outcome_summary,
@@ -96,7 +96,7 @@ def test_outcome_summary_empty_events():
 
 
 def test_short_corner_detection_with_synthetic_data(events):
-    from wa_setpieces.outcomes import classify_delivery_outcome
+    from wa_setpieces.core.outcomes import classify_delivery_outcome
 
     corners = extract_corners(events)
     real_corner = corners.iloc[0].copy()
@@ -113,7 +113,7 @@ def test_short_corner_detection_with_synthetic_data(events):
 
 
 def test_long_corner_is_not_misclassified_as_short(events):
-    from wa_setpieces.outcomes import classify_delivery_outcome
+    from wa_setpieces.core.outcomes import classify_delivery_outcome
 
     corners = extract_corners(events)
     real_corner = corners.iloc[0].copy()

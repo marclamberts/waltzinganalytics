@@ -18,16 +18,21 @@ running the test suite, or building the docs:
 
 .. code-block:: bash
 
-   pip install -e ".[viz]"    # matplotlib, mplsoccer -- pitch plots
-   pip install -e ".[dev]"    # pytest
-   pip install -e ".[docs]"   # sphinx, pydata-sphinx-theme, sphinx-gallery, viz
+   pip install -e ".[viz]"      # matplotlib, mplsoccer -- pitch plots
+   pip install -e ".[ml]"       # xgboost, scikit-learn, joblib -- shot_value
+   pip install -e ".[convert]"  # pyarrow -- wa_setpieces.convert.corners
+   pip install -e ".[dev]"      # pytest
+   pip install -e ".[docs]"     # sphinx, pydata-sphinx-theme, sphinx-gallery, viz, ml
 
 Requirements
 ------------
 
 - Python 3.9+
 - pandas >= 1.5
-- matplotlib >= 3.6 and mplsoccer >= 1.2 (only for :mod:`wa_setpieces.viz`)
+- matplotlib >= 3.6 and mplsoccer >= 1.2 (only for :mod:`wa_setpieces.viz.plots`;
+  :mod:`wa_setpieces.viz.theme` needs matplotlib only)
+- xgboost, scikit-learn, joblib (only for :mod:`wa_setpieces.ml.shot_value`)
+- pyarrow (only for :mod:`wa_setpieces.convert.corners`)
 
 Input data
 ----------

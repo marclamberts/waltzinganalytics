@@ -2,7 +2,7 @@
 
 Requires the optional ``ml`` extra: ``pip install "wa-setpieces[ml]"``
 (xgboost, scikit-learn, joblib). Five models ship inside the package
-(``wa_setpieces/models/*.pkl``, ~4.5MB), each an ``xgboost.XGBClassifier``,
+(``wa_setpieces/ml/models/*.pkl``, ~4.5MB), each an ``xgboost.XGBClassifier``,
 four of them wrapped in :class:`CalibratedXGB` (an isotonic-regression
 probability calibrator on top of the raw XGBoost output):
 
@@ -20,9 +20,9 @@ probability calibrator on top of the raw XGBoost output):
 :func:`shot_value` runs all five and returns one row per shot with each
 model's raw prediction plus a blended ``shot_value`` column.
 
-This is a separate, heavier concept from :meth:`wa_setpieces.xt.XTModel.shot_value`
+This is a separate, heavier concept from :meth:`wa_setpieces.core.xt.XTModel.shot_value`
 (a single grid-based P(goal) estimate, fit from your own match data, with
-no external dependencies) used by :func:`wa_setpieces.value.set_piece_added_value`.
+no external dependencies) used by :func:`wa_setpieces.core.value.set_piece_added_value`.
 Use the grid-based one if you want something dependency-free and fit
 specifically to your own data; use this module for a richer, pre-trained,
 multi-model breakdown, once you've read the limitations below.
@@ -51,12 +51,12 @@ own already-validated logic):
   assumption if distances look systematically off).
 - ``is_from_corner``, ``is_free_kick``, ``is_set_piece``,
   ``is_throw_in_set_piece``, ``is_open_play``, ``is_corner_second_phase``
-  -- from :func:`wa_setpieces.chains.link_set_piece_shots` and
-  :func:`wa_setpieces.phases.second_phases`, which are already-tested
+  -- from :func:`wa_setpieces.core.chains.link_set_piece_shots` and
+  :func:`wa_setpieces.core.phases.second_phases`, which are already-tested
   logic elsewhere in this package, not new inference.
 - ``is_assisted``, ``is_individual_play`` -- from qualifierId 29
   ("Assist"), already a validated constant in
-  :mod:`wa_setpieces.constants` (``QUALIFIER_ASSIST``).
+  :mod:`wa_setpieces.core.constants` (``QUALIFIER_ASSIST``).
 - ``is_right_foot``, ``is_left_foot`` -- from qualifierId 20/72, which
   partition 100% of shots in both sample matches (52/52); their relative
   frequency (77%/23%) matches typical player footedness, consistent with
@@ -104,7 +104,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import constants as c
+from ..core import constants as c
 
 MODELS_DIR = Path(__file__).parent / "models"
 
@@ -157,6 +157,14 @@ class CalibratedXGB:
         return self.iso.predict(raw)
 
 
+# The bundled .pkl files were pickled back when this module lived at
+# `wa_setpieces.shot_value` (pre-0.9 flat layout); pickle resolves classes by
+# that recorded module path at load time, not by where the class is defined
+# now. Alias the pre-restructure path to this module so `joblib.load` still
+# finds `CalibratedXGB` after the module's move to `wa_setpieces.ml.shot_value`.
+sys.modules.setdefault("wa_setpieces.shot_value", sys.modules[__name__])
+
+
 def _register_calibrated_xgb_in_main() -> None:
     # The bundled .pkl files were re-saved with CalibratedXGB importable
     # from this module, but joblib still looks it up by whatever module
@@ -197,7 +205,7 @@ class ShotValueModels:
             import joblib
         except ImportError as exc:  # pragma: no cover
             raise ImportError(
-                "wa_setpieces.shot_value requires the 'ml' extra: "
+                "wa_setpieces.ml.shot_value requires the 'ml' extra: "
                 'pip install "wa-setpieces[ml]"'
             ) from exc
 
@@ -222,7 +230,7 @@ class ShotValueModels:
 def _qualifier_flag(raw_event: pd.Series, qualifier_id: int) -> bool:
     """Whether boolean-style qualifier ``qualifier_id`` is present on
     ``raw_event``. Absent qualifiers are ``NaN`` in the loader's flattened
-    ``q_<id>`` columns (see :mod:`wa_setpieces.loader`) -- and ``bool(nan)``
+    ``q_<id>`` columns (see :mod:`wa_setpieces.core.loader`) -- and ``bool(nan)``
     is ``True`` in Python, so a plain ``bool(raw_event.get(...))`` silently
     treats "column not present" as "flag set". Use this instead."""
     value = raw_event.get(f"q_{qualifier_id}")
@@ -254,7 +262,7 @@ def _goal_placement(raw_event: pd.Series) -> dict:
 
     ``raw_event`` is a row from :func:`~wa_setpieces.load_events`'s events
     DataFrame, where each qualifier is already flattened to a ``q_<id>``
-    column (see :class:`wa_setpieces.loader.Match`)."""
+    column (see :class:`wa_setpieces.core.loader.Match`)."""
     goal_y_raw = raw_event.get(f"q_{QUALIFIER_GOAL_MOUTH_Y}")
     goal_z_raw = raw_event.get(f"q_{QUALIFIER_GOAL_MOUTH_Z}")
 
@@ -324,8 +332,8 @@ def build_shot_features(events: pd.DataFrame) -> pd.DataFrame:
     need. See the module docstring for which features are confidently
     derived vs experimental defaults.
     """
-    from .chains import link_set_piece_shots
-    from .phases import second_phases
+    from ..core.chains import link_set_piece_shots
+    from ..core.phases import second_phases
 
     linked = link_set_piece_shots(events)
     if linked.empty:

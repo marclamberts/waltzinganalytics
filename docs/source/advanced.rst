@@ -14,10 +14,10 @@ caveats before relying on the numbers.
 Zones, thirds and channels
 -----------------------------
 
-:mod:`wa_setpieces.zones` classifies pitch location using the confirmed
+:mod:`wa_setpieces.core.zones` classifies pitch location using the confirmed
 F24 convention that every event's ``x``/``y`` are in *that event's own
 team's* attacking direction (``x=0`` own goal, ``x=100`` opponent's goal;
-see :mod:`wa_setpieces.zones` module docstring for how this was verified
+see :mod:`wa_setpieces.core.zones` module docstring for how this was verified
 against the sample match).
 
 .. code-block:: python
@@ -36,7 +36,7 @@ which channel/third corners or free kicks are delivered *into*:
 .. code-block:: python
 
    from wa_setpieces import delivery_locations
-   from wa_setpieces.zones import add_channels
+   from wa_setpieces.core.zones import add_channels
 
    corners = delivery_locations(match.events, "corner")
    corners_end = add_channels(corners, y_col="end_y", n=5)
@@ -45,7 +45,7 @@ which channel/third corners or free kicks are delivered *into*:
 Second phases
 ----------------
 
-:mod:`wa_setpieces.phases` walks forward from every corner/free-kick
+:mod:`wa_setpieces.core.phases` walks forward from every corner/free-kick
 delivery and classifies what happened: did the defence clear it
 immediately, was there a shot straight off the delivery, or did the ball
 stay alive (a knockdown, blocked clearance, loose ball) long enough for the
@@ -67,7 +67,7 @@ enough up the pitch). The thresholds are tunable:
 
 .. code-block:: python
 
-   from wa_setpieces.phases import second_phases
+   from wa_setpieces.core.phases import second_phases
 
    second_phases(
        match.events, "corner",
@@ -79,7 +79,7 @@ enough up the pitch). The thresholds are tunable:
 Retention
 ------------
 
-:mod:`wa_setpieces.retention` asks a broader question than the raw pass
+:mod:`wa_setpieces.core.retention` asks a broader question than the raw pass
 ``outcome`` flag: did the team that took the set piece still have the ball
 some seconds later (default 8s), regardless of whether the very first pass
 found a teammate.
@@ -148,7 +148,7 @@ collide).
    This is for **match-independent aggregation only** -- team/player counts,
    zone heatmaps, and :meth:`XTModel.fit` all work fine on the combined
    frame, since those operate row-by-row or via groupby. The temporal-window
-   functions in :mod:`wa_setpieces.phases` and :mod:`wa_setpieces.retention`
+   functions in :mod:`wa_setpieces.core.phases` and :mod:`wa_setpieces.core.retention`
    assume one chronologically-ordered match; feeding them the combined frame
    directly would let a window bleed across a match boundary. Run those per
    match and concatenate the *results*:
@@ -157,7 +157,7 @@ collide).
 
       import pandas as pd
       from wa_setpieces import load_events
-      from wa_setpieces.phases import second_phases
+      from wa_setpieces.core.phases import second_phases
 
       all_second_phases = pd.concat(
           [second_phases(load_events(f).events, "corner") for f in match_files]
@@ -166,7 +166,7 @@ collide).
 Set-piece added value
 -------------------------
 
-:mod:`wa_setpieces.value` blends two things into one number per delivery:
+:mod:`wa_setpieces.core.value` blends two things into one number per delivery:
 the xT added by the delivery itself, and -- if it produced a shot, whether
 straight off the ball or via a second-phase loose ball -- how good a
 chance that shot was (``model.shot_value``, the scoring probability of
@@ -204,6 +204,6 @@ value and goals into one table per team:
    same-numbered row from the *other* team). Every place in this package
    that resolves one delivery/shot by ``eventId`` scopes the lookup to a
    team (or narrows the search to just corner/free-kick deliveries and
-   raises on remaining ambiguity, as :func:`~wa_setpieces.viz.plot_second_phase`
+   raises on remaining ambiguity, as :func:`~wa_setpieces.viz.plots.plot_second_phase`
    does) -- an unscoped ``events[events["eventId"] == x]`` lookup on the raw
    feed is not safe.

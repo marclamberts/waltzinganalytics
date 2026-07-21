@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wa-setpieces"
-version = "0.8.0"
+version = "0.9.0"
 description = "Set-piece metrics, added-value scoring and mplsoccer pitch visualizations (penalties, kick-offs, free kicks, corners, throw-ins, goal kicks) from Opta F24 event data, including second phases, xT, zones and retention"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -47,9 +47,13 @@ ml = [
     "scikit-learn>=1.3",
     "joblib>=1.3",
 ]
+convert = [
+    "pyarrow>=14",
+]
 
 [project.scripts]
 wa-setpieces = "wa_setpieces.cli:main"
+wa-setpieces-convert-corners = "wa_setpieces.convert.corners:main"
 
 [project.urls]
 Homepage = "https://github.com/marclamberts/waltzinganalytics"
@@ -62,7 +66,7 @@ Changelog = "https://waltzinganalytics.readthedocs.io/en/latest/changelog.html"
 where = ["src"]
 
 [tool.setuptools.package-data]
-wa_setpieces = ["models/*.pkl"]
+"wa_setpieces.ml" = ["models/*.pkl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -3,7 +3,7 @@ Shot value (experimental)
 ============================
 
 .. warning::
-   Read :mod:`wa_setpieces.shot_value`'s module docstring in full before
+   Read :mod:`wa_setpieces.ml.shot_value`'s module docstring in full before
    trusting this output for anything real. The five bundled models were
    trained elsewhere against a feature schema this package has to
    reconstruct from Opta F24 qualifiers -- some inputs are confidently
@@ -13,7 +13,7 @@ Shot value (experimental)
 Five pre-trained gradient-boosted models, bundled with the ``ml`` extra,
 score every shot in a match: P(on target), xG On Target (P(goal) given
 on target), Post-Shot xG (P(goal) from actual placement), a situational
-signal, and a 4-class outcome distribution. :func:`~wa_setpieces.shot_value.shot_value`
+signal, and a 4-class outcome distribution. :func:`~wa_setpieces.ml.shot_value.shot_value`
 runs all five and blends ``psxg`` and ``on_target_prob * xgot`` -- two
 independent P(goal) estimates -- into one ``shot_value`` column.
 """
@@ -21,7 +21,7 @@ independent P(goal) estimates -- into one ``shot_value`` column.
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.shot_value import ShotValueModels, shot_value
+from wa_setpieces.ml.shot_value import ShotValueModels, shot_value
 
 try:
     _here = Path(__file__).resolve().parent

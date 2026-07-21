@@ -1,17 +1,17 @@
 """Set-piece added value: one number blending delivery threat and shot quality.
 
-:mod:`wa_setpieces.xt` already answers "how much more dangerous did the
+:mod:`wa_setpieces.core.xt` already answers "how much more dangerous did the
 delivery make the ball position" (``xt_added``). This module adds the other
 half: if that delivery produced a shot -- whether straight off the ball or
 via a second-phase loose ball -- how good a chance was it, and did it
 actually end in a goal.
 
 The link between a delivery and "its" shot comes from
-:func:`wa_setpieces.chains.link_set_piece_shots`, which follows Opta's own
+:func:`wa_setpieces.core.chains.link_set_piece_shots`, which follows Opta's own
 assist-chain qualifier rather than a positional heuristic -- more reliable
 than re-deriving it, since it's the provider's own data. This is a
 different (and stricter) definition of "resulted in a shot" than
-:mod:`wa_setpieces.phases`' second-phase detection, which infers phases
+:mod:`wa_setpieces.core.phases`' second-phase detection, which infers phases
 from event sequencing when there's no assist qualifier to follow; the two
 won't always agree on borderline cases.
 """
@@ -45,7 +45,7 @@ def set_piece_added_value(
         outcome, delivery_xt_added, shot_value, added_value, is_goal.
 
         ``delivery_xt_added`` is 0 (not NaN) here when the delivery didn't
-        find a teammate -- unlike :func:`~wa_setpieces.xt.set_piece_delivery_xt`,
+        find a teammate -- unlike :func:`~wa_setpieces.core.xt.set_piece_delivery_xt`,
         which leaves it NaN, this module needs a summable number so an
         unsuccessful delivery that somehow still produced a shot (e.g. a
         half-cleared corner an teammate reacts to) doesn't drop out of the

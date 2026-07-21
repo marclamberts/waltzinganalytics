@@ -75,7 +75,7 @@ Other qualifiers used by this package
 A note on "success"
 ----------------------
 
-Attempts/success counts in :mod:`wa_setpieces.metrics` use Opta's own
+Attempts/success counts in :mod:`wa_setpieces.core.metrics` use Opta's own
 ``outcome`` field on the restart event (``1`` = successful, ``0`` =
 unsuccessful) as reported by the data provider -- e.g. for a throw-in this
 usually means "won by the throwing team", and for a free kick/corner it

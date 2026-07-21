@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

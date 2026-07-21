@@ -1,7 +1,7 @@
 """Classify what happened right after a corner/free-kick delivery into one
 discrete outcome category, for a shot-map-style scatter of results.
 
-This builds on :mod:`wa_setpieces.phases` (a derived heuristic -- same
+This builds on :mod:`wa_setpieces.core.phases` (a derived heuristic -- same
 caveats apply) and adds two things phases.py doesn't track on its own:
 
 - **short_corner**: the delivery itself was played short (a pass to a
@@ -20,7 +20,7 @@ caveats apply) and adds two things phases.py doesn't track on its own:
   header, regardless of which team's event actually recorded the win/loss,
   since in football terms a challenged header stays a "50/50" moment.
 
-Everything else falls out of :func:`~wa_setpieces.phases.classify_phase`'s
+Everything else falls out of :func:`~wa_setpieces.core.phases.classify_phase`'s
 own fields: ``direct_shot`` (a shot straight off the delivery),
 ``second_phase_shot`` (a shot after a loose ball), ``cleared_immediately``
 (the defending team's first touch sends it well clear), or otherwise

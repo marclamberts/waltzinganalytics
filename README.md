@@ -100,7 +100,7 @@ pip install -e ".[ml]"   # xgboost + scikit-learn + joblib
 ```
 
 ```python
-from wa_setpieces.shot_value import ShotValueModels, shot_value
+from wa_setpieces.ml.shot_value import ShotValueModels, shot_value
 
 models = ShotValueModels.load()          # loads once; reuse across matches
 shots = shot_value(match.events, models)
@@ -127,7 +127,7 @@ pip install -e ".[viz]"   # matplotlib + mplsoccer
 ```
 
 ```python
-from wa_setpieces.viz import (
+from wa_setpieces.viz.plots import (
     plot_delivery_map,      # arrow map of deliveries, colored by outcome
     plot_zone_heatmap,      # where events happen, gridded onto the pitch
     plot_xt_grid,           # a fitted XTModel's grid, as a heatmap
@@ -153,12 +153,12 @@ Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
 `fig`, being multi-panel) for further customization, and takes `dark: bool
 = True` -- the whole figure switches between a validated dark (navy) and
 light (white) palette with that one argument, see
-`wa_setpieces.theme.get_palette`. Colors are assigned by the job they do —
+`wa_setpieces.viz.theme.get_palette`. Colors are assigned by the job they do —
 a validated categorical palette for team identity (team-vs-team charts use
 a fixed orange-then-blue pairing in both modes), a status pair for
 success/fail, gold for goals, single-hue sequential ramps for magnitude,
 and a diverging pair for signed quantities like xT added — not picked for
-looks; see `wa_setpieces/theme.py`. `subtitle` (a muted line under the
+looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
 title) and `footer` (a small credit/source line, bottom-right) are
 optional on every plot. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
@@ -190,21 +190,22 @@ location (corner arc, touchline, centre spot, six-yard line).
 
 ## Package layout
 
-- `wa_setpieces.loader` — parse F24 JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
-- `wa_setpieces.constants` — Opta typeId / qualifierId reference.
-- `wa_setpieces.filters` — extract/tag each set-piece type.
-- `wa_setpieces.metrics` — team/player counts, success rates, delivery locations.
-- `wa_setpieces.chains` — link set pieces to the shots/goals they produced.
-- `wa_setpieces.zones` — pitch thirds, channels and a configurable zone grid.
-- `wa_setpieces.phases` — second-phase detection for corners/free kicks.
-- `wa_setpieces.retention` — possession retention after any restart.
-- `wa_setpieces.xt` — grid-based Expected Threat (xT), fit from data.
-- `wa_setpieces.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
-- `wa_setpieces.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
-- `wa_setpieces.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
-- `wa_setpieces.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
-- `wa_setpieces.viz` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
-- `wa_setpieces.theme` — the validated dark/light color palettes every plot draws from.
+- `wa_setpieces.core.loader` — parse F24 JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
+- `wa_setpieces.core.constants` — Opta typeId / qualifierId reference.
+- `wa_setpieces.core.filters` — extract/tag each set-piece type.
+- `wa_setpieces.core.metrics` — team/player counts, success rates, delivery locations.
+- `wa_setpieces.core.chains` — link set pieces to the shots/goals they produced.
+- `wa_setpieces.core.zones` — pitch thirds, channels and a configurable zone grid.
+- `wa_setpieces.core.phases` — second-phase detection for corners/free kicks.
+- `wa_setpieces.core.retention` — possession retention after any restart.
+- `wa_setpieces.core.xt` — grid-based Expected Threat (xT), fit from data.
+- `wa_setpieces.core.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
+- `wa_setpieces.core.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
+- `wa_setpieces.ml.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
+- `wa_setpieces.core.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
+- `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
+- `wa_setpieces.viz.theme` — the validated dark/light color palettes every plot draws from.
+- `wa_setpieces.convert.corners` — batch-convert a directory of Opta F24 exports plus a match-list CSV into a flat corners table for tools that expect that schema (optional `convert` extra).
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 
 ## Development

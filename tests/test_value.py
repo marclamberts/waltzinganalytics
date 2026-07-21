@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.metrics import delivery_locations
-from wa_setpieces.value import set_piece_added_value, set_piece_value_summary
-from wa_setpieces.xt import XTModel
+from wa_setpieces.core.metrics import delivery_locations
+from wa_setpieces.core.value import set_piece_added_value, set_piece_value_summary
+from wa_setpieces.core.xt import XTModel
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -52,7 +52,7 @@ def test_added_value_zero_for_unsuccessful_delivery_with_no_shot(events, model):
 
 
 def test_shot_value_requires_fitted_model(events):
-    from wa_setpieces.xt import XTModel
+    from wa_setpieces.core.xt import XTModel
     import numpy as np
 
     loaded = XTModel(grid=np.zeros((6, 8)), x_bins=8, y_bins=6)

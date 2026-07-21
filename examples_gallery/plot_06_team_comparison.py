@@ -11,7 +11,7 @@ per chart, so the same team reads as the same color everywhere.
 from pathlib import Path
 
 from wa_setpieces import load_events, set_piece_summary
-from wa_setpieces.viz import plot_team_comparison
+from wa_setpieces.viz.plots import plot_team_comparison
 
 try:
     _here = Path(__file__).resolve().parent

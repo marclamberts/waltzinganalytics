@@ -3,20 +3,20 @@
 
 Every plotting function here takes the same DataFrames the rest of the
 package produces (:func:`~wa_setpieces.delivery_locations`,
-:func:`~wa_setpieces.zones.zone_counts`, an :class:`~wa_setpieces.XTModel`
+:func:`~wa_setpieces.core.zones.zone_counts`, an :class:`~wa_setpieces.XTModel`
 grid, ...) and returns the ``(fig, ax)`` matplotlib pair, so you can keep
 customizing the plot afterwards.
 
 Requires the optional ``viz`` extra: ``pip install "wa-setpieces[viz]"``.
 Opta F24 coordinates (0-100 both axes, each event already in the acting
-team's own attacking direction -- see :mod:`wa_setpieces.zones`) map
+team's own attacking direction -- see :mod:`wa_setpieces.core.zones`) map
 directly onto :class:`mplsoccer.Pitch`'s built-in ``pitch_type="opta"``, so
 no coordinate conversion is needed.
 
 Every function takes ``dark: bool = True`` -- the whole figure (pitch,
 chart chrome, team colors) switches between the validated dark and light
-palettes in :mod:`wa_setpieces.theme` with that one argument. Colors
-otherwise follow :mod:`wa_setpieces.theme` -- assigned by the job they do
+palettes in :mod:`wa_setpieces.viz.theme` with that one argument. Colors
+otherwise follow :mod:`wa_setpieces.viz.theme` -- assigned by the job they do
 (status, category, magnitude, sign, team identity), not picked for looks.
 See that module's docstring before adding a new plot.
 """
@@ -93,7 +93,7 @@ def plot_delivery_map(
 
     Args:
         dark: render on the dark (default) or light palette from
-            :mod:`wa_setpieces.theme`.
+            :mod:`wa_setpieces.viz.theme`.
         subtitle: optional muted line under the title (e.g. a date/venue).
         footer: optional small credit/source line, bottom-right of the
             figure -- never defaulted.
@@ -138,7 +138,7 @@ def plot_zone_heatmap(
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
-    """Zone heatmap (see :mod:`wa_setpieces.zones`) of event counts.
+    """Zone heatmap (see :mod:`wa_setpieces.core.zones`) of event counts.
 
     Any events DataFrame works -- pass a filtered/extracted set (e.g.
     :func:`~wa_setpieces.extract_corners`) to see where a specific
@@ -233,12 +233,12 @@ def plot_second_phase(
             ``contestant_id`` to disambiguate when it is.
         contestant_id: required if ``delivery_event_id`` matches more than
             one corner/free-kick delivery (rare, but not impossible).
-        **phase_kwargs: forwarded to :func:`wa_setpieces.phases.classify_phase`
+        **phase_kwargs: forwarded to :func:`wa_setpieces.core.phases.classify_phase`
             (e.g. ``clear_safe_x``, ``max_gap_seconds``).
     """
-    from .filters import extract_corners, extract_free_kicks
-    from .phases import _phase_window, _seconds, classify_phase
-    from .zones import to_reference_frame
+    from ..core.filters import extract_corners, extract_free_kicks
+    from ..core.phases import _phase_window, _seconds, classify_phase
+    from ..core.zones import to_reference_frame
 
     pal = theme.get_palette(dark)
 
@@ -402,8 +402,8 @@ def plot_xt_added_bars(
 ):
     """Diverging bar chart of a signed per-delivery value (positive vs. negative).
 
-    Works for either :func:`~wa_setpieces.xt.set_piece_delivery_xt`'s
-    ``xt_added`` (the default) or :func:`~wa_setpieces.value.set_piece_added_value`'s
+    Works for either :func:`~wa_setpieces.core.xt.set_piece_delivery_xt`'s
+    ``xt_added`` (the default) or :func:`~wa_setpieces.core.value.set_piece_added_value`'s
     ``added_value`` -- pass ``value_col="added_value"`` for the latter, which
     also folds in shot quality and goals, not just the delivery itself.
 
@@ -512,8 +512,8 @@ def plot_match_timeline(
     """
     import matplotlib.pyplot as plt
 
-    from .constants import SET_PIECE_TYPES
-    from .filters import tag_set_pieces
+    from ..core.constants import SET_PIECE_TYPES
+    from ..core.filters import tag_set_pieces
 
     pal = theme.get_palette(dark)
 
@@ -577,7 +577,7 @@ def plot_dashboard(
     """
     import matplotlib.pyplot as plt
 
-    from .metrics import delivery_locations, set_piece_summary
+    from ..core.metrics import delivery_locations, set_piece_summary
 
     pal = theme.get_palette(dark)
 
@@ -764,10 +764,10 @@ def plot_set_piece_outcomes(
     pitch_kwargs: dict | None = None,
 ):
     """Shot-map-style scatter of corner/free-kick outcomes, from
-    :func:`~wa_setpieces.outcomes.delivery_outcomes`.
+    :func:`~wa_setpieces.core.outcomes.delivery_outcomes`.
 
     Each point is one delivery, colored by what happened right after it
-    (see :mod:`wa_setpieces.outcomes` for the category definitions and
+    (see :mod:`wa_setpieces.core.outcomes` for the category definitions and
     where each category's point is placed -- e.g. the first-contact spot
     for a won/lost/aerial duel, the shot spot for a direct or second-phase
     shot). Deliveries that ended in a goal get a gold ring around the
@@ -775,14 +775,14 @@ def plot_set_piece_outcomes(
     distinct from both the category colors and the status colors.
 
     Colors follow the fixed categorical order in
-    :data:`~wa_setpieces.outcomes.OUTCOME_CATEGORIES`, not the order
+    :data:`~wa_setpieces.core.outcomes.OUTCOME_CATEGORIES`, not the order
     categories happen to appear in this particular match, so the same
     category is always the same color across different plots. With up to
     8 categories in play, identity leans on the legend (direct labels),
     not on hue alone, per the palette's own rule for categorical sets
     past 4 series.
     """
-    from .outcomes import OUTCOME_CATEGORIES
+    from ..core.outcomes import OUTCOME_CATEGORIES
 
     pal = theme.get_palette(dark)
     pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)

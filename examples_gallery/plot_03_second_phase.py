@@ -2,7 +2,7 @@
 Second-phase corner sequences
 ================================
 
-:mod:`wa_setpieces.phases` classifies what happens after a corner is
+:mod:`wa_setpieces.core.phases` classifies what happens after a corner is
 delivered: was it cleared immediately, did it produce a direct shot, or did
 the ball stay alive for a **second-phase shot** (a knockdown, blocked
 clearance, or loose ball the attacking team won again before the danger
@@ -17,8 +17,8 @@ that function's docstring for how this was verified against the data.
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.phases import second_phases
-from wa_setpieces.viz import plot_second_phase
+from wa_setpieces.core.phases import second_phases
+from wa_setpieces.viz.plots import plot_second_phase
 
 try:
     _here = Path(__file__).resolve().parent

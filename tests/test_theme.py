@@ -4,7 +4,7 @@ import pytest
 
 matplotlib = pytest.importorskip("matplotlib")
 
-from wa_setpieces import theme  # noqa: E402
+from wa_setpieces.viz import theme  # noqa: E402
 
 HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 

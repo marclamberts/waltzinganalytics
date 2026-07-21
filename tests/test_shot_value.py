@@ -8,7 +8,7 @@ pytest.importorskip("sklearn")
 pytest.importorskip("joblib")
 
 from wa_setpieces import load_events  # noqa: E402
-from wa_setpieces.shot_value import (  # noqa: E402
+from wa_setpieces.ml.shot_value import (  # noqa: E402
     PONTARGET_FEATURES,
     SITUATION_FEATURES,
     XGOT_FEATURES,
@@ -31,7 +31,7 @@ def models():
 
 
 def test_build_shot_features_one_row_per_shot(events):
-    from wa_setpieces import constants as c
+    from wa_setpieces.core import constants as c
 
     feats = build_shot_features(events)
     n_shots = events["typeId"].isin(c.SHOT_TYPE_IDS).sum()
@@ -58,7 +58,7 @@ def test_build_shot_features_body_part_flags_are_mutually_exclusive(events):
 
 
 def test_build_shot_features_set_piece_flags_agree_with_chains(events):
-    from wa_setpieces.chains import link_set_piece_shots
+    from wa_setpieces.core.chains import link_set_piece_shots
 
     feats = build_shot_features(events)
     linked = link_set_piece_shots(events)

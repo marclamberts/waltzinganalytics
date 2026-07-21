@@ -4,7 +4,7 @@ Light and dark mode
 
 Every plotting function takes ``dark: bool = True`` -- the whole figure
 (pitch, chart chrome, team colors) switches between the validated dark and
-light palettes in :mod:`wa_setpieces.theme` with that one argument. Both
+light palettes in :mod:`wa_setpieces.viz.theme` with that one argument. Both
 palettes pass the same colorblind-safety and contrast checks against their
 own chart surface (navy for dark, white for light).
 
@@ -21,7 +21,7 @@ source credit belongs to whoever is publishing the chart.
 from pathlib import Path
 
 from wa_setpieces import delivery_locations, load_events, set_piece_summary
-from wa_setpieces.viz import plot_delivery_map, plot_team_comparison
+from wa_setpieces.viz.plots import plot_delivery_map, plot_team_comparison
 
 try:
     _here = Path(__file__).resolve().parent

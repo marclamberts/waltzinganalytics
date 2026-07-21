@@ -14,7 +14,7 @@ retention; pitch zones/thirds/channels; and a grid-based Expected Threat
 .. code-block:: python
 
    from wa_setpieces import load_events, set_piece_summary
-   from wa_setpieces.viz import plot_delivery_map
+   from wa_setpieces.viz.plots import plot_delivery_map
    from wa_setpieces import delivery_locations
 
    match = load_events("match.json")

@@ -1,10 +1,42 @@
 Changelog
 =========
 
+0.9.0
+-----
+
+- **Breaking: the package is now organized into subpackages** instead of
+  ~20 flat modules directly under ``wa_setpieces``. Import paths change;
+  the top-level API (``from wa_setpieces import load_events, XTModel, ...``)
+  is unaffected.
+
+  - ``wa_setpieces.core`` -- loading, extraction, metrics, chains, phases,
+    retention, xT, added-value, outcomes, report, constants. No extra
+    dependencies; imported eagerly (e.g. ``wa_setpieces.xt`` moved to
+    ``wa_setpieces.core.xt``, ``wa_setpieces.constants`` to
+    ``wa_setpieces.core.constants``, and so on for every other module that
+    used to sit directly under ``wa_setpieces``).
+  - ``wa_setpieces.ml`` -- ``wa_setpieces.shot_value`` moved to
+    ``wa_setpieces.ml.shot_value``; the bundled ``.pkl`` models moved with
+    it to ``wa_setpieces/ml/models/`` (``ml`` extra unchanged).
+  - ``wa_setpieces.viz`` -- ``wa_setpieces.viz`` (the plotting module) moved
+    to ``wa_setpieces.viz.plots``; ``wa_setpieces.theme`` moved to
+    ``wa_setpieces.viz.theme``. ``wa_setpieces.viz.theme`` still imports
+    without mplsoccer installed (only matplotlib) -- the ``viz`` package's
+    ``__init__`` does not eagerly import ``plots``, so pulling in the
+    palette doesn't pull in the heavier plotting dependency.
+  - ``wa_setpieces.convert`` -- new. See below.
+
+- **New**: ``wa_setpieces.convert.corners`` (optional ``convert`` extra --
+  pyarrow) batch-converts a directory of Opta F24 match JSON exports, plus
+  a companion match-list CSV, into a flat "corners" table (one row per
+  corner delivery, with any shot it produced linked by a time/possession
+  heuristic) matching the schema external tools already consume. Also
+  available as the ``wa-setpieces-convert-corners`` console script.
+
 0.8.0
 -----
 
-- **New (experimental)** ``wa_setpieces.shot_value``: five pre-trained
+- **New (experimental)** ``wa_setpieces.ml.shot_value``: five pre-trained
   gradient-boosted models (xgboost + isotonic calibration), bundled with
   the package (``wa_setpieces/models/*.pkl``, new ``ml`` optional extra --
   xgboost, scikit-learn, joblib), score every shot in a match:
@@ -36,7 +68,7 @@ Changelog
 - **Restyled the whole plotting suite and added light/dark mode.** Every
   function in ``wa_setpieces.viz`` now takes ``dark: bool = True`` --
   the pitch, chart chrome and team colors all switch between two
-  validated palettes in ``wa_setpieces.theme`` (``get_palette(dark)``)
+  validated palettes in ``wa_setpieces.viz.theme`` (``get_palette(dark)``)
   with that one argument. Both a navy dark surface (``#0d1117``) and a
   clean white light surface (``#ffffff``) pass the full colorblind-safety
   and contrast validator, run against their own chart surface.
@@ -70,12 +102,12 @@ Changelog
 0.6.0
 -----
 
-- ``wa_setpieces.outcomes``: per-delivery outcome classification for
+- ``wa_setpieces.core.outcomes``: per-delivery outcome classification for
   corners and free kicks -- ``short_corner``, ``direct_shot``,
   ``second_phase_shot``, ``aerial_duel`` ("50/50", ``typeId`` 44),
   ``cleared``, ``first_touch_won``, ``first_touch_lost`` or ``no_action``.
   ``delivery_outcomes`` (per-delivery) and ``outcome_summary`` (per-team
-  rollup). Built on ``wa_setpieces.phases``, which now also records
+  rollup). Built on ``wa_setpieces.core.phases``, which now also records
   whether a set piece produced a direct shot on the delivery itself
   (``PhaseResult.direct_shot``/``direct_shot_event_id``/``direct_shot_is_goal``)
   -- previously that information was discarded once a direct shot was
@@ -118,12 +150,12 @@ Changelog
   only corner/free-kick deliveries and raises clearly on remaining
   ambiguity instead of silently picking the wrong one (new
   ``contestant_id`` parameter to disambiguate when needed).
-- ``wa_setpieces.value``: set-piece added value -- ``delivery_xt_added +
+- ``wa_setpieces.core.value``: set-piece added value -- ``delivery_xt_added +
   shot_value`` per delivery (the latter via a new ``XTModel.shot_value``
   using the fitted shot/goal probability grids), always summable (0, not
   NaN, when nothing happened). ``set_piece_added_value`` (per-delivery)
   and ``set_piece_value_summary`` (per-team).
-- ``wa_setpieces.report``: ``set_piece_report`` / ``corner_report`` /
+- ``wa_setpieces.core.report``: ``set_piece_report`` / ``corner_report`` /
   ``free_kick_report`` merge attempts, success rate, second-phase rate,
   retention rate, and (with a model) added value and goals into one table
   per team -- previously five separate function calls.
@@ -143,7 +175,7 @@ Changelog
   ``plot_xt_added_bars``, ``plot_corner_sonar``, ``plot_match_timeline``,
   and ``plot_dashboard`` (a one-figure "report card" combining several of
   the others). Gallery grew from 5 examples to 10.
-- ``wa_setpieces.theme``: a validated color palette (categorical, status,
+- ``wa_setpieces.viz.theme``: a validated color palette (categorical, status,
   sequential blue/green, diverging blue/red) every plot now draws from,
   replacing ad hoc per-function color choices. Fixed a real bug along the
   way -- ``plot_team_comparison``/``plot_dashboard`` didn't guarantee which
@@ -167,7 +199,7 @@ Changelog
 - ``wa_setpieces.viz``: mplsoccer-based pitch plots -- delivery maps,
   zone heatmaps, xT grids, and second-phase sequence plots (new ``viz``
   optional extra).
-- ``wa_setpieces.zones.to_reference_frame``: mirrors one team's events
+- ``wa_setpieces.core.zones.to_reference_frame``: mirrors one team's events
   onto a shared pitch frame, fixing a real bug where plotting both teams'
   raw coordinates together produced nonsensical positions (each event's
   x/y is in *that team's own* attacking direction).
@@ -178,11 +210,11 @@ Changelog
 0.2.0
 -----
 
-- Second-phase detection for corners and free kicks (``wa_setpieces.phases``).
-- Possession retention after any restart (``wa_setpieces.retention``).
-- Pitch zones, thirds and channels (``wa_setpieces.zones``).
+- Second-phase detection for corners and free kicks (``wa_setpieces.core.phases``).
+- Possession retention after any restart (``wa_setpieces.core.retention``).
+- Pitch zones, thirds and channels (``wa_setpieces.core.zones``).
 - Expected Threat (xT) engine, fit from data, with helpers for corner/free-kick
-  delivery value (``wa_setpieces.xt``).
+  delivery value (``wa_setpieces.core.xt``).
 - CLI now prints second-phase, retention, and (with ``--xt``) xT sections.
 
 0.1.0

@@ -7,11 +7,11 @@ import sys
 
 import pandas as pd
 
-from .loader import load_events
-from .metrics import set_piece_summary
-from .phases import second_phase_summary
-from .retention import retention_rate
-from .xt import XTModel, set_piece_xt_summary
+from .core.loader import load_events
+from .core.metrics import set_piece_summary
+from .core.phases import second_phase_summary
+from .core.retention import retention_rate
+from .core.xt import XTModel, set_piece_xt_summary
 
 _RETENTION_TYPES = ("kick_off", "free_kick", "corner", "throw_in", "goal_kick")
 

@@ -11,7 +11,7 @@ delivery and classifies what happened to the ball:
   clearance/save/claim that sends the ball back up the pitch past
   ``clear_safe_x`` (using the confirmed F24 convention that every event's
   ``x`` is in *that event's own team's* attacking direction, i.e. low ``x``
-  = deep in that team's own defensive zone -- see :mod:`wa_setpieces.zones`).
+  = deep in that team's own defensive zone -- see :mod:`wa_setpieces.core.zones`).
 - **Direct shot**: the attacking team shoots directly off the delivery
   (the very first event in the window is a shot).
 - **Second-phase shot**: the ball stays alive near the defending team's goal

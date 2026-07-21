@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.retention import retention_detail, retention_rate
+from wa_setpieces.core.retention import retention_detail, retention_rate
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -22,7 +22,7 @@ def test_retention_rejects_penalty(events):
     "set_piece_type", ["corner", "free_kick", "throw_in", "goal_kick", "kick_off"]
 )
 def test_retention_detail_covers_every_delivery(events, set_piece_type):
-    from wa_setpieces.filters import extract_all
+    from wa_setpieces.core.filters import extract_all
 
     detail = retention_detail(events, set_piece_type)
     assert len(detail) == len(extract_all(events)[set_piece_type])

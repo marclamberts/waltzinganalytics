@@ -17,8 +17,8 @@ method: fit a grid of zone values from data, then value any pass as
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.viz import plot_xt_grid
-from wa_setpieces.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
+from wa_setpieces.viz.plots import plot_xt_grid
+from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 
 try:
     _here = Path(__file__).resolve().parent

@@ -12,8 +12,8 @@ profile comparison, in the same spirit as a scouting radar/pizza chart.
 from pathlib import Path
 
 from wa_setpieces import corner_report, free_kick_report, load_events
-from wa_setpieces.viz import plot_set_piece_radar
-from wa_setpieces.xt import XTModel
+from wa_setpieces.viz.plots import plot_set_piece_radar
+from wa_setpieces.core.xt import XTModel
 
 try:
     _here = Path(__file__).resolve().parent

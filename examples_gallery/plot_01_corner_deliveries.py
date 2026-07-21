@@ -9,7 +9,7 @@ Green arrows are successful deliveries, red are unsuccessful.
 from pathlib import Path
 
 from wa_setpieces import delivery_locations, load_events
-from wa_setpieces.viz import plot_delivery_map
+from wa_setpieces.viz.plots import plot_delivery_map
 
 try:
     _here = Path(__file__).resolve().parent

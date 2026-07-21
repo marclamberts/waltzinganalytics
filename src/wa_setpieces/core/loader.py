@@ -112,7 +112,7 @@ def load_events_multi(
        set-piece counts, zone heatmaps, and fitting :meth:`XTModel.fit`
        across a season all work fine on the combined frame, since those
        operate row-by-row or via groupby. The temporal-window functions in
-       :mod:`wa_setpieces.phases` and :mod:`wa_setpieces.retention` assume a
+       :mod:`wa_setpieces.core.phases` and :mod:`wa_setpieces.core.retention` assume a
        single chronologically-ordered match, so feeding them this combined
        frame directly would let a window bleed across a match boundary.
        Run those per match (``for path in paths: ...``) and concatenate the

@@ -11,7 +11,7 @@ piling up late.
 from pathlib import Path
 
 from wa_setpieces import load_events
-from wa_setpieces.viz import plot_match_timeline
+from wa_setpieces.viz.plots import plot_match_timeline
 
 try:
     _here = Path(__file__).resolve().parent

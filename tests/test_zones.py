@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from wa_setpieces import load_events
-from wa_setpieces.zones import add_channels, add_thirds, add_zone_grid, zone_counts, zone_id
+from wa_setpieces.core.zones import add_channels, add_thirds, add_zone_grid, zone_counts, zone_id
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 

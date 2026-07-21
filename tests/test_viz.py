@@ -13,11 +13,11 @@ from wa_setpieces import (  # noqa: E402
     load_events,
     set_piece_summary,
 )
-from wa_setpieces.outcomes import OUTCOME_CATEGORIES, delivery_outcomes  # noqa: E402
-from wa_setpieces.phases import second_phases  # noqa: E402
-from wa_setpieces.report import corner_report  # noqa: E402
-from wa_setpieces.xt import XTModel, set_piece_delivery_xt  # noqa: E402
-from wa_setpieces import viz  # noqa: E402
+from wa_setpieces.core.outcomes import OUTCOME_CATEGORIES, delivery_outcomes  # noqa: E402
+from wa_setpieces.core.phases import second_phases  # noqa: E402
+from wa_setpieces.core.report import corner_report  # noqa: E402
+from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt  # noqa: E402
+from wa_setpieces.viz import plots as viz  # noqa: E402
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -101,7 +101,7 @@ def test_plot_second_phase_raises_on_ambiguous_eventid(events):
 def test_plot_delivery_map_light_mode_uses_light_surface(events):
     corners = delivery_locations(events, "corner")
     fig, ax = viz.plot_delivery_map(corners, dark=False)
-    from wa_setpieces.theme import get_palette
+    from wa_setpieces.viz.theme import get_palette
 
     light = get_palette(dark=False)
     dark = get_palette(dark=True)
@@ -120,7 +120,7 @@ def test_plot_delivery_map_dark_is_default(events):
 
 def test_plot_team_comparison_light_and_dark_use_team_colors(events):
     summary = set_piece_summary(events)
-    from wa_setpieces.theme import get_palette
+    from wa_setpieces.viz.theme import get_palette
 
     for dark in (True, False):
         pal = get_palette(dark)
@@ -132,14 +132,14 @@ def test_plot_team_comparison_light_and_dark_use_team_colors(events):
 
 
 def test_plot_set_piece_outcomes_goal_ring_is_gold(events):
-    from wa_setpieces.outcomes import delivery_outcomes
+    from wa_setpieces.core.outcomes import delivery_outcomes
 
     outcomes = delivery_outcomes(events, "corner").copy()
     outcomes.loc[outcomes.index[0], "is_goal"] = True
     fig, ax = viz.plot_set_piece_outcomes(outcomes)
     import matplotlib.colors as mcolors
 
-    from wa_setpieces.theme import get_palette
+    from wa_setpieces.viz.theme import get_palette
 
     pal = get_palette(dark=True)
     goal_rings = [c for c in ax.collections if c.get_label() == "Goal"]
