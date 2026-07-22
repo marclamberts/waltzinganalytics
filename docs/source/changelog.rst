@@ -1,6 +1,37 @@
 Changelog
 =========
 
+0.10.0
+------
+
+- **New**: ``wa_setpieces.core.rating`` -- benchmarked 0-100 team/player
+  "how good" scores. Each metric in a report is z-scored against the
+  sample it's given (50 = that sample's own average, +/-1 SD =~ +/-15
+  points, clipped to [0, 100]) then combined into a composite ``rating``.
+  ``team_rating()`` works on any ``set_piece_report``/``corner_report``/
+  ``free_kick_report`` table. ``player_rating()`` splits into a delivery
+  score (taker quality, from ``set_piece_added_value``) and a finishing
+  score (shooter quality, from the assist-chain shot link and
+  ``XTModel.shot_value``), merged so a pure taker or pure finisher is
+  rated on the component they actually have. Always benchmark against a
+  full season/competition, not one match -- see the module docstring.
+- **New**: ``wa_setpieces.providers`` -- adapters that convert other
+  providers' event feeds into the same internal frame
+  ``wa_setpieces.core.loader.load_events`` produces from Opta F24, so
+  every other module works unchanged regardless of source.
+  ``wa_setpieces.providers.statsbomb.load_statsbomb_events`` (also
+  exported as ``wa_setpieces.load_statsbomb_events``) converts a
+  StatsBomb open-data events export: set-piece detection, the
+  assist-chain shot link (``key_pass_id``), retention, xT, added value
+  and the new rating module are all faithfully mapped; one narrow
+  second-phase-timing edge case is a documented approximation (StatsBomb
+  has no event type equivalent to Opta's distinct "ball went out of
+  play" event). Impect is not supported -- it's a closed feed with no
+  public schema to build and verify an adapter against.
+- **New**: ``plot_rating_benchmark`` in ``wa_setpieces.viz.plots`` --
+  horizontal benchmark chart for a ``team_rating``/``player_rating``
+  table, diverging from the sample-average baseline of 50.
+
 0.9.0
 -----
 

@@ -218,6 +218,28 @@ def test_plot_match_timeline_minutes_within_match_length(events):
     assert max(all_minutes) < 100  # sample match runs ~102 minutes total
 
 
+def test_plot_rating_benchmark_returns_fig_and_ax(events):
+    from wa_setpieces.core.rating import team_rating
+    from wa_setpieces.core.report import corner_report
+
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    rated = team_rating(corner_report(events, model=model))
+    fig, ax = viz.plot_rating_benchmark(rated)
+    assert fig is not None
+    assert ax is not None
+
+
+def test_plot_rating_benchmark_drops_nan_ratings_and_respects_top_n():
+    import pandas as pd
+
+    rated = pd.DataFrame({
+        "contestantId": ["a", "b", "c"],
+        "rating": [65.0, None, 35.0],
+    })
+    fig, ax = viz.plot_rating_benchmark(rated, top_n=1)
+    assert len(ax.get_yticklabels()) == 1
+
+
 def test_plot_dashboard_returns_figure(events):
     corners = delivery_locations(events, "corner")
     team_id = corners["contestantId"].value_counts().idxmax()

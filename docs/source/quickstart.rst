@@ -23,6 +23,25 @@ stacks several exports into one events DataFrame (tagged with a
 matches" section on the :doc:`advanced` page for what that is and isn't
 safe to use for.
 
+Loading data from other providers
+------------------------------------
+
+Opta F24 is the native format, handled directly above. StatsBomb open-data
+exports go through an adapter first --
+:func:`~wa_setpieces.load_statsbomb_events` converts them into the same
+internal events DataFrame, so every function on this page works unchanged
+on either source:
+
+.. code-block:: python
+
+   from wa_setpieces import load_statsbomb_events
+
+   events = load_statsbomb_events("statsbomb_events_export.json")
+   set_piece_summary(events)
+
+See :mod:`wa_setpieces.providers.statsbomb`'s module docstring for exactly
+what is (and isn't) faithfully mapped.
+
 Extracting set pieces
 ----------------------
 
@@ -106,6 +125,21 @@ set-piece type.
 
    set_piece_summary(match.events)
 
+Ratings
+--------
+
+:mod:`wa_setpieces.core.rating` turns a report into a single 0-100 "how
+good" score, benchmarked against whoever else is in the table -- always
+rate a full season/competition, not one match (see the module docstring
+for why).
+
+.. code-block:: python
+
+   from wa_setpieces import team_rating, player_rating
+
+   team_rating(corner_report(season_events, model=model))
+   player_rating(season_events, "corner", model, min_deliveries=5, min_shots=3)
+
 Command line
 -------------
 
@@ -120,7 +154,8 @@ Plotting
 ``pip install "wa-setpieces[viz]"`` adds :mod:`wa_setpieces.viz.plots`,
 pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_ for
 everything above -- delivery maps, zone heatmaps, second-phase sequences,
-xT grids. See the :ref:`gallery` for the full set with source code.
+xT grids, and a rating benchmark chart. See the :ref:`gallery` for the
+full set with source code.
 
 .. code-block:: python
 

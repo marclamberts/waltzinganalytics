@@ -2,14 +2,17 @@ wa-setpieces
 ===============
 
 **Set-piece metrics and pitch visualizations for Opta / Stats Perform F24
-event data**, built on `pandas <https://pandas.pydata.org>`_ and
+(and, via an adapter, StatsBomb) event data**, built on
+`pandas <https://pandas.pydata.org>`_ and
 `mplsoccer <https://mplsoccer.readthedocs.io>`_.
 
-Point it at an F24 match export and get: penalty, kick-off, free-kick,
-corner, throw-in and goal-kick detection; team/player attempt and success
-rates; second-phase shot detection for corners and free kicks; possession
-retention; pitch zones/thirds/channels; and a grid-based Expected Threat
-(xT) model -- all as tidy DataFrames, plus ready-made pitch plots.
+Point it at an F24 match export (or a StatsBomb export, through
+:func:`~wa_setpieces.load_statsbomb_events`) and get: penalty, kick-off,
+free-kick, corner, throw-in and goal-kick detection; team/player attempt
+and success rates; second-phase shot detection for corners and free
+kicks; possession retention; pitch zones/thirds/channels; a grid-based
+Expected Threat (xT) model; and a benchmarked 0-100 team/player rating --
+all as tidy DataFrames, plus ready-made pitch plots.
 
 .. code-block:: python
 

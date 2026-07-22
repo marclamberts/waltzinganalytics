@@ -101,6 +101,27 @@ report
    :undoc-members:
    :show-inheritance:
 
+rating
+------
+
+.. automodule:: wa_setpieces.core.rating
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+providers.statsbomb
+--------------------
+
+Converts a StatsBomb open-data events export into the same internal frame
+:func:`~wa_setpieces.core.loader.load_events` produces from Opta F24, so
+every other module works unchanged on StatsBomb data. Read the module
+docstring for exactly what is (and isn't) faithfully mapped.
+
+.. automodule:: wa_setpieces.providers.statsbomb
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 viz
 ---
 

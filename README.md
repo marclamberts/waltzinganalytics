@@ -1,16 +1,18 @@
 # wa-setpieces
 
-Set-piece metrics for football (soccer) matches from **Opta / Stats Perform F24**
-event-feed JSON exports: penalties, kick-offs, free kicks, corners,
+Set-piece metrics for football (soccer) matches from **Opta / Stats Perform
+F24** event-feed JSON exports (natively) and **StatsBomb** open-data exports
+(via an adapter, see below): penalties, kick-offs, free kicks, corners,
 throw-ins and goal kicks.
 
-Given a raw F24 match file, this package tags every set-piece restart,
-aggregates attempts/success rates by team and player, tracks pass end
-locations for delivery maps, and links each set piece to the shot or goal
-it produced (via Opta's assist-chain qualifier). It also covers, for
-corners and free kicks specifically: second-phase detection, Expected
-Threat (xT), pitch zones/thirds/channels, and possession retention —
-with pitch plots built on [mplsoccer](https://mplsoccer.readthedocs.io).
+Given a match file, this package tags every set-piece restart, aggregates
+attempts/success rates by team and player, tracks pass end locations for
+delivery maps, and links each set piece to the shot or goal it produced
+(via the provider's own assist-chain data). It also covers, for corners and
+free kicks specifically: second-phase detection, Expected Threat (xT),
+pitch zones/thirds/channels, possession retention, and a benchmarked
+team/player rating — with pitch plots built on
+[mplsoccer](https://mplsoccer.readthedocs.io).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/marclamberts/waltzinganalytics/main/docs/source/_static/hero_corners.png" alt="Corner delivery map drawn with mplsoccer" width="640">
@@ -24,7 +26,7 @@ with pitch plots built on [mplsoccer](https://mplsoccer.readthedocs.io).
 pip install wa-setpieces
 ```
 
-Not yet published to PyPI? Install from source instead:
+Or install from source:
 
 ```bash
 git clone https://github.com/marclamberts/waltzinganalytics.git
@@ -120,6 +122,27 @@ and default to `False` rather than a guessed-and-possibly-wrong qualifier
 ID — that gap is documented, not hidden, but it does mean predictions are
 degraded relative to the models' original training data.
 
+## Ratings
+
+`wa_setpieces.core.rating` turns a report into a single 0-100 "how good"
+score, benchmarked (z-scored) against whoever else is in the table —
+**always rate against a full season/competition, not one match**; a
+two-row sample just tells you which of those two had the better match, not
+how good either team actually is.
+
+```python
+from wa_setpieces.core.rating import team_rating, player_rating
+
+team_rating(corner_report(season_events, model=model))
+# ... success_rate, avg_added_value, retention_rate, plus a *_score column
+# per metric and a composite `rating` (50 = this table's own average)
+
+player_rating(season_events, "corner", model, min_deliveries=5, min_shots=3)
+# delivery_score (taker quality) and finishing_score (shooter quality),
+# merged -- a pure taker or pure finisher is rated on the component they
+# have, not penalized for the one they don't
+```
+
 ## Plots
 
 ```bash
@@ -139,6 +162,7 @@ from wa_setpieces.viz.plots import (
     plot_dashboard,         # one-figure report card combining several of the above
     plot_set_piece_radar,   # two-team radar over a corner_report/free_kick_report
     plot_set_piece_outcomes,  # shot map: every delivery, colored by outcome category
+    plot_rating_benchmark,   # team/player rating vs. the sample-average baseline
 )
 
 plot_delivery_map(
@@ -147,6 +171,7 @@ plot_delivery_map(
 )
 plot_dashboard(match.events, team_id, set_piece_type="corner")  # the "hero" figure
 plot_set_piece_radar(corner_report(match.events, model=model))  # team A vs. team B, one glance
+plot_rating_benchmark(team_rating(corner_report(season_events, model=model)))
 ```
 
 Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
@@ -162,7 +187,33 @@ looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
 title) and `footer` (a small credit/source line, bottom-right) are
 optional on every plot. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all eleven plots (in both modes) with full source code.
+for all sixteen plots (in both modes) with full source code.
+
+## Other data providers
+
+Opta F24 is the native format (`wa_setpieces.core.loader.load_events`,
+handled directly, no adapter needed). `wa_setpieces.providers` converts
+other providers' feeds into that same internal frame, so every other
+module — filters, metrics, chains, phases, retention, xT, value, rating,
+viz — works unchanged regardless of source:
+
+```python
+from wa_setpieces import load_statsbomb_events
+
+events = load_statsbomb_events("statsbomb_events_export.json")
+set_piece_summary(events)  # same functions, same DataFrame shape
+```
+
+Read `wa_setpieces/providers/statsbomb.py`'s module docstring for exactly
+what is (and isn't) faithfully mapped — set-piece detection, the
+assist-chain shot link, retention, xT and rating are all faithful; one
+narrow edge case in second-phase timing is documented as an approximation.
+
+**Impect is not supported.** It's a closed, proprietary feed with no
+public schema to build and verify an adapter against — contributing one
+needs a real sample export or an official schema reference to check the
+mapping against, the same way the StatsBomb adapter and the Opta constants
+in `wa_setpieces/core/constants.py` were verified against real exports.
 
 ## Command line
 
@@ -203,7 +254,9 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.core.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
 - `wa_setpieces.ml.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
 - `wa_setpieces.core.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
-- `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar (optional `viz` extra).
+- `wa_setpieces.core.rating` — benchmarked 0-100 team/player "how good" scores from a report (see Ratings below).
+- `wa_setpieces.providers.statsbomb` — convert a StatsBomb open-data export into the same internal frame Opta F24 produces.
+- `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar, rating benchmark (optional `viz` extra).
 - `wa_setpieces.viz.theme` — the validated dark/light color palettes every plot draws from.
 - `wa_setpieces.convert.corners` — batch-convert a directory of Opta F24 exports plus a match-list CSV into a flat corners table for tools that expect that schema (optional `convert` extra).
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.

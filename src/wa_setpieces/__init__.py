@@ -1,10 +1,15 @@
 """wa-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
-corners, throw-ins, goal kicks) from Opta / Stats Perform F24 event data.
+corners, throw-ins, goal kicks) from Opta / Stats Perform F24 -- and, via
+:mod:`wa_setpieces.providers`, StatsBomb -- event data.
 
 Layout:
 
 - :mod:`wa_setpieces.core` -- loading, extraction, metrics, phases,
-  retention, xT and added-value (no extra dependencies; imported eagerly).
+  retention, xT, added-value and :mod:`~wa_setpieces.core.rating` (no
+  extra dependencies; imported eagerly).
+- :mod:`wa_setpieces.providers` -- adapters that convert other providers'
+  feeds (currently StatsBomb) into the same internal events frame Opta F24
+  produces, so everything else works unchanged regardless of source.
 - :mod:`wa_setpieces.ml` -- pre-trained shot-value scoring (``ml`` extra).
 - :mod:`wa_setpieces.viz` -- mplsoccer/matplotlib plots (``viz`` extra).
 - :mod:`wa_setpieces.convert` -- turn raw Opta F24 exports plus a match
@@ -39,7 +44,14 @@ from .core.phases import (
     second_phase_summary,
     second_phases,
 )
+from .providers.statsbomb import load_statsbomb_events
 from .core.outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
+from .core.rating import (
+    player_delivery_rating,
+    player_finishing_rating,
+    player_rating,
+    team_rating,
+)
 from .core.report import corner_report, free_kick_report, set_piece_report
 from .core.retention import retention_detail, retention_rate
 from .ml.shot_value import ShotValueModels, build_shot_features, shot_value
@@ -54,12 +66,13 @@ from .core.zones import (
     zone_id,
 )
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 __all__ = [
     "Match",
     "load_events",
     "load_events_multi",
+    "load_statsbomb_events",
     "extract_all",
     "extract_corners",
     "extract_free_kicks",
@@ -91,6 +104,10 @@ __all__ = [
     "OUTCOME_CATEGORIES",
     "delivery_outcomes",
     "outcome_summary",
+    "team_rating",
+    "player_rating",
+    "player_delivery_rating",
+    "player_finishing_rating",
     "ShotValueModels",
     "build_shot_features",
     "shot_value",

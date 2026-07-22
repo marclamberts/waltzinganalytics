@@ -446,6 +446,68 @@ def plot_xt_added_bars(
     return fig, ax
 
 
+def plot_rating_benchmark(
+    rated: pd.DataFrame,
+    label_col: str = "contestantId",
+    names: dict | None = None,
+    top_n: int | None = None,
+    title: str | None = "Rating benchmark",
+    subtitle: str | None = "50 = sample average",
+    footer: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Horizontal benchmark chart for a :mod:`wa_setpieces.core.rating`
+    table (:func:`~wa_setpieces.core.rating.team_rating` or
+    :func:`~wa_setpieces.core.rating.player_rating`): one bar per row,
+    diverging from the sample-average baseline of 50 -- see that module's
+    docstring: 50 means "average of whoever's in this table," not a
+    universal benchmark, so this chart is only as meaningful as the peer
+    group in ``rated``.
+
+    Args:
+        rated: a table with a ``rating`` column (0-100) and ``label_col``.
+            Rows with a NaN ``rating`` (e.g. a player rated on neither
+            delivery nor finishing) are dropped.
+        label_col: which column identifies each row (``contestantId`` for
+            :func:`~wa_setpieces.core.rating.team_rating`, ``playerName``
+            for :func:`~wa_setpieces.core.rating.player_rating`).
+        names: optional ``{label_col value: display name}``, e.g. team
+            names when ``label_col="contestantId"``.
+        top_n: keep only the N highest-rated rows (``None`` keeps all).
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+
+    valid = rated.dropna(subset=["rating"]).sort_values("rating", ascending=False)
+    if top_n is not None:
+        valid = valid.head(top_n)
+    valid = valid.sort_values("rating")  # ascending so the best bar plots last (top of the chart)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 0.4 * len(valid) + 1.5))
+
+    colors = [pal.diverging_positive if r >= 50 else pal.diverging_negative for r in valid["rating"]]
+    y = np.arange(len(valid))
+    ax.barh(y, valid["rating"] - 50, left=50, color=colors)
+    ax.axvline(50, color=pal.baseline, linewidth=1)
+    labels = valid[label_col].map(lambda v: (names or {}).get(v, v))
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, color=pal.ink_primary, fontsize=9)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("rating")
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
+    return fig, ax
+
+
 def plot_corner_sonar(
     deliveries: pd.DataFrame,
     title: str | None = "Corner sonar",
