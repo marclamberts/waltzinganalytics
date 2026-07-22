@@ -54,6 +54,35 @@ cxb4hqite921i...    throw_in        20          16         0.800      1      0
 ...
 ```
 
+### The whole pipeline in one call
+
+Everything below this section — team/player counts, delivery locations,
+second-phase detection, retention, added value, the report, and the
+rating — is one function chain most people want run together.
+`run_workflow` runs that whole chain for you and hands back every table at
+once, instead of wiring five function calls together yourself:
+
+```python
+from wa_setpieces import run_workflow, XTModel
+
+model = XTModel.fit(match.events)         # optional -- unlocks added value + player rating
+result = run_workflow(match.events, "corner", model=model)
+
+result.summary        # attempts, success rate, shots, goals
+result.deliveries      # start/end coordinates for a delivery map
+result.second_phases   # cleared / first-phase shot / second-phase shot, per corner
+result.retention        # still in possession ~8s later?
+result.added_value      # xT added + resulting shot quality + goals, per delivery
+result.report           # all of the above, rolled up per team
+result.team_rating       # 0-100 benchmark score per team
+result.player_rating     # delivery score / finishing score per player
+```
+
+Reach for the individual functions below directly when you only need one
+piece, want different parameters per step, or are combining several
+matches. `run_workflow` computes nothing new — it's a convenience
+wrapper, not a shortcut that skips anything.
+
 ## Second phases, xT, zones, retention, added value and outcomes
 
 ```python
@@ -255,6 +284,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.ml.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
 - `wa_setpieces.core.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
 - `wa_setpieces.core.rating` — benchmarked 0-100 team/player "how good" scores from a report (see Ratings below).
+- `wa_setpieces.core.workflow` — `run_workflow`: the whole pipeline above, one function call (see "The whole pipeline in one call").
 - `wa_setpieces.providers.statsbomb` — convert a StatsBomb open-data export into the same internal frame Opta F24 produces.
 - `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar, rating benchmark (optional `viz` extra).
 - `wa_setpieces.viz.theme` — the validated dark/light color palettes every plot draws from.

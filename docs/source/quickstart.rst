@@ -23,6 +23,39 @@ stacks several exports into one events DataFrame (tagged with a
 matches" section on the :doc:`advanced` page for what that is and isn't
 safe to use for.
 
+The whole pipeline in one call
+---------------------------------
+
+Everything on this page below -- team/player counts, delivery locations,
+second-phase detection, retention, added value, the report, and the
+rating -- is one function chain most people want run together.
+:func:`~wa_setpieces.run_workflow` runs that whole chain for one
+set-piece type and hands back every table in one
+:class:`~wa_setpieces.core.workflow.SetPieceWorkflow`:
+
+.. code-block:: python
+
+   from wa_setpieces import run_workflow, XTModel
+
+   model = XTModel.fit(match.events)  # optional -- unlocks added value + player rating
+   result = run_workflow(match.events, "corner", model=model)
+
+   result.summary          # attempts, success rate, shots, goals
+   result.deliveries       # start/end coordinates for a delivery map
+   result.second_phases    # cleared / first-phase shot / second-phase shot
+   result.retention        # still in possession ~8s later?
+   result.added_value      # xT added + resulting shot quality + goals, per delivery
+   result.report           # all of the above, rolled up per team
+   result.team_rating      # 0-100 benchmark score per team
+   result.player_rating    # delivery score / finishing score per player
+
+Fields that don't apply to the set-piece type you asked for (e.g.
+``deliveries`` for ``"penalty"``, or anything needing ``model`` when none
+was passed) are ``None`` rather than an empty table. The rest of this page
+walks through each of those pieces individually -- reach for the
+individual functions directly when you only need one, want different
+parameters per step, or are combining several matches.
+
 Loading data from other providers
 ------------------------------------
 

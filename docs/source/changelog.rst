@@ -31,6 +31,13 @@ Changelog
 - **New**: ``plot_rating_benchmark`` in ``wa_setpieces.viz.plots`` --
   horizontal benchmark chart for a ``team_rating``/``player_rating``
   table, diverging from the sample-average baseline of 50.
+- **New**: ``wa_setpieces.core.workflow.run_workflow`` (also exported as
+  ``wa_setpieces.run_workflow``) -- runs this package's full pipeline for
+  one set-piece type in a single call (extraction, team/player counts,
+  second phases, retention, added value, report, team/player rating) and
+  returns every table in one ``SetPieceWorkflow``. Computes nothing new;
+  it's a convenience wrapper around the existing functions for when you
+  want the whole chain without wiring five calls together yourself.
 
 0.9.0
 -----

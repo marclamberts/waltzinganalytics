@@ -109,6 +109,18 @@ rating
    :undoc-members:
    :show-inheritance:
 
+workflow
+--------
+
+The whole pipeline (extraction, metrics, phases, retention, added value,
+report, rating) for one set-piece type, in one call. See the "Quickstart:
+one call" section on the :doc:`quickstart` page.
+
+.. automodule:: wa_setpieces.core.workflow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 providers.statsbomb
 --------------------
 

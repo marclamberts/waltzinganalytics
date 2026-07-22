@@ -54,6 +54,7 @@ from .core.rating import (
 )
 from .core.report import corner_report, free_kick_report, set_piece_report
 from .core.retention import retention_detail, retention_rate
+from .core.workflow import SetPieceWorkflow, run_workflow
 from .ml.shot_value import ShotValueModels, build_shot_features, shot_value
 from .core.value import set_piece_added_value, set_piece_value_summary
 from .core.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
@@ -108,6 +109,8 @@ __all__ = [
     "player_rating",
     "player_delivery_rating",
     "player_finishing_rating",
+    "SetPieceWorkflow",
+    "run_workflow",
     "ShotValueModels",
     "build_shot_features",
     "shot_value",
