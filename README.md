@@ -294,6 +294,34 @@ loaded = XTModel.load("league-model.npz")
 loaded.evaluate(held_out_events)  # shot count, goals and Brier score
 ```
 
+## Routine analysis
+
+Every restart can also be described by how it was executed, not only its final
+outcome:
+
+```python
+from wa_setpieces import restart_routines, routine_summary, all_routine_summaries
+
+restart_routines(events, "corner")
+# one row per corner: routine_type, distance, progression, direction, side,
+# start/end third, start/target channel, retention, shots and goals
+
+routine_summary(events, "goal_kick")
+# usage share and outcome rates for short_build / medium_build / long routines
+
+all_routine_summaries(events)
+# one combined tactical inventory covering all six restart types
+```
+
+The type-specific routine families are:
+
+- Corners: short, central six-yard, penalty-area, recycled, deep/edge.
+- Free kicks: direct shot, short, box delivery, progressive, recycled, lateral.
+- Throw-ins: short, medium, long, with location and progression attached.
+- Penalties: scored, saved, post, missed.
+- Goal kicks: short build, medium build, long.
+- Kick-offs: backward, lateral, short forward, direct long.
+
 ## What counts as a set piece
 
 | Type        | Detected on                              | Opta qualifierId |

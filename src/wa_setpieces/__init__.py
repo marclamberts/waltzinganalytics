@@ -36,6 +36,7 @@ from .core.schema import EventCapabilities, EventSchemaError, event_capabilities
 from .core.season import SeasonDataset
 from .core.defending import defensive_rating, defensive_set_piece_summary
 from .core.attribution import first_contact_detail, first_contact_summary
+from .core.routines import all_routine_summaries, restart_routines, routine_summary
 from .reporting import render_html_report, write_html_report
 from .core.metrics import (
     delivery_locations,
@@ -72,7 +73,7 @@ from .core.zones import (
     zone_id,
 )
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
 __all__ = [
     "Match",
@@ -82,6 +83,7 @@ __all__ = [
     "EventCapabilities", "EventSchemaError", "event_capabilities", "validate_events",
     "SeasonDataset", "defensive_set_piece_summary", "defensive_rating",
     "first_contact_detail", "first_contact_summary",
+    "restart_routines", "routine_summary", "all_routine_summaries",
     "render_html_report", "write_html_report",
     "extract_all",
     "extract_corners",

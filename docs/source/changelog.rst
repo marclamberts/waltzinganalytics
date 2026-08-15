@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.12.0
+------
+
+- Added ``restart_routines`` and ``routine_summary`` for corners, free kicks,
+  throw-ins, penalties, goal kicks and kick-offs. Every restart now carries
+  distance, progression, direction, side, start/end thirds, start/target
+  channels, retention, shots, goals and a type-specific routine classification.
+- Added ``all_routine_summaries`` for a complete routine inventory and included
+  detailed and aggregate routine tables in ``run_workflow`` and generated reports.
+
 0.11.0
 ------
 
