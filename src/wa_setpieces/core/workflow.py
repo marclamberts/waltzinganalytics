@@ -33,7 +33,7 @@ from .value import set_piece_added_value
 from .xt import XTModel
 from .defending import defensive_set_piece_summary
 from .attribution import first_contact_detail
-from .routines import restart_routines, routine_summary
+from .routines import analyze_routines
 
 _PHASE_TYPES = ("corner", "free_kick")
 
@@ -62,6 +62,9 @@ class SetPieceWorkflow:
     first_contacts: pd.DataFrame | None
     routines: pd.DataFrame
     routine_summary: pd.DataFrame
+    routine_team_profiles: pd.DataFrame
+    routine_taker_profiles: pd.DataFrame
+    routine_target_matrix: pd.DataFrame
 
 
 def run_workflow(
@@ -122,8 +125,10 @@ def run_workflow(
     defending = defensive_set_piece_summary(events)
     defending = defending.loc[defending["set_piece_type"] == set_piece_type].reset_index(drop=True)
     contacts = first_contact_detail(events, set_piece_type) if set_piece_type in c.SET_PIECE_QUALIFIERS else None
-    routines = restart_routines(events, set_piece_type, retention_window_seconds=retention_window_seconds)
-    routines_summary = routine_summary(events, set_piece_type, retention_window_seconds=retention_window_seconds)
+    routine_analysis = analyze_routines(
+        events, set_piece_type, min_taker_attempts=min_deliveries,
+        retention_window_seconds=retention_window_seconds,
+    )
 
     return SetPieceWorkflow(
         set_piece_type=set_piece_type,
@@ -139,6 +144,9 @@ def run_workflow(
         player_rating=player_rated,
         defensive_summary=defending,
         first_contacts=contacts,
-        routines=routines,
-        routine_summary=routines_summary,
+        routines=routine_analysis.detail,
+        routine_summary=routine_analysis.summary,
+        routine_team_profiles=routine_analysis.team_profiles,
+        routine_taker_profiles=routine_analysis.taker_profiles,
+        routine_target_matrix=routine_analysis.target_matrix,
     )

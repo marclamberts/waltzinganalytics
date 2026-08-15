@@ -3,7 +3,14 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from wa_setpieces import all_routine_summaries, load_events, restart_routines, routine_summary
+from wa_setpieces import (
+    SeasonDataset,
+    all_routine_summaries,
+    analyze_routines,
+    load_events,
+    restart_routines,
+    routine_summary,
+)
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -46,3 +53,19 @@ def test_penalty_taxonomy():
 def test_all_routine_summaries_contains_supported_sample_types(events):
     summary = all_routine_summaries(events)
     assert {"corner", "free_kick", "throw_in", "goal_kick", "kick_off"}.issubset(set(summary["set_piece_type"]))
+
+
+def test_structured_analysis_contains_five_coordinated_tables(events):
+    analysis = analyze_routines(events, "corner")
+    assert analysis.set_piece_type == "corner"
+    assert {"distance_m", "angle_degrees", "verticality", "destination_zone", "outcome_category", "routine_key"}.issubset(analysis.detail)
+    assert {"routine_diversity", "top_pattern_share", "most_used_pattern"}.issubset(analysis.team_profiles)
+    assert {"preferred_routine", "shots_created"}.issubset(analysis.taker_profiles)
+    assert {"destination_zone", "team_usage_share"}.issubset(analysis.target_matrix)
+
+
+def test_multi_match_routines_are_analysed_within_boundaries():
+    season = SeasonDataset.from_sources([DATA, DATA], match_ids=["m1", "m2"])
+    detail = analyze_routines(season.events, "corner").detail
+    assert len(detail) == 18
+    assert set(detail["matchId"]) == {"m1", "m2"}

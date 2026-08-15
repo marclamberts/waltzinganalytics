@@ -322,6 +322,24 @@ The type-specific routine families are:
 - Goal kicks: short build, medium build, long.
 - Kick-offs: backward, lateral, short forward, direct long.
 
+For a structured tactical analysis, use one call:
+
+```python
+from wa_setpieces import analyze_routines
+
+analysis = analyze_routines(events, "corner", min_taker_attempts=3)
+analysis.detail          # every routine and its geometry/outcome
+analysis.summary         # routine-family usage and efficiency
+analysis.team_profiles   # diversity, predictability and preferred patterns
+analysis.taker_profiles  # taker preferences and creation results
+analysis.target_matrix   # routine family -> destination zone -> outcomes
+```
+
+``detail`` also includes approximate distance in metres, delivery angle,
+verticality, a tactical destination zone, a hierarchical outcome category and
+a stable ``routine_key`` combining family, side and destination. Multi-match
+frames with ``matchId`` are automatically separated before temporal analysis.
+
 ## What counts as a set piece
 
 | Type        | Detected on                              | Opta qualifierId |

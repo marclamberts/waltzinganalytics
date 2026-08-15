@@ -1,6 +1,18 @@
 Changelog
 =========
 
+0.13.0
+------
+
+- Added the structured ``RoutineAnalysis`` bundle: restart detail, routine
+  summary, team tactical profiles, taker profiles and target matrices.
+- Added metric distance, delivery angle, verticality, destination zones,
+  hierarchical outcomes and stable tactical pattern keys.
+- Added team routine diversity, concentration/predictability, preferred
+  patterns, shot/goal rates and taker-specific routine preferences.
+- Made routine analysis safe on multi-match frames by isolating temporal and
+  event-link calculations within each ``matchId``.
+
 0.12.0
 ------
 
