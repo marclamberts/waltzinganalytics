@@ -1,6 +1,17 @@
 Changelog
 =========
 
+0.11.0
+------
+
+- Added a validated provider-neutral event schema and capability discovery.
+- Added ``SeasonDataset`` for match-safe season aggregation and rolling form.
+- Added defensive set-piece summaries, ratings, and first-contact attribution.
+- Added full xT model persistence, metadata, and held-out Brier evaluation.
+- Added self-contained HTML reports and expanded CLI subcommands for summaries,
+  workflows, reports, model training, providers, and structured exports.
+- Added Python 3.13, coverage, wheel-install and lint checks to CI.
+
 0.10.0
 ------
 

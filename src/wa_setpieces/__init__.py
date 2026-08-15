@@ -32,6 +32,11 @@ from .core.filters import (
     tag_set_pieces,
 )
 from .core.loader import Match, load_events, load_events_multi
+from .core.schema import EventCapabilities, EventSchemaError, event_capabilities, validate_events
+from .core.season import SeasonDataset
+from .core.defending import defensive_rating, defensive_set_piece_summary
+from .core.attribution import first_contact_detail, first_contact_summary
+from .reporting import render_html_report, write_html_report
 from .core.metrics import (
     delivery_locations,
     player_set_piece_counts,
@@ -67,13 +72,17 @@ from .core.zones import (
     zone_id,
 )
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 
 __all__ = [
     "Match",
     "load_events",
     "load_events_multi",
     "load_statsbomb_events",
+    "EventCapabilities", "EventSchemaError", "event_capabilities", "validate_events",
+    "SeasonDataset", "defensive_set_piece_summary", "defensive_rating",
+    "first_contact_detail", "first_contact_summary",
+    "render_html_report", "write_html_report",
     "extract_all",
     "extract_corners",
     "extract_free_kicks",

@@ -10,11 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.11", "3.12"]
+        python-version: ["3.9", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev,viz,ml,convert]"
-      - run: pytest
+      - run: pytest --cov=wa_setpieces --cov-report=term-missing
+      - run: python -m build
+      - run: pip install --force-reinstall --no-deps dist/*.whl
+      - run: python -c "import wa_setpieces; print(wa_setpieces.__version__)"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check src tests

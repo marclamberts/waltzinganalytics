@@ -20,6 +20,8 @@ so you don't have to refit every time.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 
 import numpy as np
@@ -52,6 +54,7 @@ class XTModel:
     shot_probability: np.ndarray | None = field(default=None, repr=False)
     move_probability: np.ndarray | None = field(default=None, repr=False)
     goal_probability: np.ndarray | None = field(default=None, repr=False)
+    metadata: dict = field(default_factory=dict)
 
     def cell(self, x: float, y: float) -> tuple[int, int]:
         row, col = _to_cell(np.array([x]), np.array([y]), self.x_bins, self.y_bins)
@@ -102,6 +105,41 @@ class XTModel:
 
     def to_csv(self, path: str | Path) -> None:
         pd.DataFrame(self.grid).to_csv(path, index=False)
+
+    def save(self, path: str | Path) -> None:
+        """Persist the full model, including component grids and metadata."""
+        target = Path(path)
+        np.savez_compressed(
+            target, grid=self.grid,
+            shot_probability=self.shot_probability if self.shot_probability is not None else np.array([]),
+            move_probability=self.move_probability if self.move_probability is not None else np.array([]),
+            goal_probability=self.goal_probability if self.goal_probability is not None else np.array([]),
+            metadata=np.array(json.dumps(self.metadata)),
+        )
+
+    @classmethod
+    def load(cls, path: str | Path) -> "XTModel":
+        """Load a model written by :meth:`save`."""
+        with np.load(path, allow_pickle=False) as data:
+            grid = data["grid"]
+            optional = lambda name: data[name] if data[name].size else None
+            metadata = json.loads(str(data["metadata"].item()))
+            return cls(grid=grid, x_bins=grid.shape[1], y_bins=grid.shape[0],
+                       shot_probability=optional("shot_probability"),
+                       move_probability=optional("move_probability"),
+                       goal_probability=optional("goal_probability"), metadata=metadata)
+
+    def evaluate(self, events: pd.DataFrame) -> dict[str, float | int]:
+        """Evaluate shot probabilities on held-out events using Brier score."""
+        if self.shot_probability is None or self.goal_probability is None:
+            raise ValueError("evaluation requires a full model loaded with load() or produced by fit()")
+        shots = events.loc[events["typeId"].isin(c.SHOT_TYPE_IDS)].dropna(subset=["x", "y"])
+        if shots.empty:
+            return {"shots": 0, "goals": 0, "brier_score": float("nan")}
+        predicted = np.array([self.shot_value(x, y) for x, y in zip(shots["x"], shots["y"])])
+        observed = (shots["typeId"] == c.TYPE_GOAL).astype(float).to_numpy()
+        return {"shots": len(shots), "goals": int(observed.sum()),
+                "brier_score": float(np.mean((predicted - observed) ** 2))}
 
     @classmethod
     def from_csv(cls, path: str | Path) -> "XTModel":
@@ -194,6 +232,16 @@ class XTModel:
             shot_probability=shot_probability,
             move_probability=move_probability,
             goal_probability=goal_probability,
+            metadata={
+                "schema_version": 1,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "event_count": int(len(events)),
+                "shot_count": int(len(shots)),
+                "x_bins": x_bins,
+                "y_bins": y_bins,
+                "iterations": n_iterations,
+                "provider": "provider-neutral",
+            },
         )
         return model
 

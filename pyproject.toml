@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wa-setpieces"
-version = "0.10.0"
+version = "0.11.0"
 description = "Set-piece metrics, benchmarked team/player ratings, added-value scoring and mplsoccer pitch visualizations (penalties, kick-offs, free kicks, corners, throw-ins, goal kicks) from Opta F24 and StatsBomb event data, including second phases, xT, zones and retention"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -26,6 +26,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "build>=1.2",
 ]
 viz = [
     "matplotlib>=3.6",
@@ -70,3 +74,17 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["F"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+check_untyped_defs = true

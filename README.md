@@ -252,6 +252,48 @@ wa-setpieces match.json --csv summary.csv
 wa-setpieces match.json --xt   # also fit + print xT for this match (illustrative on one match)
 ```
 
+The command-line interface also exposes the complete workflow:
+
+```bash
+wa-setpieces summary match.json --output summary.json --format json
+wa-setpieces train-xt season/*.json --output league-model.npz
+wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/
+wa-setpieces report match.json --type corner --model league-model.npz --output report.html
+```
+
+Use ``--provider statsbomb`` with any new-style command for a StatsBomb
+events export. Outputs support CSV, JSON and Parquet where applicable.
+
+## Season analysis and defending
+
+``SeasonDataset`` makes multi-match aggregation safe by requiring a
+``matchId`` boundary and running temporal heuristics within each match:
+
+```python
+from wa_setpieces import SeasonDataset, defensive_set_piece_summary
+
+season = SeasonDataset.from_sources(paths)
+season.summary()                 # competition totals and per-match rates
+season.rolling_summary(window=5) # rolling form
+season.report("corner", model)   # match-level report rows
+
+defensive_set_piece_summary(season.events)  # attempts/shots/goals conceded
+```
+
+``validate_events`` documents and checks the provider-neutral event contract;
+``event_capabilities`` reports which optional information an adapter supplies.
+``first_contact_detail`` and ``first_contact_summary`` add player attribution,
+explicitly labelled ``event_sequence`` because event data cannot prove physical
+contact as tracking data can.
+
+Full xT artifacts now persist all probability grids and training metadata:
+
+```python
+model.save("league-model.npz")
+loaded = XTModel.load("league-model.npz")
+loaded.evaluate(held_out_events)  # shot count, goals and Brier score
+```
+
 ## What counts as a set piece
 
 | Type        | Detected on                              | Opta qualifierId |

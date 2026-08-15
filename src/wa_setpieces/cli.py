@@ -1,85 +1,68 @@
-"""Command-line entry point: ``wa-setpieces <match.json>``."""
-
+"""Command-line tools for summaries, workflows, models and reports."""
 from __future__ import annotations
-
 import argparse
+import json
+from pathlib import Path
 import sys
-
 import pandas as pd
-
 from .core.loader import load_events
 from .core.metrics import set_piece_summary
-from .core.phases import second_phase_summary
-from .core.retention import retention_rate
-from .core.xt import XTModel, set_piece_xt_summary
+from .core.workflow import run_workflow
+from .core.xt import XTModel
+from .providers.statsbomb import load_statsbomb_events
+from .reporting import write_html_report
 
-_RETENTION_TYPES = ("kick_off", "free_kick", "corner", "throw_in", "goal_kick")
+def _events(path: str, provider: str) -> pd.DataFrame:
+    return load_events(path).events if provider == "opta" else load_statsbomb_events(path)
 
+def _write(frame: pd.DataFrame, path: str | None, fmt: str) -> None:
+    if path is None:
+        print(frame.to_string(index=False))
+    elif fmt == "csv": frame.to_csv(path, index=False)
+    elif fmt == "parquet": frame.to_parquet(path, index=False)
+    else: Path(path).write_text(frame.to_json(orient="records", indent=2), encoding="utf-8")
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="wa-setpieces", description="Analyse football set pieces.")
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("summary", "workflow", "report"):
+        cmd = sub.add_parser(name); cmd.add_argument("input")
+        cmd.add_argument("--provider", choices=("opta", "statsbomb"), default="opta")
+        if name != "summary": cmd.add_argument("--type", choices=("corner", "free_kick", "throw_in", "goal_kick", "kick_off", "penalty"), default="corner")
+        if name == "summary":
+            cmd.add_argument("--output"); cmd.add_argument("--format", choices=("csv", "json", "parquet"), default="csv")
+        elif name == "workflow":
+            cmd.add_argument("--model"); cmd.add_argument("--output", required=True, help="Directory for CSV workflow tables")
+        else:
+            cmd.add_argument("--model"); cmd.add_argument("--output", required=True, help="HTML output path")
+    train = sub.add_parser("train-xt"); train.add_argument("inputs", nargs="+")
+    train.add_argument("--provider", choices=("opta", "statsbomb"), default="opta")
+    train.add_argument("--output", required=True); train.add_argument("--x-bins", type=int, default=16); train.add_argument("--y-bins", type=int, default=12)
+    return parser
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="wa-setpieces",
-        description="Summarize set-piece metrics from an Opta F24 JSON export.",
-    )
-    parser.add_argument("match_file", help="Path to an Opta F24 match JSON file")
-    parser.add_argument(
-        "--csv", metavar="PATH", help="Write the summary table to a CSV file instead of stdout"
-    )
-    parser.add_argument(
-        "--xt",
-        action="store_true",
-        help=(
-            "Also fit an xT grid on this match's events and print xT added for "
-            "corner/free-kick deliveries. A single match is a very small sample "
-            "for fitting xT -- treat the numbers as illustrative, not production."
-        ),
-    )
-    args = parser.parse_args(argv)
-
-    match = load_events(args.match_file)
-    events = match.events
-
-    summary = set_piece_summary(events)
-    corner_phases = second_phase_summary(events, "corner")
-    free_kick_phases = second_phase_summary(events, "free_kick")
-    retention = pd.concat(
-        [
-            retention_rate(events, t).assign(set_piece_type=t)
-            for t in _RETENTION_TYPES
-            if not retention_rate(events, t).empty
-        ],
-        ignore_index=True,
-    )
-
-    with pd.option_context("display.max_rows", None, "display.width", 120):
-        if args.csv:
-            summary.to_csv(args.csv, index=False)
-            print(f"Wrote {len(summary)} rows to {args.csv}")
-        else:
-            print("== Set-piece summary ==")
-            print(summary.to_string(index=False))
-            print()
-            print("== Corner second phases ==")
-            print(corner_phases.to_string(index=False) if not corner_phases.empty else "(none)")
-            print()
-            print("== Free-kick second phases ==")
-            print(
-                free_kick_phases.to_string(index=False) if not free_kick_phases.empty else "(none)"
-            )
-            print()
-            print("== Retention (still in possession ~8s later) ==")
-            print(retention.to_string(index=False) if not retention.empty else "(none)")
-
-            if args.xt:
-                print()
-                print("== xT added (fit on this match only -- illustrative) ==")
-                model = XTModel.fit(events)
-                for sp_type in ("corner", "free_kick"):
-                    print(f"-- {sp_type} --")
-                    print(set_piece_xt_summary(events, sp_type, model).to_string(index=False))
-
+    args_list = list(sys.argv[1:] if argv is None else argv)
+    if args_list and args_list[0] not in {"summary", "workflow", "report", "train-xt", "-h", "--help"}:
+        legacy = argparse.ArgumentParser(prog="wa-setpieces"); legacy.add_argument("input"); legacy.add_argument("--csv"); legacy.add_argument("--xt", action="store_true")
+        old = legacy.parse_args(args_list); events = _events(old.input, "opta")
+        _write(set_piece_summary(events), old.csv, "csv")
+        if old.xt: print(pd.DataFrame(XTModel.fit(events).grid).to_string(index=False, header=False))
+        return 0
+    args = _parser().parse_args(args_list)
+    if args.command == "train-xt":
+        frames = [_events(path, args.provider).assign(matchId=Path(path).stem) for path in args.inputs]
+        model = XTModel.fit(pd.concat(frames, ignore_index=True), x_bins=args.x_bins, y_bins=args.y_bins)
+        model.metadata["sources"] = [str(path) for path in args.inputs]; model.save(args.output)
+        print(json.dumps(model.metadata, indent=2)); return 0
+    events = _events(args.input, args.provider)
+    if args.command == "summary": _write(set_piece_summary(events), args.output, args.format); return 0
+    model = XTModel.load(args.model) if args.model else None; result = run_workflow(events, args.type, model=model)
+    tables = {name: value for name, value in vars(result).items() if isinstance(value, pd.DataFrame)}
+    if args.command == "workflow":
+        output = Path(args.output); output.mkdir(parents=True, exist_ok=True)
+        for name, table in tables.items(): table.to_csv(output / f"{name}.csv", index=False)
+    else:
+        write_html_report(args.output, f"{args.type.replace('_', ' ').title()} report", tables, methodology="Derived event-data heuristics; interpret small samples cautiously.")
     return 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == "__main__": raise SystemExit(main())

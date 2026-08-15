@@ -31,6 +31,8 @@ from .report import set_piece_report
 from .retention import retention_detail
 from .value import set_piece_added_value
 from .xt import XTModel
+from .defending import defensive_set_piece_summary
+from .attribution import first_contact_detail
 
 _PHASE_TYPES = ("corner", "free_kick")
 
@@ -55,6 +57,8 @@ class SetPieceWorkflow:
     report: pd.DataFrame
     team_rating: pd.DataFrame
     player_rating: pd.DataFrame | None
+    defensive_summary: pd.DataFrame
+    first_contacts: pd.DataFrame | None
 
 
 def run_workflow(
@@ -112,6 +116,9 @@ def run_workflow(
     player_rated = _player_rating(
         events, set_piece_type, model, min_deliveries=min_deliveries, min_shots=min_shots
     ) if model is not None and set_piece_type in _PHASE_TYPES else None
+    defending = defensive_set_piece_summary(events)
+    defending = defending.loc[defending["set_piece_type"] == set_piece_type].reset_index(drop=True)
+    contacts = first_contact_detail(events, set_piece_type) if set_piece_type in c.SET_PIECE_QUALIFIERS else None
 
     return SetPieceWorkflow(
         set_piece_type=set_piece_type,
@@ -125,4 +132,6 @@ def run_workflow(
         report=report,
         team_rating=team_rated,
         player_rating=player_rated,
+        defensive_summary=defending,
+        first_contacts=contacts,
     )
