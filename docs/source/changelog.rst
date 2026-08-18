@@ -1,6 +1,55 @@
 Changelog
 =========
 
+0.17.0
+------
+
+A larger batch: a column rename for clarity, CSV/Excel export, and five
+new analyses (opponent scouting, penalty placement, long-throw
+specialists, rolling defensive form) wired into the flagship pipeline.
+
+- **Breaking change**: ``delivery_outcomes``/``classify_delivery_outcome``/
+  ``outcome_summary``'s ``category`` column and ``restart_routines``'s
+  ``outcome_category`` column are both renamed to ``delivery_outcome``.
+  Both classified the same underlying concept -- what happened to one
+  delivery -- under two different names, neither of which read distinctly
+  from the raw pass/shot success ``outcome`` flag they sit next to in the
+  same tables. No deprecation alias: these are new enough (0.6.0 and
+  0.12.0 respectively) that a silent rename is preferable to carrying two
+  names forward.
+- **New**: ``save_table``/``save_tables`` -- save any table this package
+  produces to CSV or Excel, chosen by file extension. Excel needs the new
+  optional ``xlsx`` extra (openpyxl).
+- **New**: ``opponent_scouting_report_html`` -- pre-match scouting report
+  on how an opponent *defends* a set-piece type (conceded routines/zones,
+  aerial-duel record), the conceding-side mirror of ``corner_report_html``.
+- **New**: ``core.penalties`` -- ``penalty_placement_detail``/
+  ``penalty_taker_summary``: per-penalty result and placement zone in the
+  goal frame, per-taker conversion rate. Extracted the underlying
+  goal-mouth placement geometry out of ``ml.shot_value`` into a new
+  ``core.placement`` module (pure qualifier geometry, no model
+  dependency) so it doesn't need the optional ``ml`` extra;
+  ``ml.shot_value`` re-exports it as ``_goal_placement`` for backward
+  compatibility.
+- **New**: ``core.routines.long_throw_taker_summary``/
+  ``long_throw_second_phases`` -- per-player long-throw usage/threat
+  created, and event-sequence-based flick-on/knockdown detection
+  restricted to throws that actually travel far enough to threaten (the
+  one throw-in pattern that plays like a corner).
+- **New**: ``SeasonDataset.rolling_defensive_summary`` -- the conceding-side
+  mirror of ``rolling_summary``. Also documented ``rolling_summary``'s
+  existing match-order caveat on both methods: there's no date field in
+  the loaded schema, so "rolling" only means something if matches were
+  supplied to ``from_sources`` already in chronological order.
+- ``run_workflow``/``SetPieceWorkflow`` gained ``defensive_routine_summary``,
+  ``defensive_zone_summary``, ``routine_clusters``,
+  ``aerial_duel_team_summary``/``aerial_duel_player_summary``,
+  ``penalty_placement``/``penalty_taker_summary`` and
+  ``long_throw_taker_summary``/``long_throw_second_phases`` -- gated
+  ``None`` where they don't apply to ``set_piece_type``, or where the
+  optional ``ml`` extra isn't installed for ``routine_clusters``. No CLI
+  changes needed: ``wa-setpieces workflow``/``report`` already collect
+  every DataFrame field generically.
 0.16.0
 ------
 
