@@ -39,6 +39,26 @@ def test_season_rolling_summary():
     assert "rolling_success_rate" in season.rolling_summary(window=2)
 
 
+def test_season_rolling_defensive_summary():
+    season = SeasonDataset.from_sources([DATA, DATA, DATA], match_ids=["one", "two", "three"])
+    rolling = season.rolling_defensive_summary(window=2)
+    assert {"rolling_attempts_faced", "rolling_shots_conceded", "rolling_goals_conceded",
+            "rolling_opponent_success_rate", "rolling_shots_conceded_per_100"}.issubset(rolling.columns)
+    assert len(rolling) == 3 * len(season.summary())
+    # window=2: the first match (in match_ids order, i.e. "one") of each
+    # team/type has nothing to roll up yet, so its rolling total must
+    # equal that match's own value alone.
+    first_match = season.match_ids[0]
+    first_rows = rolling[rolling["matchId"] == first_match]
+    assert (first_rows["rolling_attempts_faced"] == first_rows["attempts_faced"]).all()
+
+
+def test_season_rolling_defensive_summary_rejects_bad_window():
+    season = SeasonDataset.from_sources([DATA], match_ids=["one"])
+    with pytest.raises(ValueError):
+        season.rolling_defensive_summary(window=0)
+
+
 def test_defensive_summary_and_rating(events):
     summary = defensive_set_piece_summary(events)
     assert {"shots_conceded", "goals_conceded", "shots_conceded_per_100"}.issubset(summary)

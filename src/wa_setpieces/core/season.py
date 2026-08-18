@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 import pandas as pd
 
+from .defending import defensive_set_piece_summary
 from .loader import load_events_multi
 from .metrics import set_piece_summary
 from .report import set_piece_report
@@ -72,6 +73,18 @@ class SeasonDataset:
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     def rolling_summary(self, window: int = 5) -> pd.DataFrame:
+        """Rolling attacking form: attempts/success rate/shots/goals summed
+        over the trailing ``window`` matches, per team and set-piece type.
+
+        .. important::
+           "Match order" here is simply the order matches first appear in
+           ``self.events`` -- i.e. whatever order ``sources``/``match_ids``
+           were passed to :meth:`from_sources`. There is no date field in
+           the loaded event schema to derive true chronological order
+           from, so this is only meaningful if you supplied matches
+           already in chronological order (e.g. not a directory listing,
+           which sorts alphabetically).
+        """
         if window < 1:
             raise ValueError("window must be at least 1")
         frames = [set_piece_summary(frame).assign(matchId=match_id) for match_id, frame in self.iter_matches()]
@@ -84,6 +97,39 @@ class SeasonDataset:
         for column in ("attempts", "successful", "shots", "goals"):
             detail[f"rolling_{column}"] = groups[column].transform(lambda s: s.rolling(window, min_periods=1).sum())
         detail["rolling_success_rate"] = detail["rolling_successful"] / detail["rolling_attempts"]
+        return detail.drop(columns="match_order").reset_index(drop=True)
+
+    def rolling_defensive_summary(self, window: int = 5) -> pd.DataFrame:
+        """Rolling defensive form: attempts faced/shots/goals conceded
+        summed over the trailing ``window`` matches, per team and
+        set-piece type -- the conceding-side mirror of
+        :meth:`rolling_summary`, built on
+        :func:`~wa_setpieces.core.defending.defensive_set_piece_summary`.
+
+        Same match-order caveat as :meth:`rolling_summary`: only
+        meaningful if matches were supplied to :meth:`from_sources`
+        already in chronological order.
+        """
+        if window < 1:
+            raise ValueError("window must be at least 1")
+        frames = [
+            defensive_set_piece_summary(frame).assign(matchId=match_id)
+            for match_id, frame in self.iter_matches()
+        ]
+        if not frames:
+            return pd.DataFrame()
+        detail = pd.concat(frames, ignore_index=True)
+        detail["match_order"] = detail["matchId"].map({mid: i for i, mid in enumerate(self.match_ids)})
+        detail = detail.sort_values(["contestantId", "set_piece_type", "match_order"])
+        groups = detail.groupby(["contestantId", "set_piece_type"], sort=False)
+        for column in ("attempts_faced", "opponent_successful", "shots_conceded", "goals_conceded"):
+            detail[f"rolling_{column}"] = groups[column].transform(lambda s: s.rolling(window, min_periods=1).sum())
+        detail["rolling_opponent_success_rate"] = (
+            detail["rolling_opponent_successful"] / detail["rolling_attempts_faced"]
+        ).round(3)
+        detail["rolling_shots_conceded_per_100"] = (
+            100 * detail["rolling_shots_conceded"] / detail["rolling_attempts_faced"]
+        ).round(2)
         return detail.drop(columns="match_order").reset_index(drop=True)
 
     def _attach_metadata(self, frame: pd.DataFrame) -> pd.DataFrame:
