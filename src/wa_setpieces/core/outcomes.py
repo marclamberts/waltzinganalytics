@@ -153,10 +153,12 @@ def classify_delivery_outcome(
 
     if result.first_contact_event_id is None:
         # Nothing happened in the window at all (e.g. period ended).
+        end_x = delivery_row.get(f"q_{c.QUALIFIER_PASS_END_X}")
+        end_y = delivery_row.get(f"q_{c.QUALIFIER_PASS_END_Y}")
         return {
             **base, "category": "no_action",
-            "x": float(delivery_row.get(f"q_{c.QUALIFIER_PASS_END_X}", delivery_row["x"]) or delivery_row["x"]),
-            "y": float(delivery_row.get(f"q_{c.QUALIFIER_PASS_END_Y}", delivery_row["y"]) or delivery_row["y"]),
+            "x": float(end_x if end_x is not None else delivery_row["x"]),
+            "y": float(end_y if end_y is not None else delivery_row["y"]),
         }
 
     x, y = _event_xy_in_attacking_frame(

@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from wa_setpieces import load_events
+from wa_setpieces.core import constants as c
 from wa_setpieces.core.filters import extract_corners, extract_free_kicks
 from wa_setpieces.core.outcomes import (
     OUTCOME_CATEGORIES,
@@ -128,3 +130,31 @@ def test_long_corner_is_not_misclassified_as_short(events):
     # The real deliveries in the sample match are all normal crosses into
     # the box, well beyond the short-corner distance threshold.
     assert result["category"] != "short_corner"
+
+
+def test_no_action_preserves_falsy_but_valid_end_position():
+    from wa_setpieces.core.outcomes import classify_delivery_outcome
+
+    # Regression test: the no_action branch used to fall back with `value or
+    # default`, which silently discards a real end position of 0.0 (a valid
+    # pitch coordinate right on the touchline/byline) as if it were missing.
+    events = pd.DataFrame(
+        [
+            dict(
+                eventId=1, typeId=32, periodId=1, timeMin=0, timeSec=0,
+                contestantId="B", playerId="p2", playerName="P2",
+                outcome=None, x=50.0, y=50.0,
+            ),
+            dict(
+                eventId=2, typeId=c.TYPE_PASS, periodId=1, timeMin=0, timeSec=1,
+                contestantId="A", playerId="p1", playerName="P1", outcome=1,
+                x=99.5, y=99.5, q_6=True, q_140=0.0, q_141=0.0,
+            ),
+        ]
+    )
+    delivery_row = events.iloc[1].copy()
+    delivery_row["set_piece_type"] = "corner"
+    result = classify_delivery_outcome(events, delivery_row)
+    assert result["category"] == "no_action"
+    assert result["x"] == 0.0
+    assert result["y"] == 0.0
