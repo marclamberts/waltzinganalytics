@@ -131,11 +131,11 @@ def classify_delivery_outcome(
 
     Returns:
         A dict: ``delivery_event_id``, ``set_piece_type``, ``contestantId``,
-        ``playerId``, ``playerName``, ``category``, ``x``, ``y`` (the plot
-        location for that category -- see module docstring for which event
-        each category's location comes from), ``is_goal``, plus (only
-        populated when ``category == "aerial_duel"``, from the raw Aerial
-        event's own outcome) ``aerial_winner_contestant_id``,
+        ``playerId``, ``playerName``, ``delivery_outcome``, ``x``, ``y``
+        (the plot location for that outcome -- see module docstring for
+        which event each outcome's location comes from), ``is_goal``, plus
+        (only populated when ``delivery_outcome == "aerial_duel"``, from
+        the raw Aerial event's own outcome) ``aerial_winner_contestant_id``,
         ``aerial_winner_player_id``, ``aerial_winner_player_name``.
     """
     set_piece_type = delivery_row.get("set_piece_type")
@@ -152,7 +152,7 @@ def classify_delivery_outcome(
     if set_piece_type == "corner" and _is_short_corner(delivery_row, short_corner_max_distance):
         return {
             **base,
-            "category": "short_corner",
+            "delivery_outcome": "short_corner",
             "x": float(delivery_row[f"q_{c.QUALIFIER_PASS_END_X}"]),
             "y": float(delivery_row[f"q_{c.QUALIFIER_PASS_END_Y}"]),
         }
@@ -170,14 +170,14 @@ def classify_delivery_outcome(
         x, y = _event_xy_in_attacking_frame(
             events, attacking_team, result.direct_shot_event_id, attacking_team
         )
-        return {**base, "category": "direct_shot", "x": x, "y": y, "is_goal": result.direct_shot_is_goal}
+        return {**base, "delivery_outcome": "direct_shot", "x": x, "y": y, "is_goal": result.direct_shot_is_goal}
 
     if result.second_phase_shot:
         x, y = _event_xy_in_attacking_frame(
             events, attacking_team, result.second_phase_event_id, attacking_team
         )
         return {
-            **base, "category": "second_phase_shot", "x": x, "y": y,
+            **base, "delivery_outcome": "second_phase_shot", "x": x, "y": y,
             "is_goal": result.second_phase_is_goal,
         }
 
@@ -186,7 +186,7 @@ def classify_delivery_outcome(
         end_x = delivery_row.get(f"q_{c.QUALIFIER_PASS_END_X}")
         end_y = delivery_row.get(f"q_{c.QUALIFIER_PASS_END_Y}")
         return {
-            **base, "category": "no_action",
+            **base, "delivery_outcome": "no_action",
             "x": float(end_x if end_x is not None else delivery_row["x"]),
             "y": float(end_y if end_y is not None else delivery_row["y"]),
         }
@@ -204,7 +204,7 @@ def classify_delivery_outcome(
             events, result.first_contact_team, result.first_contact_event_id, other_team
         )
         return {
-            **base, "category": category, "x": x, "y": y,
+            **base, "delivery_outcome": category, "x": x, "y": y,
             "aerial_winner_contestant_id": winner_id,
             "aerial_winner_player_id": winner_player_id,
             "aerial_winner_player_name": winner_player_name,
@@ -216,7 +216,7 @@ def classify_delivery_outcome(
     else:
         category = "first_touch_won"
 
-    return {**base, "category": category, "x": x, "y": y}
+    return {**base, "delivery_outcome": category, "x": x, "y": y}
 
 
 def delivery_outcomes(
@@ -233,10 +233,10 @@ def delivery_outcomes(
 
     Returns:
         One row per delivery: delivery_event_id, set_piece_type,
-        contestantId, playerId, playerName, category, x, y, is_goal,
+        contestantId, playerId, playerName, delivery_outcome, x, y, is_goal,
         aerial_winner_contestant_id, aerial_winner_player_id,
         aerial_winner_player_name (the last three populated only where
-        ``category == "aerial_duel"``).
+        ``delivery_outcome == "aerial_duel"``).
     """
     if set_piece_type not in _EXTRACTORS:
         raise ValueError(
@@ -250,7 +250,7 @@ def delivery_outcomes(
         records.append(classify_delivery_outcome(events, delivery_row, **kwargs))
     columns = [
         "delivery_event_id", "set_piece_type", "contestantId", "playerId",
-        "playerName", "category", "x", "y", "is_goal",
+        "playerName", "delivery_outcome", "x", "y", "is_goal",
         "aerial_winner_contestant_id", "aerial_winner_player_id", "aerial_winner_player_name",
     ]
     if not records:
@@ -262,9 +262,9 @@ def outcome_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> pd.D
     """Per-team counts of each outcome category (see :data:`OUTCOME_CATEGORIES`)."""
     outcomes = delivery_outcomes(events, set_piece_type, **kwargs)
     if outcomes.empty:
-        return pd.DataFrame(columns=["contestantId", "category", "count"])
+        return pd.DataFrame(columns=["contestantId", "delivery_outcome", "count"])
     return (
-        outcomes.groupby(["contestantId", "category"])
+        outcomes.groupby(["contestantId", "delivery_outcome"])
         .size()
         .rename("count")
         .reset_index()
@@ -296,7 +296,7 @@ def aerial_duel_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> 
         raise ValueError(f"aerial_duel_summary needs exactly 2 teams in events, found {len(teams)}")
 
     outcomes = delivery_outcomes(events, set_piece_type, **kwargs)
-    aerials = outcomes.loc[outcomes["category"] == "aerial_duel"]
+    aerials = outcomes.loc[outcomes["delivery_outcome"] == "aerial_duel"]
     team_summary = pd.DataFrame(columns=["contestantId", "duels_involved", "duels_won", "win_rate"])
     player_summary = pd.DataFrame(columns=["playerId", "playerName", "contestantId", "duels_won"])
     if aerials.empty:

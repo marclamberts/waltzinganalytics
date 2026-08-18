@@ -850,10 +850,10 @@ def plot_set_piece_outcomes(
     pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
 
     color_map = {cat: pal.categorical[i % len(pal.categorical)] for i, cat in enumerate(OUTCOME_CATEGORIES)}
-    present = [cat for cat in OUTCOME_CATEGORIES if (outcomes["category"] == cat).any()]
+    present = [cat for cat in OUTCOME_CATEGORIES if (outcomes["delivery_outcome"] == cat).any()]
 
     for cat in present:
-        rows = outcomes[outcomes["category"] == cat]
+        rows = outcomes[outcomes["delivery_outcome"] == cat]
         pitch.scatter(
             rows["x"], rows["y"], ax=ax, color=color_map[cat], s=110,
             edgecolors=pal.ink_primary, linewidths=0.7,

@@ -94,7 +94,7 @@ def _destination_zone(x: float, y: float, third: str | None, channel: str | None
     return f"{third}_{channel}"
 
 
-def _outcome_category(row: pd.Series) -> str:
+def _delivery_outcome(row: pd.Series) -> str:
     if row["goals"] > 0: return "goal"
     if row["shots"] > 0: return "shot"
     if row.get("retained") is True or row.get("retained") == np.True_: return "retained"
@@ -173,7 +173,7 @@ def _restart_routines_single(
         restarts = restarts.merge(retained[["contestantId", "eventId", "retained"]], on=["contestantId", "eventId"], how="left")
     else:
         restarts["retained"] = pd.NA
-    restarts["outcome_category"] = restarts.apply(_outcome_category, axis=1)
+    restarts["delivery_outcome"] = restarts.apply(_delivery_outcome, axis=1)
     restarts["routine_key"] = (
         restarts["routine_type"].fillna("unknown") + "|" +
         restarts["side"].fillna("unknown") + "|" +
@@ -185,7 +185,7 @@ def _restart_routines_single(
         "x", "y", "end_x", "end_y", "distance", "distance_m", "progression", "lateral_change",
         "angle_degrees", "verticality", "direction", "side", "start_third", "end_third",
         "start_channel", "target_channel", "destination_zone", "successful", "retained", "shots",
-        "goals", "outcome_category", "routine_key", "timeMin", "timeSec",
+        "goals", "delivery_outcome", "routine_key", "timeMin", "timeSec",
     ]
     return restarts[columns].reset_index(drop=True)
 

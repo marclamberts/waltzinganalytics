@@ -35,7 +35,7 @@ def test_delivery_outcomes_rejects_bad_type(events):
 
 def test_every_category_is_a_known_category(events):
     corners = delivery_outcomes(events, "corner")
-    assert corners["category"].isin(OUTCOME_CATEGORIES).all()
+    assert corners["delivery_outcome"].isin(OUTCOME_CATEGORIES).all()
 
 
 def test_no_missing_coordinates(events):
@@ -65,7 +65,7 @@ def test_known_category_counts_for_corners(events):
     # true next event and this delivery is a lost first touch, not an
     # aerial duel.)
     corners = delivery_outcomes(events, "corner")
-    counts = corners["category"].value_counts().to_dict()
+    counts = corners["delivery_outcome"].value_counts().to_dict()
     assert counts == {
         "first_touch_lost": 4,
         "second_phase_shot": 2,
@@ -83,7 +83,7 @@ def test_outcome_summary_matches_detail(events):
         expected = len(
             detail[
                 (detail["contestantId"] == row["contestantId"])
-                & (detail["category"] == row["category"])
+                & (detail["delivery_outcome"] == row["delivery_outcome"])
             ]
         )
         assert row["count"] == expected
@@ -100,7 +100,7 @@ def test_outcome_summary_empty_events():
     )
     summary = outcome_summary(empty, "corner")
     assert summary.empty
-    assert list(summary.columns) == ["contestantId", "category", "count"]
+    assert list(summary.columns) == ["contestantId", "delivery_outcome", "count"]
 
 
 def test_short_corner_detection_with_synthetic_data(events):
@@ -116,7 +116,7 @@ def test_short_corner_detection_with_synthetic_data(events):
     real_corner["q_140"] = real_corner["x"] - 6  # pass end x
     real_corner["q_141"] = real_corner["y"] + 5  # pass end y
     result = classify_delivery_outcome(events, real_corner)
-    assert result["category"] == "short_corner"
+    assert result["delivery_outcome"] == "short_corner"
     assert result["x"] == pytest.approx(real_corner["x"] - 6)
 
 
@@ -129,7 +129,7 @@ def test_long_corner_is_not_misclassified_as_short(events):
     result = classify_delivery_outcome(events, real_corner)
     # The real deliveries in the sample match are all normal crosses into
     # the box, well beyond the short-corner distance threshold.
-    assert result["category"] != "short_corner"
+    assert result["delivery_outcome"] != "short_corner"
 
 
 def test_no_action_preserves_falsy_but_valid_end_position():
@@ -155,14 +155,14 @@ def test_no_action_preserves_falsy_but_valid_end_position():
     delivery_row = events.iloc[1].copy()
     delivery_row["set_piece_type"] = "corner"
     result = classify_delivery_outcome(events, delivery_row)
-    assert result["category"] == "no_action"
+    assert result["delivery_outcome"] == "no_action"
     assert result["x"] == 0.0
     assert result["y"] == 0.0
 
 
 def test_aerial_duel_winner_identified_from_raw_outcome(events):
     outcomes = delivery_outcomes(events, "corner")
-    aerials = outcomes[outcomes["category"] == "aerial_duel"]
+    aerials = outcomes[outcomes["delivery_outcome"] == "aerial_duel"]
     assert not aerials.empty
     # Winner must be one of the two match contestants, never the delivering
     # team's own attempt mistaken for the other side's.

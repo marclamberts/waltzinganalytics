@@ -83,7 +83,7 @@ def test_all_routine_summaries_contains_supported_sample_types(events):
 def test_structured_analysis_contains_five_coordinated_tables(events):
     analysis = analyze_routines(events, "corner")
     assert analysis.set_piece_type == "corner"
-    assert {"distance_m", "angle_degrees", "verticality", "destination_zone", "outcome_category", "routine_key"}.issubset(analysis.detail)
+    assert {"distance_m", "angle_degrees", "verticality", "destination_zone", "delivery_outcome", "routine_key"}.issubset(analysis.detail)
     assert {"routine_diversity", "top_pattern_share", "most_used_pattern"}.issubset(analysis.team_profiles)
     assert {"preferred_routine", "shots_created"}.issubset(analysis.taker_profiles)
     assert {"destination_zone", "team_usage_share"}.issubset(analysis.target_matrix)

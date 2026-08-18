@@ -300,7 +300,7 @@ def test_plot_set_piece_outcomes_legend_matches_present_categories(events):
     outcomes = delivery_outcomes(events, "corner")
     fig, ax = viz.plot_set_piece_outcomes(outcomes)
     legend_labels = {t.get_text() for t in ax.get_legend().get_texts()}
-    present_categories = set(outcomes["category"].unique())
+    present_categories = set(outcomes["delivery_outcome"].unique())
     expected_labels = {viz._OUTCOME_LABELS[cat] for cat in present_categories}
     assert expected_labels.issubset(legend_labels)
 
@@ -328,10 +328,10 @@ def test_plot_set_piece_outcomes_color_stable_across_category_order():
     import pandas as pd
 
     outcomes_a = pd.DataFrame(
-        {"category": ["cleared", "aerial_duel"], "x": [50, 60], "y": [50, 60], "is_goal": [False, False]}
+        {"delivery_outcome": ["cleared", "aerial_duel"], "x": [50, 60], "y": [50, 60], "is_goal": [False, False]}
     )
     outcomes_b = pd.DataFrame(
-        {"category": ["aerial_duel", "cleared"], "x": [60, 50], "y": [60, 50], "is_goal": [False, False]}
+        {"delivery_outcome": ["aerial_duel", "cleared"], "x": [60, 50], "y": [60, 50], "is_goal": [False, False]}
     )
     _, ax_a = viz.plot_set_piece_outcomes(outcomes_a)
     _, ax_b = viz.plot_set_piece_outcomes(outcomes_b)
