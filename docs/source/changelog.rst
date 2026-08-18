@@ -1,6 +1,87 @@
 Changelog
 =========
 
+0.14.0
+------
+
+A code-review pass through every ``core`` module, working module by module in
+dependency order. Nine real correctness bugs found and fixed, most verified
+against the bundled sample match or a targeted synthetic reproduction:
+
+- **Fixed a real correctness bug**: ``core.xt.XTModel.fit``'s value
+  recurrence computed ``move_probability`` from *all* pass/take-on attempts
+  (success or fail) but normalized the zone-to-zone transition matrix only
+  over *successful* transitions (each row forced to sum to 1). Multiplying
+  the two together silently assumed every attempted pass succeeds and lands
+  like the successful ones did, discarding the value of a failed pass (a
+  turnover, worth 0) -- a cell with a 100% pass-completion rate and one with
+  10% got identical xT as long as both sent their (rare, for the second)
+  successful passes to the same destination. The transition matrix is now
+  normalized by total move attempts, matching ``move_probability``'s own
+  denominator, so rows sum to the cell's actual pass-success rate.
+- **Fixed a real correctness bug**: several functions indexed shots or
+  deliveries by ``(contestantId, eventId)`` alone -- safe within one match,
+  but ``eventId`` numbering restarts every match, so a season-combined
+  frame (``matchId`` present) could silently attribute a goal or shot to a
+  set piece actually taken in a *different* match that happened to reuse
+  the same ``eventId`` for that team. Fixed in
+  ``chains.link_set_piece_shots`` and ``value.set_piece_added_value`` by
+  scoping the lookup to ``(matchId, contestantId, eventId)`` when
+  ``matchId`` is present; ``metrics.delivery_locations`` and
+  ``link_set_piece_shots`` now also carry ``matchId`` through to their
+  output so callers can key on it.
+- **Fixed a real correctness bug**: ``retention.retention_detail`` looked
+  ahead for the next touch by filtering on ``periodId`` alone, which
+  repeats every match, so a season-combined frame could pick up an
+  unrelated later match's event as if it followed the current delivery --
+  reproduced directly (a throw-in with no real follow-up in its own match
+  was misreported as lost possession, using a later match's kickoff).
+  Unlike ``phases.py``, which already guards the analogous risk with a
+  2-team check, ``retention.py`` had no guard at all; it now raises a clear
+  error instead of silently corrupting results. The existing internal
+  caller (``routines.restart_routines``) was already unaffected, since it
+  splits by ``matchId`` before calling in.
+- **Fixed a real correctness bug**: ``zones.add_thirds``/``add_channels``
+  returned ``NaN`` for the out-of-play events just beyond the nominal
+  0-100 pitch boundary that Opta records and ``core.schema`` explicitly
+  tolerates (-5..105) -- 26 and 100 rows respectively on the bundled
+  sample match, mostly throw-ins, corners and clearances near the
+  boundary lines. ``x``/``y`` are now clipped to 0-100 before binning,
+  matching how ``zone_id``/``add_zone_grid`` already clamp.
+- **Fixed a real correctness bug**: ``routines.py`` defined its own
+  private third/channel helpers duplicating ``zones.add_thirds``/
+  ``add_channels``, but with different bin edges *and* the opposite
+  left/right direction (low ``y`` was "right" in ``routines.py``,
+  "left_wide" in ``zones.py``) -- the same delivery could get
+  contradictory flank labels depending on which function was called.
+  ``routines.py`` now reuses ``zones.py``'s canonical helpers directly.
+- **Fixed a real correctness bug**: ``core.loader.load_events`` produced a
+  columnless (not just empty) DataFrame for a match with zero recorded
+  events, failing ``schema.validate_events`` for the wrong reason.
+  Sorting also broke ties within the same rounded
+  ``periodId``/``timeMin``/``timeSec`` by ``eventId``, which is only
+  unique within one team's own stream -- not a valid cross-team ordering
+  key -- when the already-captured sub-second ``timeStamp`` field was
+  available and unused; using it corrected one delivery's outcome
+  classification in the sample match (``aerial_duel`` -> ``first_touch_lost``,
+  verified by hand against the real timestamps).
+- **Fixed a real bug**: ``run_workflow`` forwarded ``model`` straight
+  through to ``set_piece_report`` regardless of ``set_piece_type``, which
+  raises for anything other than corner/free-kick -- unlike every other
+  model-dependent field in the same function, which already no-ops
+  instead of crashing. A caller fitting one ``XTModel`` and looping
+  ``run_workflow`` over all six set-piece types would crash on the first
+  non-phase type.
+- **Fixed a real bug**: ``outcomes.classify_delivery_outcome``'s
+  ``no_action`` branch fell back with ``value or default``, which treats
+  any falsy qualifier value -- including a genuine end position of 0.0,
+  right on the touchline/byline -- as if it were missing.
+- Hardened ``tests/test_filters.py``'s free-kick/corner disjointness check
+  to compare on the globally-unique ``id`` column instead of the
+  per-team-scoped ``eventId``, which could theoretically mask or spuriously
+  flag a collision between two different teams' events.
+- Every fix above has a regression test reproducing the original bug.
+
 0.13.0
 ------
 
