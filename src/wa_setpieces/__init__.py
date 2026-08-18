@@ -21,6 +21,7 @@ submodule they actually live in.
 """
 
 from .core.chains import link_set_piece_shots, set_piece_goal_summary
+from .core.clips import delivery_clip_windows
 from .core.filters import (
     extract_all,
     extract_corners,
@@ -104,6 +105,7 @@ __all__ = [
     "RoutineAnalysis", "analyze_routines", "routine_team_profiles",
     "routine_taker_profiles", "routine_target_matrix",
     "cluster_routines", "cluster_summary",
+    "delivery_clip_windows",
     "render_html_report", "write_html_report", "corner_report_html",
     "extract_all",
     "extract_corners",
