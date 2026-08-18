@@ -62,6 +62,31 @@ Other qualifiers used by this package
      - Pass end X / end Y
      - :func:`wa_setpieces.delivery_locations` uses these for delivery
        maps (e.g. where a corner ended up).
+   * - 223 / 224
+     - In-swinger / Out-swinger
+     - :func:`wa_setpieces.restart_routines`'s ``delivery_technique``
+       column (``"inswinger"``/``"outswinger"``) for corners/free kicks --
+       ``constants.QUALIFIER_INSWINGER``/``QUALIFIER_OUTSWINGER``. Confirmed
+       mutually exclusive across every corner in the sample match.
+   * - 102 / 103
+     - Goal mouth Y / Z
+     - :func:`wa_setpieces.core.placement.goal_placement` (shared by
+       :mod:`wa_setpieces.ml.shot_value` and
+       :func:`wa_setpieces.penalty_placement_detail`) for where in the goal
+       frame a shot/penalty was placed. ``goal_y_norm`` is confirmed by its
+       value range; ``goal_h_norm`` additionally assumes qualifier 103 is on
+       a 0-38 scale (38 = crossbar), seen in other open-source Opta parsers
+       but not independently confirmed here.
+   * - 20 / 72
+     - Right footed / Left footed
+     - Body-part features in :mod:`wa_setpieces.ml.shot_value`
+       (``QUALIFIER_RIGHT_FOOTED``/``QUALIFIER_LEFT_FOOTED``). **Not** swing
+       direction -- an earlier version of this package's
+       ``convert.corners``/``providers.statsbomb`` mistakenly used qualifier
+       72 for "in-swinger" (they read the same numeric value, but 72 also
+       appears on shot events, where swing direction is meaningless, and
+       co-occurs with both 223 and 224 depending on which foot the taker
+       used). Fixed to use 223 in both places.
    * - 123
      - Keeper throw
      - Not currently classified as a distinct set-piece type, but reserved
@@ -81,3 +106,10 @@ unsuccessful) as reported by the data provider -- e.g. for a throw-in this
 usually means "won by the throwing team", and for a free kick/corner it
 usually means "completed to a teammate". This package does not re-derive
 outcome from subsequent possession; it reports what the feed says.
+
+Don't confuse that raw ``outcome`` flag with ``delivery_outcome``, the
+*classified* result column on :func:`wa_setpieces.delivery_outcomes` and
+:func:`wa_setpieces.restart_routines` (``short_corner``/``aerial_duel``/
+``goal``/``lost``/...) -- both were named ``category``/``outcome_category``
+in earlier versions and were unified into ``delivery_outcome`` precisely
+because that overlap with the raw flag was confusing.

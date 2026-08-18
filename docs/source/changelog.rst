@@ -50,6 +50,7 @@ specialists, rolling defensive form) wired into the flagship pipeline.
   optional ``ml`` extra isn't installed for ``routine_clusters``. No CLI
   changes needed: ``wa-setpieces workflow``/``report`` already collect
   every DataFrame field generically.
+
 0.16.0
 ------
 

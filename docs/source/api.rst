@@ -9,6 +9,27 @@ loader
    :undoc-members:
    :show-inheritance:
 
+constants
+---------
+
+.. automodule:: wa_setpieces.core.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+schema
+------
+
+The provider-neutral event contract every other module assumes --
+:func:`~wa_setpieces.validate_events` checks it,
+:func:`~wa_setpieces.event_capabilities` reports which optional fields an
+adapter supplies.
+
+.. automodule:: wa_setpieces.core.schema
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 filters
 -------
 
@@ -81,6 +102,53 @@ outcomes
    :undoc-members:
    :show-inheritance:
 
+routines
+--------
+
+Rule-based routine taxonomy (``restart_routines``, including
+``delivery_technique``/``post_target``), a data-driven k-means
+alternative (``cluster_routines``/``cluster_summary``, optional ``ml``
+extra), team/taker tactical profiles, and long-throw specialist
+detection.
+
+.. automodule:: wa_setpieces.core.routines
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+attribution
+-----------
+
+Event-sequence-based player attribution after a delivery -- explicitly
+labelled ``"event_sequence"`` confidence, since event data cannot prove
+physical contact the way tracking data can.
+
+.. automodule:: wa_setpieces.core.attribution
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+placement
+---------
+
+Shared goal-mouth shot placement geometry (qualifiers 102/103), used by
+both :mod:`wa_setpieces.ml.shot_value` and
+:mod:`wa_setpieces.core.penalties`. Pure qualifier math -- no optional
+dependency needed.
+
+.. automodule:: wa_setpieces.core.placement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+penalties
+---------
+
+.. automodule:: wa_setpieces.core.penalties
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 shot_value
 ----------
 
@@ -109,14 +177,57 @@ rating
    :undoc-members:
    :show-inheritance:
 
+defending
+---------
+
+.. automodule:: wa_setpieces.core.defending
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+season
+------
+
+Match-safe multi-match aggregation and rolling attacking/defensive form.
+
+.. automodule:: wa_setpieces.core.season
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 workflow
 --------
 
 The whole pipeline (extraction, metrics, phases, retention, added value,
-report, rating) for one set-piece type, in one call. See the "Quickstart:
-one call" section on the :doc:`quickstart` page.
+report, rating, defending, routine clusters, aerial duels, penalties,
+long throws) for one set-piece type, in one call. See "The whole
+pipeline in one call" on the :doc:`quickstart` page.
 
 .. automodule:: wa_setpieces.core.workflow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+clips
+-----
+
+Video-clip in/out timestamp windows for deliveries, for handing off to a
+video-clipping tool.
+
+.. automodule:: wa_setpieces.core.clips
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+reporting
+---------
+
+Self-contained HTML reports (``corner_report_html``,
+``opponent_scouting_report_html``, ``render_html_report``,
+``write_html_report``) and CSV/Excel export (``save_table``,
+``save_tables`` -- Excel needs the optional ``xlsx`` extra).
+
+.. automodule:: wa_setpieces.reporting
    :members:
    :undoc-members:
    :show-inheritance:
@@ -149,14 +260,6 @@ theme
 -----
 
 .. automodule:: wa_setpieces.viz.theme
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-constants
----------
-
-.. automodule:: wa_setpieces.core.constants
    :members:
    :undoc-members:
    :show-inheritance:

@@ -76,6 +76,171 @@ enough up the pitch). The thresholds are tunable:
        max_total_seconds=15,   # hard cap on how long after the delivery we keep looking
    )
 
+Outcomes and aerial duels
+-----------------------------
+
+:mod:`wa_setpieces.core.outcomes` builds on :mod:`wa_setpieces.core.phases`
+and classifies every corner/free-kick delivery into one discrete
+``delivery_outcome`` -- ``short_corner``, ``direct_shot``,
+``second_phase_shot``, ``aerial_duel``, ``cleared``, ``first_touch_won``,
+``first_touch_lost`` or ``no_action`` -- for a shot-map-style scatter
+(:func:`~wa_setpieces.viz.plots.plot_set_piece_outcomes`). Categories are
+checked in that priority order per delivery; see the module docstring for
+exactly which event each category's plotted location comes from.
+
+.. code-block:: python
+
+   from wa_setpieces import delivery_outcomes, outcome_summary
+
+   delivery_outcomes(match.events, "corner")   # one row per delivery
+   outcome_summary(match.events, "corner")     # per-team counts of each category
+
+.. note::
+
+   Before 0.17.0 this column was named ``category`` here and
+   ``outcome_category`` on :func:`~wa_setpieces.restart_routines` -- both
+   renamed to ``delivery_outcome`` for consistency, and to read distinctly
+   from the raw pass/shot success ``outcome`` flag they sit next to in the
+   same tables (see :doc:`qualifiers`).
+
+When the outcome is ``"aerial_duel"``, the raw Opta Aerial event's own
+``outcome`` flag identifies who actually won that header (Opta logs one
+Aerial event per team involved, confirmed as a matched winner/loser pair
+against the sample match) -- exposed both per-delivery
+(``aerial_winner_contestant_id``/``_player_id``/``_player_name`` columns
+on ``delivery_outcomes``) and rolled up:
+
+.. code-block:: python
+
+   from wa_setpieces import aerial_duel_summary
+
+   team_summary, player_summary = aerial_duel_summary(match.events, "corner")
+   # team_summary: duels_involved, duels_won, win_rate, per team
+   # player_summary: duels_won per player with at least one *identified* win
+   # (a loss identifies the winning team but not the winning player, since
+   # only the loser's own event is what's being read)
+
+Routines: taxonomy, technique, target and clusters
+-------------------------------------------------------
+
+:mod:`wa_setpieces.core.routines` describes *how* a restart was taken.
+:func:`~wa_setpieces.restart_routines` gives every delivery a rule-based
+``routine_type`` (short/central-six-yard/penalty-area/recycled/deep for
+corners, and an equivalent taxonomy per set-piece type -- see the
+module docstring for the full list), plus geometry (distance, angle,
+progression, verticality, side/third/channel) and a stable
+``routine_key``.
+
+For corners and free kicks specifically, it also adds:
+
+- ``delivery_technique`` -- ``"inswinger"``/``"outswinger"``, from Opta
+  qualifiers 223/224 (see :doc:`qualifiers` for why this isn't qualifier 72).
+- ``post_target`` -- ``"near_post"``/``"far_post"``/``"central"``,
+  relative to which flank the restart was taken from (the goalpost on the
+  same side as the delivery's own start ``y`` is "near").
+
+.. code-block:: python
+
+   from wa_setpieces import restart_routines, analyze_routines
+
+   restart_routines(match.events, "corner")
+   analyze_routines(match.events, "corner", min_taker_attempts=3)
+   # .detail / .summary / .team_profiles / .taker_profiles / .target_matrix
+
+As an alternative to that fixed, hand-picked taxonomy,
+:func:`~wa_setpieces.cluster_routines` groups deliveries by geometric
+similarity instead (k-means over start/end x/y by default), surfacing
+whatever patterns a team actually repeats:
+
+.. code-block:: python
+
+   from wa_setpieces import cluster_routines, cluster_summary
+
+   clustered = cluster_routines(match.events, "corner", n_clusters=5)  # needs the ml extra
+   # restart_routines' detail plus `cluster` (int, -1 = unclustered) and
+   # an auto-generated `cluster_label` (e.g. "short, forward, central")
+   cluster_summary(clustered)  # per-cluster usage/outcome roll-up
+
+Long throws
+--------------
+
+The one throw-in pattern that plays like a corner -- a direct ball into a
+crowded box, where a genuine long-throw specialist is a real tactical
+weapon:
+
+.. code-block:: python
+
+   from wa_setpieces import long_throw_taker_summary, long_throw_second_phases
+
+   long_throw_taker_summary(match.events, min_distance=25.0)
+   # per-player usage share and threat created (shots/goals via the
+   # assist-chain link) among throw-ins that travel at least min_distance
+
+   long_throw_second_phases(match.events, min_distance=25.0)
+   # event-sequence-based flick-on/knockdown detection (reuses
+   # classify_phase directly), restricted to those same long throws --
+   # most throw-ins are a midfield restart with no "did this produce a
+   # shot" question worth asking, unlike a corner
+
+Penalties: placement
+------------------------
+
+Penalties are shots, not passes -- detected on shot events (see
+:doc:`qualifiers`), with ``restart_routines``' ``routine_type`` for them
+just the shot result (scored/saved/post/missed).
+:mod:`wa_setpieces.core.penalties` adds *where in the goal* each penalty
+was placed, reusing the same goal-mouth-qualifier geometry
+:mod:`wa_setpieces.ml.shot_value`'s shot-value models were built on
+(:func:`~wa_setpieces.core.placement.goal_placement` -- pure geometry, no
+optional dependency needed):
+
+.. code-block:: python
+
+   from wa_setpieces import penalty_placement_detail, penalty_taker_summary
+
+   penalty_placement_detail(match.events)
+   # per-penalty result plus goal_y_norm/goal_h_norm (0-1 across/up the
+   # frame), corner_zone (0-8, a 3x3 grid), placement_score (distance
+   # from center -- corners of the frame score higher)
+
+   penalty_taker_summary(match.events)
+   # per-taker attempts, result breakdown, conversion rate, avg placement score
+
+Defending and opponent scouting
+------------------------------------
+
+:mod:`wa_setpieces.core.defending` flips the attacking perspective
+covered above to "what does this team concede", per match (requiring
+exactly two contestants, so the opponent can be inferred unambiguously):
+
+.. code-block:: python
+
+   from wa_setpieces import (
+       defensive_set_piece_summary, defensive_rating,
+       defensive_routine_summary, defensive_zone_summary,
+   )
+
+   defensive_set_piece_summary(match.events)          # attempts/shots/goals conceded, per team
+   defensive_rating(defensive_set_piece_summary(match.events))  # 0-100, lower concessions score better
+
+   defensive_routine_summary(match.events, "corner")  # conceded, by routine type
+   defensive_zone_summary(match.events, "corner")     # conceded, by destination zone
+
+:func:`~wa_setpieces.opponent_scouting_report_html` turns the last two
+(plus aerial-duel record) into a ready-to-view pre-match scouting report
+on one opponent -- the conceding-side mirror of
+:func:`~wa_setpieces.corner_report_html`:
+
+.. code-block:: python
+
+   from pathlib import Path
+   from wa_setpieces import opponent_scouting_report_html
+
+   html = opponent_scouting_report_html(
+       match.events, opponent_id="...", set_piece_type="corner", team_name="Rivals FC",
+   )
+   Path("scouting.html").write_text(html, encoding="utf-8")
+
 Retention
 ------------
 
@@ -149,9 +314,12 @@ collide).
    zone heatmaps, and :meth:`XTModel.fit` all work fine on the combined
    frame, since those operate row-by-row or via groupby. The temporal-window
    functions in :mod:`wa_setpieces.core.phases` and :mod:`wa_setpieces.core.retention`
-   assume one chronologically-ordered match; feeding them the combined frame
-   directly would let a window bleed across a match boundary. Run those per
-   match and concatenate the *results*:
+   assume one chronologically-ordered match: :func:`~wa_setpieces.core.phases.classify_phase`
+   requires exactly two contestants in its input, and
+   :func:`~wa_setpieces.retention_detail` explicitly rejects a frame with
+   more than one ``matchId`` -- both raise loudly rather than letting a
+   window silently bleed across a match boundary. Run those per match and
+   concatenate the *results*:
 
    .. code-block:: python
 
@@ -162,6 +330,28 @@ collide).
       all_second_phases = pd.concat(
           [second_phases(load_events(f).events, "corner") for f in match_files]
       )
+
+:class:`~wa_setpieces.SeasonDataset` wraps this pattern up safely --
+validates the ``matchId`` boundary up front, and does the
+per-match-then-concatenate dance for you:
+
+.. code-block:: python
+
+   from wa_setpieces import SeasonDataset
+
+   season = SeasonDataset.from_sources(match_files)  # chronological order matters, see below
+   season.summary()                            # competition totals and per-match rates
+   season.report("corner", model)               # match-level report rows
+   season.rolling_summary(window=5)             # rolling attacking form
+   season.rolling_defensive_summary(window=5)   # rolling defensive form (conceding side)
+
+.. important::
+
+   ``rolling_summary``/``rolling_defensive_summary`` are only meaningful
+   if ``sources``/``match_ids`` were supplied to ``from_sources`` already
+   in chronological order -- there's no date field in the loaded event
+   schema to derive true match order from otherwise (a directory listing,
+   for example, sorts alphabetically, not chronologically).
 
 Set-piece added value
 -------------------------
