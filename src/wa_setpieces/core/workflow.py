@@ -32,8 +32,11 @@ from .retention import retention_detail
 from .value import set_piece_added_value
 from .xt import XTModel
 from .defending import defensive_set_piece_summary
+from .defending import defensive_routine_summary as _defensive_routine_summary
+from .defending import defensive_zone_summary as _defensive_zone_summary
 from .attribution import first_contact_detail
-from .routines import analyze_routines
+from .routines import analyze_routines, cluster_routines
+from .outcomes import aerial_duel_summary as _aerial_duel_summary
 
 _PHASE_TYPES = ("corner", "free_kick")
 
@@ -43,8 +46,10 @@ class SetPieceWorkflow:
     """Every table :func:`run_workflow` produces for one set-piece type, in
     pipeline order. Fields that don't apply to ``set_piece_type`` (e.g.
     ``deliveries`` for a penalty, or anything needing ``model`` when none
-    was passed) are ``None`` rather than an empty DataFrame, so a truthy
-    check tells you whether that step ran at all.
+    was passed), or that need an optional extra that isn't installed
+    (``routine_clusters`` needs the ``ml`` extra's scikit-learn), are
+    ``None`` rather than an empty DataFrame, so a truthy check tells you
+    whether that step ran at all.
     """
 
     set_piece_type: str
@@ -59,12 +64,17 @@ class SetPieceWorkflow:
     team_rating: pd.DataFrame
     player_rating: pd.DataFrame | None
     defensive_summary: pd.DataFrame
+    defensive_routine_summary: pd.DataFrame
+    defensive_zone_summary: pd.DataFrame
     first_contacts: pd.DataFrame | None
     routines: pd.DataFrame
     routine_summary: pd.DataFrame
     routine_team_profiles: pd.DataFrame
     routine_taker_profiles: pd.DataFrame
     routine_target_matrix: pd.DataFrame
+    routine_clusters: pd.DataFrame | None
+    aerial_duel_team_summary: pd.DataFrame | None
+    aerial_duel_player_summary: pd.DataFrame | None
 
 
 def run_workflow(
@@ -74,6 +84,7 @@ def run_workflow(
     retention_window_seconds: float = 8.0,
     min_deliveries: int = 3,
     min_shots: int = 1,
+    n_clusters: int = 5,
 ) -> SetPieceWorkflow:
     """Run this package's full pipeline for one set-piece type in one call.
 
@@ -91,6 +102,9 @@ def run_workflow(
             :func:`~wa_setpieces.core.rating.player_rating` -- see that
             function's docstring on why too small a sample is excluded
             rather than rated on noise.
+        n_clusters: passed through to
+            :func:`~wa_setpieces.core.routines.cluster_routines` for
+            ``routine_clusters``.
 
     Returns:
         A :class:`SetPieceWorkflow`. Remember ratings are only as
@@ -126,11 +140,29 @@ def run_workflow(
     ) if model is not None and set_piece_type in _PHASE_TYPES else None
     defending = defensive_set_piece_summary(events)
     defending = defending.loc[defending["set_piece_type"] == set_piece_type].reset_index(drop=True)
+    conceded_routines = _defensive_routine_summary(
+        events, set_piece_type, retention_window_seconds=retention_window_seconds
+    )
+    conceded_zones = _defensive_zone_summary(
+        events, set_piece_type, retention_window_seconds=retention_window_seconds
+    )
     contacts = first_contact_detail(events, set_piece_type) if set_piece_type in c.SET_PIECE_QUALIFIERS else None
     routine_analysis = analyze_routines(
         events, set_piece_type, min_taker_attempts=min_deliveries,
         retention_window_seconds=retention_window_seconds,
     )
+    try:
+        clusters = cluster_routines(
+            events, set_piece_type, n_clusters=n_clusters,
+            retention_window_seconds=retention_window_seconds,
+        )
+    except ImportError:
+        clusters = None
+
+    if set_piece_type in _PHASE_TYPES:
+        aerial_team, aerial_player = _aerial_duel_summary(events, set_piece_type)
+    else:
+        aerial_team, aerial_player = None, None
 
     return SetPieceWorkflow(
         set_piece_type=set_piece_type,
@@ -145,10 +177,15 @@ def run_workflow(
         team_rating=team_rated,
         player_rating=player_rated,
         defensive_summary=defending,
+        defensive_routine_summary=conceded_routines,
+        defensive_zone_summary=conceded_zones,
         first_contacts=contacts,
         routines=routine_analysis.detail,
         routine_summary=routine_analysis.summary,
         routine_team_profiles=routine_analysis.team_profiles,
         routine_taker_profiles=routine_analysis.taker_profiles,
         routine_target_matrix=routine_analysis.target_matrix,
+        routine_clusters=clusters,
+        aerial_duel_team_summary=aerial_team,
+        aerial_duel_player_summary=aerial_player,
     )
