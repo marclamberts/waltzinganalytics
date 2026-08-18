@@ -153,3 +153,83 @@ def corner_report_html(
         "docstrings for the exact assumptions."
     )
     return render_html_report(title, tables, figures=figures or None, methodology=methodology)
+
+
+def opponent_scouting_report_html(
+    events: pd.DataFrame,
+    opponent_id: str,
+    set_piece_type: str = "corner",
+    *,
+    team_name: str | None = None,
+    title: str | None = None,
+    include_figures: bool = True,
+) -> str:
+    """A ready-to-view HTML report on how ``opponent_id`` *defends*
+    ``set_piece_type`` -- pre-match scouting for what to expect when your
+    own team attacks them, as opposed to :func:`corner_report_html`'s
+    focus on a team's own attacking performance.
+
+    Built from the conceding side (:func:`~wa_setpieces.core.defending.defensive_routine_summary`,
+    :func:`~wa_setpieces.core.defending.defensive_zone_summary`,
+    :func:`~wa_setpieces.core.outcomes.aerial_duel_summary`) -- which
+    routines and destination zones ``opponent_id`` concedes shots/goals
+    from most, and their aerial-duel record. Requires exactly two
+    contestants in ``events`` (the same requirement those functions
+    already have).
+
+    Args:
+        opponent_id: the ``contestantId`` to scout.
+        set_piece_type: any of ``constants.SET_PIECE_TYPES`` -- aerial-duel
+            record is only included for ``"corner"``/``"free_kick"`` (the
+            only types :func:`~wa_setpieces.core.outcomes.aerial_duel_summary`
+            supports).
+        team_name: optional display name for ``opponent_id`` in the title
+            and chart labels; defaults to a truncated ``opponent_id``.
+    """
+    from .core.defending import defensive_routine_summary, defensive_zone_summary
+    from .core.outcomes import aerial_duel_summary
+
+    label = team_name or f"{opponent_id[:8]}…"
+    title = title or f"Opponent Scouting — {label} ({set_piece_type})"
+
+    conceded_routines = defensive_routine_summary(events, set_piece_type)
+    conceded_zones = defensive_zone_summary(events, set_piece_type)
+    team_routines = conceded_routines[conceded_routines["contestantId"] == opponent_id].reset_index(drop=True)
+    team_zones = conceded_zones[conceded_zones["contestantId"] == opponent_id].reset_index(drop=True)
+    tables = {
+        "Conceded by routine type": team_routines,
+        "Conceded by destination zone": team_zones,
+    }
+
+    if set_piece_type in ("corner", "free_kick"):
+        aerial_team, _ = aerial_duel_summary(events, set_piece_type)
+        tables["Aerial duel record"] = aerial_team[aerial_team["contestantId"] == opponent_id].reset_index(drop=True)
+
+    figures = {}
+    if include_figures:
+        try:
+            from .viz.plots import plot_defensive_routine_bars
+        except ImportError:
+            pass  # viz extra not installed -- tables-only report is still useful
+        else:
+            if not team_routines.empty:
+                fig, _ = plot_defensive_routine_bars(
+                    conceded_routines, team_id=opponent_id, team_name=team_name,
+                    title=f"{label} — conceded by routine type",
+                )
+                figures["Conceded by routine"] = fig
+            if not team_zones.empty:
+                fig, _ = plot_defensive_routine_bars(
+                    conceded_zones, team_id=opponent_id, team_name=team_name, metric="shots_conceded",
+                    title=f"{label} — shots conceded by zone",
+                )
+                figures["Shots conceded by zone"] = fig
+
+    methodology = (
+        "Conceding-side view built on wa_setpieces.core.defending.defensive_routine_summary, "
+        "defensive_zone_summary and core.outcomes.aerial_duel_summary. "
+        "Routine taxonomy, destination zones and outcome classification are "
+        "all derived heuristics -- see their module docstrings for the exact "
+        "assumptions."
+    )
+    return render_html_report(title, tables, figures=figures or None, methodology=methodology)

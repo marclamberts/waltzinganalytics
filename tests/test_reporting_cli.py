@@ -5,7 +5,7 @@ import pytest
 
 from wa_setpieces import XTModel, load_events, render_html_report, save_table, save_tables
 from wa_setpieces.cli import main
-from wa_setpieces.reporting import corner_report_html
+from wa_setpieces.reporting import corner_report_html, opponent_scouting_report_html
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -105,3 +105,39 @@ def test_corner_report_html_include_figures_requires_viz_extra():
     html = corner_report_html(events, include_figures=True)
     assert "Delivery map" in html
     assert "Outcome shot map" in html
+
+
+def test_opponent_scouting_report_html_has_conceding_tables():
+    events = load_events(DATA).events
+    opponent_id = events["contestantId"].dropna().unique()[0]
+    html = opponent_scouting_report_html(events, opponent_id, "corner", include_figures=False)
+    assert "Conceded by routine type" in html
+    assert "Conceded by destination zone" in html
+    assert "Aerial duel record" in html
+
+
+def test_opponent_scouting_report_html_omits_aerial_duel_for_non_phase_types():
+    events = load_events(DATA).events
+    opponent_id = events["contestantId"].dropna().unique()[0]
+    html = opponent_scouting_report_html(events, opponent_id, "throw_in", include_figures=False)
+    assert "Conceded by routine type" in html
+    assert "Aerial duel record" not in html
+
+
+def test_opponent_scouting_report_html_uses_team_name_in_title():
+    events = load_events(DATA).events
+    opponent_id = events["contestantId"].dropna().unique()[0]
+    html = opponent_scouting_report_html(events, opponent_id, "corner", team_name="Rivals FC", include_figures=False)
+    assert "Rivals FC" in html
+
+
+def test_opponent_scouting_report_html_include_figures_requires_viz_extra():
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("mplsoccer")
+    import matplotlib
+    matplotlib.use("Agg")
+    events = load_events(DATA).events
+    opponent_id = events["contestantId"].dropna().unique()[0]
+    html = opponent_scouting_report_html(events, opponent_id, "corner", include_figures=True)
+    assert "Conceded by routine" in html
+    assert "Shots conceded by zone" in html
