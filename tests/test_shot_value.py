@@ -76,6 +76,40 @@ def test_build_shot_features_set_piece_flags_agree_with_chains(events):
     assert (merged.loc[open_play_mask, "is_set_piece"] == 0).all()
 
 
+def test_build_shot_features_scopes_raw_event_lookup_by_match():
+    # Regression test: the raw-event relookup used to index by
+    # (contestantId, eventId) alone, which is only unique within one match
+    # (eventId resets every match -- see chains.py's docstring). On a
+    # frame spanning two matches with the same two teams (e.g. two legs of
+    # a fixture), a shot in match 2 could silently inherit match 1's
+    # qualifiers for the same (contestantId, eventId) pair.
+    from wa_setpieces.core import constants as c
+
+    def event(matchId, eventId, typeId, contestantId, x, y, outcome=1, q20=None, q72=None):
+        row = dict(
+            matchId=matchId, eventId=eventId, typeId=typeId, periodId=1, timeMin=0, timeSec=eventId,
+            contestantId=contestantId, playerId=f"p{eventId}", playerName=f"P{eventId}",
+            outcome=outcome, x=x, y=y,
+        )
+        if q20 is not None:
+            row["q_20"] = q20
+        if q72 is not None:
+            row["q_72"] = q72
+        return row
+
+    events = pd.DataFrame(
+        [
+            event("m1", 5, c.TYPE_MISS, "A", 90, 50, q20=True),   # right-footed
+            event("m2", 5, c.TYPE_GOAL, "A", 85, 45, q72=True),   # left-footed, same eventId
+        ]
+    )
+    feats = build_shot_features(events).set_index("matchId")
+    assert feats.loc["m1", "is_right_foot"] == 1
+    assert feats.loc["m1", "is_left_foot"] == 0
+    assert feats.loc["m2", "is_right_foot"] == 0
+    assert feats.loc["m2", "is_left_foot"] == 1
+
+
 def test_build_shot_features_empty_events_returns_empty_frame():
     empty = pd.DataFrame(columns=["id", "eventId", "typeId", "periodId", "timeMin", "timeSec",
                                    "contestantId", "playerId", "playerName", "outcome", "x", "y"])

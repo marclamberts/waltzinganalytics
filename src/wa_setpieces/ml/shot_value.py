@@ -335,25 +335,35 @@ def build_shot_features(events: pd.DataFrame) -> pd.DataFrame:
     from ..core.chains import link_set_piece_shots
     from ..core.phases import second_phases
 
+    has_match_id = "matchId" in events.columns
+    feature_columns = [*(["matchId"] if has_match_id else []), *_FEATURE_COLUMNS]
+
     linked = link_set_piece_shots(events)
     if linked.empty:
-        return pd.DataFrame(columns=_FEATURE_COLUMNS)
+        return pd.DataFrame(columns=feature_columns)
 
+    # Keyed by (contestantId, eventId) -- eventId is only unique within one
+    # team's own stream *per match* (see chains.py's module docstring), but
+    # second_phases() itself requires exactly two contestants in `events`
+    # and doesn't carry matchId in its output, so this stays a 2-tuple.
     second_phase_keys = set()
     sp = second_phases(events, "corner")
     for _, row in sp.iterrows():
         if row["second_phase_shot"] and pd.notna(row["second_phase_event_id"]):
             second_phase_keys.add((row["contestant_id"], int(row["second_phase_event_id"])))
 
-    # Indexed by (contestantId, eventId), the only actually-unique key in
-    # F24 (see chains.py's module docstring) -- `linked` drops the q_*
-    # qualifier columns, so this looks each shot's raw event back up.
-    events_by_key = events.set_index(["contestantId", "eventId"], drop=False)
+    # Indexed by (contestantId, eventId) -- or (matchId, contestantId,
+    # eventId) when the input spans multiple matches, since eventId resets
+    # every match -- `linked` drops the q_* qualifier columns, so this
+    # looks each shot's raw event back up.
+    index_cols = [*(["matchId"] if has_match_id else []), "contestantId", "eventId"]
+    events_by_key = events.set_index(index_cols, drop=False)
 
     rows = []
     for _, shot in linked.iterrows():
-        key = (shot["contestantId"], shot["eventId"])
-        raw_event = events_by_key.loc[key]
+        sp_key = (shot["contestantId"], shot["eventId"])
+        raw_key = (shot["matchId"], *sp_key) if has_match_id else sp_key
+        raw_event = events_by_key.loc[raw_key]
         if isinstance(raw_event, pd.DataFrame):  # defensive; shouldn't occur
             raw_event = raw_event.iloc[0]
 
@@ -364,11 +374,12 @@ def build_shot_features(events: pd.DataFrame) -> pd.DataFrame:
         assisted = _qualifier_flag(raw_event, c.QUALIFIER_ASSIST)
 
         set_piece_type = shot["set_piece_type"]
-        is_corner_second_phase = key in second_phase_keys
+        is_corner_second_phase = sp_key in second_phase_keys
 
         placement = _goal_placement(raw_event)
 
         rows.append(dict(
+            **({"matchId": shot["matchId"]} if has_match_id else {}),
             eventId=shot["eventId"],
             contestantId=shot["contestantId"],
             playerId=shot["playerId"],
@@ -404,7 +415,7 @@ def build_shot_features(events: pd.DataFrame) -> pd.DataFrame:
             **placement,
         ))
 
-    return pd.DataFrame(rows, columns=_FEATURE_COLUMNS)
+    return pd.DataFrame(rows, columns=feature_columns)
 
 
 def shot_value(events: pd.DataFrame, models: ShotValueModels | None = None) -> pd.DataFrame:
@@ -442,10 +453,12 @@ def shot_value(events: pd.DataFrame, models: ShotValueModels | None = None) -> p
     situational_prob = models.situation.predict_proba(X_situation)
     outcome_probs = models.multi_outcome.predict_proba(X_pontarget)
 
-    result = features[
-        ["eventId", "contestantId", "playerId", "playerName", "x", "y", "periodId",
-         "time_min", "is_goal", "set_piece_type"]
-    ].copy()
+    id_cols = [
+        *(["matchId"] if "matchId" in features.columns else []),
+        "eventId", "contestantId", "playerId", "playerName", "x", "y", "periodId",
+        "time_min", "is_goal", "set_piece_type",
+    ]
+    result = features[id_cols].copy()
     result["on_target_prob"] = on_target_prob
     result["xgot"] = xgot
     result["psxg"] = psxg
