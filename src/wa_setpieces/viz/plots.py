@@ -871,3 +871,154 @@ def plot_set_piece_outcomes(
     pal.style_axis_text(ax, title, subtitle)
     _finish_figure(pal, fig, footer)
     return fig, ax
+
+
+def plot_routine_clusters(
+    clustered: pd.DataFrame,
+    title: str | None = "Routine clusters",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
+    ax=None,
+    pitch_kwargs: dict | None = None,
+):
+    """Arrow map of deliveries colored by data-driven cluster, from
+    :func:`~wa_setpieces.core.routines.cluster_routines`.
+
+    Each cluster gets its own categorical color and a legend entry labeled
+    with its auto-generated ``cluster_label`` (e.g. "short, forward,
+    central") rather than a bare cluster number. Deliveries left
+    unclustered (``cluster == -1`` -- missing a feature value, or too few
+    usable rows for the requested ``n_clusters``) are drawn muted so they
+    don't compete with the categorical palette.
+    """
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+
+    clusters = sorted(cid for cid in clustered["cluster"].unique() if cid >= 0)
+    color_map = {cid: pal.categorical[i % len(pal.categorical)] for i, cid in enumerate(clusters)}
+
+    unclustered = clustered[clustered["cluster"] < 0]
+    if not unclustered.empty:
+        pitch.arrows(
+            unclustered["x"], unclustered["y"], unclustered["end_x"], unclustered["end_y"],
+            ax=ax, color=pal.ink_muted, width=1.5, headwidth=5, alpha=0.5, label="Unclustered",
+        )
+    for cid in clusters:
+        rows = clustered[clustered["cluster"] == cid]
+        label = rows["cluster_label"].iloc[0] if not rows.empty else f"Cluster {cid}"
+        pitch.arrows(
+            rows["x"], rows["y"], rows["end_x"], rows["end_y"],
+            ax=ax, color=color_map[cid], width=2, headwidth=6, alpha=0.9, label=label,
+        )
+
+    pal.style_legend(ax, fontsize=8)
+    pal.style_axis_text(ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
+    return fig, ax
+
+
+def plot_defensive_routine_bars(
+    conceded: pd.DataFrame,
+    metric: str = "attempts_faced",
+    team_id: str | None = None,
+    team_name: str | None = None,
+    top_n: int = 8,
+    title: str | None = None,
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Horizontal bar chart of what a team concedes most, by routine type or
+    destination zone -- from
+    :func:`~wa_setpieces.core.defending.defensive_routine_summary` or
+    :func:`~wa_setpieces.core.defending.defensive_zone_summary`.
+
+    Args:
+        conceded: output of either function above (auto-detects which one
+            by whether a ``routine_type`` or ``destination_zone`` column
+            is present).
+        metric: which column to plot -- ``"attempts_faced"`` (default),
+            ``"shots_conceded"``, ``"goals_conceded"`` or
+            ``"shot_rate_conceded"``.
+        team_id: filter to one team; required if ``conceded`` covers more
+            than one (both functions return every team by default).
+        top_n: keep only the N highest-``metric`` rows.
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+
+    group_col = "routine_type" if "routine_type" in conceded.columns else "destination_zone"
+    rows = conceded
+    if team_id is not None:
+        rows = rows[rows["contestantId"] == team_id]
+    elif rows["contestantId"].nunique() > 1:
+        raise ValueError(
+            "conceded covers more than one team -- pass team_id to pick which one to plot"
+        )
+    rows = rows.sort_values(metric, ascending=False).head(top_n).sort_values(metric)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 0.45 * len(rows) + 1.5))
+
+    y = np.arange(len(rows))
+    ax.barh(y, rows[metric], color=pal.categorical[0])
+    ax.set_yticks(y)
+    ax.set_yticklabels([str(v).replace("_", " ") for v in rows[group_col]], color=pal.ink_primary)
+    ax.set_xlabel(metric.replace("_", " "))
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+    if title is None:
+        label = team_name or (f"{team_id[:8]}…" if team_id else "Team")
+        title = f"{label} — conceded by {group_col.replace('_', ' ')}"
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
+    return fig, ax
+
+
+def plot_aerial_duel_win_rate(
+    team_summary: pd.DataFrame,
+    team_names: dict | None = None,
+    title: str | None = "Aerial duel win rate",
+    subtitle: str | None = None,
+    footer: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Horizontal bar chart of aerial-duel win rate per team, from
+    :func:`~wa_setpieces.core.outcomes.aerial_duel_summary`'s
+    ``team_summary`` (the first of the two DataFrames it returns).
+
+    Diverges from 50% the same way :func:`plot_rating_benchmark` diverges
+    from a rating of 50, so the two read consistently together.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows = team_summary.sort_values("win_rate")
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 0.5 * len(rows) + 1.5))
+
+    y = np.arange(len(rows))
+    win_pct = rows["win_rate"] * 100
+    colors = [pal.diverging_positive if v >= 50 else pal.diverging_negative for v in win_pct]
+    ax.barh(y, win_pct, color=colors)
+    ax.axvline(50, color=pal.baseline, linewidth=1, linestyle="--")
+    labels = [(team_names or {}).get(t, f"{t[:8]}…") for t in rows["contestantId"]]
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, color=pal.ink_primary)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("win rate (%)")
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+    _style_chart_axis(pal, ax, title, subtitle)
+    _finish_figure(pal, fig, footer)
+    return fig, ax

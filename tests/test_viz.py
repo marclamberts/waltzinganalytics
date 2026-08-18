@@ -347,3 +347,55 @@ def test_plot_set_piece_outcomes_color_stable_across_category_order():
     assert color_for_label(ax_a, cleared_label) == color_for_label(ax_b, cleared_label)
     assert color_for_label(ax_a, aerial_label) == color_for_label(ax_b, aerial_label)
     assert color_for_label(ax_a, cleared_label) != color_for_label(ax_a, aerial_label)
+
+
+def test_plot_routine_clusters_returns_fig_and_ax(events):
+    pytest.importorskip("sklearn")
+    from wa_setpieces.core.routines import cluster_routines
+
+    clustered = cluster_routines(events, "corner", n_clusters=3, random_state=0)
+    fig, ax = viz.plot_routine_clusters(clustered, title="Corner clusters")
+    assert fig is not None
+    assert ax is not None
+    legend_labels = {t.get_text() for t in ax.get_legend().get_texts()}
+    assert legend_labels == set(clustered["cluster_label"].dropna().unique())
+
+
+def test_plot_routine_clusters_handles_all_unclustered():
+    from wa_setpieces.core.routines import cluster_routines
+
+    pytest.importorskip("sklearn")
+    empty_ish = pd.DataFrame(
+        {"eventId": [1], "x": [99.0], "y": [50.0], "end_x": [90.0], "end_y": [50.0], "cluster": [-1], "cluster_label": [pd.NA]}
+    )
+    fig, ax = viz.plot_routine_clusters(empty_ish)
+    assert fig is not None
+
+
+def test_plot_defensive_routine_bars_requires_team_id_for_multiple_teams(events):
+    from wa_setpieces.core.defending import defensive_routine_summary
+
+    conceded = defensive_routine_summary(events, "corner")
+    with pytest.raises(ValueError):
+        viz.plot_defensive_routine_bars(conceded)
+    team = conceded["contestantId"].iloc[0]
+    fig, ax = viz.plot_defensive_routine_bars(conceded, team_id=team)
+    assert fig is not None
+
+
+def test_plot_defensive_routine_bars_works_with_zone_summary(events):
+    from wa_setpieces.core.defending import defensive_zone_summary
+
+    conceded = defensive_zone_summary(events, "corner")
+    team = conceded["contestantId"].iloc[0]
+    fig, ax = viz.plot_defensive_routine_bars(conceded, team_id=team, metric="shots_conceded")
+    assert fig is not None
+
+
+def test_plot_aerial_duel_win_rate_returns_fig_and_ax(events):
+    from wa_setpieces.core.outcomes import aerial_duel_summary
+
+    team_summary, _ = aerial_duel_summary(events, "corner")
+    fig, ax = viz.plot_aerial_duel_win_rate(team_summary)
+    assert fig is not None
+    assert len(ax.get_yticklabels()) == len(team_summary)
