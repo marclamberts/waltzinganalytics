@@ -77,6 +77,24 @@ def test_pass_maps_to_type_pass_with_corner_qualifier(events):
     assert row["outcome"] == 1  # no pass.outcome key -> complete
 
 
+def test_pass_technique_uses_inswinger_qualifier_not_left_footed(events):
+    # Regression test: this used to tag "Inswinging" with q_72, which in
+    # this package's Opta-derived schema means "Left Footed" (see
+    # core.constants.QUALIFIER_LEFT_FOOTED / the convert.corners fix for
+    # the same underlying qualifierId mix-up). That made StatsBomb-sourced
+    # data disagree with Opta-native data on what q_72 means, and silently
+    # broke core.routines' delivery_technique detection for StatsBomb
+    # corners. The real in-swinger qualifier is 223.
+    from wa_setpieces.core.routines import restart_routines
+
+    row = events.iloc[0]
+    assert row.get("q_223") is True
+    assert "q_72" not in events.columns or pd.isna(row.get("q_72"))
+
+    detail = restart_routines(events, "corner")
+    assert detail.iloc[0]["delivery_technique"] == "inswinger"
+
+
 def test_pass_end_location_rescaled_to_opta_0_100(events):
     row = events.iloc[0]
     assert row["q_140"] == pytest.approx(str(round(110.0 * 100 / 120, 2)))
@@ -138,3 +156,17 @@ def test_load_statsbomb_events_accepts_a_json_file(tmp_path):
 def test_load_statsbomb_events_empty_list_returns_empty_frame():
     events = load_statsbomb_events([])
     assert events.empty
+
+
+def test_load_statsbomb_events_empty_list_still_has_core_columns():
+    # Regression test: an empty rows list used to produce a columnless
+    # DataFrame (pd.DataFrame([]) has no columns at all), which failed
+    # schema.validate_events for the wrong reason -- "missing required
+    # columns" instead of correctly handling a legitimately empty export.
+    # Same bug as core.loader.load_events had for a zero-event match.
+    from wa_setpieces.core.schema import validate_events
+
+    events = load_statsbomb_events([])
+    for col in ("id", "eventId", "typeId", "periodId", "timeMin", "timeSec", "contestantId", "outcome", "x", "y"):
+        assert col in events.columns
+    validate_events(events)

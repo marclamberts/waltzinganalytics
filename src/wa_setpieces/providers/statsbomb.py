@@ -47,6 +47,11 @@ PITCH_WIDTH_M = 80.0
 
 TYPE_OTHER = 0  # StatsBomb event types with no Opta typeId equivalent
 
+_CORE_FIELDS = (
+    "id", "eventId", "typeId", "periodId", "timeMin", "timeSec",
+    "contestantId", "playerId", "playerName", "outcome", "x", "y", "timeStamp",
+)
+
 _SHOT_OUTCOME_TYPE_ID = {
     "Goal": c.TYPE_GOAL,
     "Post": c.TYPE_POST,
@@ -104,9 +109,9 @@ def _convert_pass(ev: dict, qualifiers: dict[str, Any]) -> tuple[int, int]:
 
     technique = (pass_info.get("technique") or {}).get("name")
     if technique == "Inswinging":
-        qualifiers["q_72"] = True
+        qualifiers[f"q_{c.QUALIFIER_INSWINGER}"] = True
     elif technique == "Outswinging":
-        qualifiers["q_224"] = True
+        qualifiers[f"q_{c.QUALIFIER_OUTSWINGER}"] = True
     if (pass_info.get("body_part") or {}).get("name") == "Head":
         qualifiers[f"q_{c.QUALIFIER_HEAD_PASS}"] = True
 
@@ -187,7 +192,7 @@ def load_statsbomb_events(source: str | Path | list[dict]) -> pd.DataFrame:
     id_to_index = {ev["id"]: ev.get("index") for ev in raw_events if "id" in ev}
 
     rows = [_convert_event(ev, id_to_index) for ev in raw_events]
-    events = pd.DataFrame(rows)
+    events = pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
     if not events.empty:
         events = events.sort_values(
             ["periodId", "timeMin", "timeSec", "eventId"]
