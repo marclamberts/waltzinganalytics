@@ -54,15 +54,19 @@ def set_piece_added_value(
     """
     deliveries = delivery_locations(events, set_piece_type)
     shots = link_set_piece_shots(events)
-    # Indexed by (contestantId, set_piece_event_id): eventId is only unique
-    # within one team's own event stream (see chains.py's docstring), so a
-    # delivery's shot must be looked up scoped to its own team too -- an
-    # eventId-only index could otherwise match another team's shot that
-    # happens to share the same delivery's eventId number.
+    # Indexed by (contestantId, set_piece_event_id) -- or (matchId,
+    # contestantId, set_piece_event_id) when the input spans multiple
+    # matches: eventId is only unique within one team's own event stream
+    # *per match* (see chains.py's docstring), so a delivery's shot must be
+    # looked up scoped to its own team, and match when there is more than
+    # one, too -- an unscoped index could otherwise match another team's
+    # (or another match's) shot that happens to share the same eventId.
+    has_match_id = "matchId" in deliveries.columns and "matchId" in shots.columns
+    index_cols = [*(["matchId"] if has_match_id else []), "contestantId", "set_piece_event_id"]
     shots_by_delivery = (
         shots.dropna(subset=["set_piece_event_id"])
         .astype({"set_piece_event_id": int})
-        .set_index(["contestantId", "set_piece_event_id"])
+        .set_index(index_cols)
     )
 
     xt_start = model.value_series(deliveries["x"], deliveries["y"])
@@ -72,10 +76,12 @@ def set_piece_added_value(
 
     shot_value = np.zeros(len(deliveries))
     is_goal = np.zeros(len(deliveries), dtype=bool)
-    for i, (contestant_id, event_id) in enumerate(
-        zip(deliveries["contestantId"].to_numpy(), deliveries["eventId"].to_numpy())
-    ):
-        key = (contestant_id, event_id)
+    key_arrays = [
+        *([deliveries["matchId"].to_numpy()] if has_match_id else []),
+        deliveries["contestantId"].to_numpy(),
+        deliveries["eventId"].to_numpy(),
+    ]
+    for i, key in enumerate(zip(*key_arrays)):
         if key not in shots_by_delivery.index:
             continue
         row = shots_by_delivery.loc[key]
@@ -84,7 +90,8 @@ def set_piece_added_value(
         shot_value[i] = model.shot_value(row["x"], row["y"])
         is_goal[i] = bool(row["is_goal"])
 
-    out = deliveries[["eventId", "contestantId", "playerId", "playerName", "outcome"]].copy()
+    out_cols = [*(["matchId"] if has_match_id else []), "eventId", "contestantId", "playerId", "playerName", "outcome"]
+    out = deliveries[out_cols].copy()
     out["delivery_xt_added"] = delivery_xt_added
     out["shot_value"] = shot_value
     out["added_value"] = out["delivery_xt_added"] + out["shot_value"]

@@ -71,7 +71,9 @@ def delivery_locations(events: pd.DataFrame, set_piece_type: str) -> pd.DataFram
     end location, they are a shot).
 
     Returns columns: eventId, contestantId, playerId, playerName, x, y,
-    end_x, end_y, outcome.
+    end_x, end_y, outcome, plus ``matchId`` when the input has one (needed
+    to keep a delivery's eventId attributable to the right match -- see
+    :func:`~wa_setpieces.core.chains.link_set_piece_shots`).
     """
     if set_piece_type not in c.SET_PIECE_QUALIFIERS:
         raise ValueError(
@@ -84,9 +86,10 @@ def delivery_locations(events: pd.DataFrame, set_piece_type: str) -> pd.DataFram
     end_y_col = f"q_{c.QUALIFIER_PASS_END_Y}"
     sp["end_x"] = pd.to_numeric(sp.get(end_x_col), errors="coerce")
     sp["end_y"] = pd.to_numeric(sp.get(end_y_col), errors="coerce")
-    return sp[
-        ["eventId", "contestantId", "playerId", "playerName", "x", "y", "end_x", "end_y", "outcome"]
-    ].reset_index(drop=True)
+    cols = ["eventId", "contestantId", "playerId", "playerName", "x", "y", "end_x", "end_y", "outcome"]
+    if "matchId" in sp.columns:
+        cols = ["matchId", *cols]
+    return sp[cols].reset_index(drop=True)
 
 
 def set_piece_summary(events: pd.DataFrame) -> pd.DataFrame:
