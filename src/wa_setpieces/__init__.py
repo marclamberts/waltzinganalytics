@@ -42,6 +42,7 @@ from .core.defending import (
     defensive_zone_summary,
 )
 from .core.attribution import first_contact_detail, first_contact_summary
+from .core.penalties import penalty_placement_detail, penalty_taker_summary
 from .core.routines import (
     RoutineAnalysis,
     all_routine_summaries,
@@ -108,6 +109,7 @@ __all__ = [
     "SeasonDataset", "defensive_set_piece_summary", "defensive_rating",
     "defensive_routine_summary", "defensive_zone_summary",
     "first_contact_detail", "first_contact_summary",
+    "penalty_placement_detail", "penalty_taker_summary",
     "restart_routines", "routine_summary", "all_routine_summaries",
     "RoutineAnalysis", "analyze_routines", "routine_team_profiles",
     "routine_taker_profiles", "routine_target_matrix",

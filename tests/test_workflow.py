@@ -79,6 +79,14 @@ def test_run_workflow_penalty_has_no_deliveries_retention_or_second_phase(events
     assert result.deliveries is None
     assert result.retention is None
     assert result.second_phases is None
+    assert result.penalty_placement is not None
+    assert result.penalty_taker_summary is not None
+
+
+def test_run_workflow_penalty_placement_only_populated_for_penalty(events):
+    result = run_workflow(events, "corner")
+    assert result.penalty_placement is None
+    assert result.penalty_taker_summary is None
 
 
 def test_run_workflow_throw_in_has_deliveries_and_retention_but_no_second_phase(events):

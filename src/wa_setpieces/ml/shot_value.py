@@ -106,20 +106,27 @@ import pandas as pd
 
 from ..core import constants as c
 
+# Goal-placement geometry (PITCH_WIDTH_M, GOAL_WIDTH_M, GOAL_HEIGHT_QUALIFIER_MAX,
+# GOAL_Y_LOW/HIGH, QUALIFIER_GOAL_MOUTH_Y/Z, goal_placement) lives in
+# core.placement, shared with core.penalties -- re-exported here for
+# backward compatibility.
+from ..core.placement import (
+    GOAL_HEIGHT_QUALIFIER_MAX,
+    GOAL_WIDTH_M,
+    GOAL_Y_HIGH,
+    GOAL_Y_LOW,
+    PITCH_WIDTH_M,
+    QUALIFIER_GOAL_MOUTH_Y,
+    QUALIFIER_GOAL_MOUTH_Z,
+    goal_placement as _goal_placement,
+)
+
 MODELS_DIR = Path(__file__).parent / "models"
 
 PITCH_LENGTH_M = 105.0
-PITCH_WIDTH_M = 68.0
-GOAL_WIDTH_M = 7.32
-GOAL_HEIGHT_QUALIFIER_MAX = 38.0  # see module docstring: unconfirmed assumption
-
-GOAL_Y_LOW = 50.0 - (GOAL_WIDTH_M / PITCH_WIDTH_M * 100.0) / 2.0
-GOAL_Y_HIGH = 50.0 + (GOAL_WIDTH_M / PITCH_WIDTH_M * 100.0) / 2.0
 
 QUALIFIER_RIGHT_FOOTED = 20
 QUALIFIER_LEFT_FOOTED = 72
-QUALIFIER_GOAL_MOUTH_Y = 102
-QUALIFIER_GOAL_MOUTH_Z = 103
 
 PONTARGET_FEATURES = [
     "distance", "angle", "y_sym", "is_header", "is_right_foot", "is_left_foot",
@@ -254,59 +261,6 @@ def _shot_geometry(x: float, y: float) -> tuple[float, float, float]:
 
     y_sym = float(abs(y - 50.0))
     return distance, angle, y_sym
-
-
-def _goal_placement(raw_event: pd.Series) -> dict:
-    """Placement features from qualifierId 102/103 -- see the module
-    docstring's *(experimental)* section for what's confirmed vs guessed.
-
-    ``raw_event`` is a row from :func:`~wa_setpieces.load_events`'s events
-    DataFrame, where each qualifier is already flattened to a ``q_<id>``
-    column (see :class:`wa_setpieces.core.loader.Match`)."""
-    goal_y_raw = raw_event.get(f"q_{QUALIFIER_GOAL_MOUTH_Y}")
-    goal_z_raw = raw_event.get(f"q_{QUALIFIER_GOAL_MOUTH_Z}")
-
-    goal_y_norm = float("nan")
-    goal_h_norm = float("nan")
-    if goal_y_raw is not None:
-        try:
-            goal_y_norm = (float(goal_y_raw) - GOAL_Y_LOW) / (GOAL_Y_HIGH - GOAL_Y_LOW)
-        except (TypeError, ValueError):
-            pass
-    if goal_z_raw is not None:
-        try:
-            goal_h_norm = float(goal_z_raw) / GOAL_HEIGHT_QUALIFIER_MAX
-        except (TypeError, ValueError):
-            pass
-
-    if np.isnan(goal_y_norm) or np.isnan(goal_h_norm):
-        return dict(
-            is_deflected=0, goal_y_norm=goal_y_norm, goal_h_norm=goal_h_norm,
-            goal_frame_dist=float("nan"), corner_zone=-1, placement_score=float("nan"),
-        )
-
-    # Distance outside the goal frame (0 if inside it) -- how far wide/high
-    # the placement missed, in normalized goal-width/height units.
-    dx = max(0.0 - goal_y_norm, goal_y_norm - 1.0, 0.0)
-    dy = max(0.0 - goal_h_norm, goal_h_norm - 1.0, 0.0)
-    goal_frame_dist = float(np.hypot(dx, dy))
-
-    # 3x3 grid over the goal frame (clamped to it even if the shot missed
-    # wide, so "which zone was it *aimed* at" stays defined): 0=bottom-left
-    # .. 8=top-right, row-major, matching a typical goal-frame heatmap.
-    col = int(np.clip(goal_y_norm, 0.0, 0.999) * 3)
-    row = int(np.clip(goal_h_norm, 0.0, 0.999) * 3)
-    corner_zone = row * 3 + col
-
-    # Simple "hardest to save" proxy: distance from goal center, in the
-    # same normalized units -- corners of the frame score higher.
-    placement_score = float(np.hypot(goal_y_norm - 0.5, goal_h_norm - 0.5))
-
-    return dict(
-        is_deflected=0, goal_y_norm=goal_y_norm, goal_h_norm=goal_h_norm,
-        goal_frame_dist=goal_frame_dist, corner_zone=corner_zone,
-        placement_score=placement_score,
-    )
 
 
 _FEATURE_COLUMNS = [

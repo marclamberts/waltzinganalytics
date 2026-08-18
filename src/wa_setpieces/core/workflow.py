@@ -37,6 +37,8 @@ from .defending import defensive_zone_summary as _defensive_zone_summary
 from .attribution import first_contact_detail
 from .routines import analyze_routines, cluster_routines
 from .outcomes import aerial_duel_summary as _aerial_duel_summary
+from .penalties import penalty_placement_detail as _penalty_placement_detail
+from .penalties import penalty_taker_summary as _penalty_taker_summary
 
 _PHASE_TYPES = ("corner", "free_kick")
 
@@ -75,6 +77,8 @@ class SetPieceWorkflow:
     routine_clusters: pd.DataFrame | None
     aerial_duel_team_summary: pd.DataFrame | None
     aerial_duel_player_summary: pd.DataFrame | None
+    penalty_placement: pd.DataFrame | None
+    penalty_taker_summary: pd.DataFrame | None
 
 
 def run_workflow(
@@ -164,6 +168,12 @@ def run_workflow(
     else:
         aerial_team, aerial_player = None, None
 
+    if set_piece_type == "penalty":
+        placement = _penalty_placement_detail(events)
+        taker_summary = _penalty_taker_summary(events)
+    else:
+        placement, taker_summary = None, None
+
     return SetPieceWorkflow(
         set_piece_type=set_piece_type,
         summary=summary,
@@ -188,4 +198,6 @@ def run_workflow(
         routine_clusters=clusters,
         aerial_duel_team_summary=aerial_team,
         aerial_duel_player_summary=aerial_player,
+        penalty_placement=placement,
+        penalty_taker_summary=taker_summary,
     )
