@@ -116,7 +116,9 @@ def run_workflow(
         if model is not None and set_piece_type in _PHASE_TYPES else None
 
     report = set_piece_report(
-        events, set_piece_type, model=model, retention_window_seconds=retention_window_seconds
+        events, set_piece_type,
+        model=model if set_piece_type in _PHASE_TYPES else None,
+        retention_window_seconds=retention_window_seconds,
     )
     team_rated = _team_rating(report)
     player_rated = _player_rating(

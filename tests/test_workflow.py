@@ -61,6 +61,20 @@ def test_run_workflow_throw_in_has_deliveries_and_retention_but_no_second_phase(
     assert result.second_phases is None  # only corner/free_kick get second-phase detection
 
 
+@pytest.mark.parametrize(
+    "set_piece_type", ["penalty", "kick_off", "free_kick", "corner", "throw_in", "goal_kick"]
+)
+def test_run_workflow_with_model_does_not_crash_for_non_phase_types(events, model, set_piece_type):
+    # Regression test: run_workflow forwarded model straight through to
+    # set_piece_report regardless of set_piece_type, which raises for
+    # anything other than corner/free_kick -- unlike every other
+    # model-dependent field in run_workflow, which already no-ops instead
+    # of crashing. A caller fitting one model and looping over all six
+    # set-piece types should not blow up on the first non-phase type.
+    result = run_workflow(events, set_piece_type, model=model)
+    assert not result.report.empty or set_piece_type == "penalty"
+
+
 def test_run_workflow_report_matches_direct_set_piece_report_call(events, model):
     from wa_setpieces.core.report import corner_report
 
