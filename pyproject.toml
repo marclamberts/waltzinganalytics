@@ -54,6 +54,9 @@ ml = [
 convert = [
     "pyarrow>=14",
 ]
+xlsx = [
+    "openpyxl>=3.1",
+]
 
 [project.scripts]
 wa-setpieces = "wa_setpieces.cli:main"

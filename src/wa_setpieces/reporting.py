@@ -41,6 +41,63 @@ def write_html_report(path: str | Path, title: str, tables: dict[str, pd.DataFra
     return target
 
 
+def save_table(table: pd.DataFrame, path: str | Path, **kwargs) -> Path:
+    """Save any DataFrame this package produces to CSV or Excel, chosen by
+    ``path``'s file extension -- ``delivery_outcomes``, ``corner_report``,
+    ``cluster_routines``, anything.
+
+    Args:
+        table: any DataFrame.
+        path: output path; ``.csv`` or ``.xlsx``/``.xls`` picks the format
+            (anything else raises). Parent directories are created if
+            they don't exist.
+        **kwargs: forwarded to :meth:`pandas.DataFrame.to_csv` /
+            :meth:`~pandas.DataFrame.to_excel`. ``index`` defaults to
+            ``False`` (most tables here have no meaningful row index).
+
+    Returns:
+        ``path``, as a :class:`~pathlib.Path`.
+    """
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    suffix = target.suffix.lower()
+    kwargs.setdefault("index", False)
+    if suffix == ".csv":
+        table.to_csv(target, **kwargs)
+    elif suffix in (".xlsx", ".xls"):
+        try:
+            table.to_excel(target, **kwargs)
+        except ImportError as exc:
+            raise ImportError(
+                'writing .xlsx/.xls needs the \'xlsx\' extra: pip install "wa-setpieces[xlsx]"'
+            ) from exc
+    else:
+        raise ValueError(f"unsupported file extension {suffix!r} -- use .csv, .xlsx or .xls")
+    return target
+
+
+def save_tables(
+    tables: dict[str, pd.DataFrame], directory: str | Path, fmt: str = "csv", **kwargs
+) -> dict[str, Path]:
+    """Save several named tables into one directory, one file per table --
+    e.g. a :class:`~wa_setpieces.core.workflow.SetPieceWorkflow`'s tables.
+
+    Args:
+        tables: ``{name: DataFrame}``.
+        directory: created if it doesn't exist.
+        fmt: ``"csv"`` (default), ``"xlsx"`` or ``"xls"``.
+        **kwargs: forwarded to :func:`save_table`.
+
+    Returns:
+        ``{name: path written}``.
+    """
+    target_dir = Path(directory)
+    return {
+        name: save_table(table, target_dir / f"{name}.{fmt.lstrip('.')}", **kwargs)
+        for name, table in tables.items()
+    }
+
+
 def corner_report_html(
     events: pd.DataFrame,
     *,

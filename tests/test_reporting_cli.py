@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from wa_setpieces import XTModel, load_events, render_html_report
+from wa_setpieces import XTModel, load_events, render_html_report, save_table, save_tables
 from wa_setpieces.cli import main
 from wa_setpieces.reporting import corner_report_html
 
@@ -29,6 +29,52 @@ def test_cli_summary_json(tmp_path):
     output = tmp_path / "summary.json"
     assert main(["summary", str(DATA), "--output", str(output), "--format", "json"]) == 0
     assert output.exists() and "contestantId" in output.read_text()
+
+
+def test_save_table_csv_round_trips(tmp_path):
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    path = save_table(df, tmp_path / "out.csv")
+    assert path == tmp_path / "out.csv"
+    assert pd.read_csv(path).equals(df)
+
+
+def test_save_table_xlsx_round_trips(tmp_path):
+    pytest.importorskip("openpyxl")
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    path = save_table(df, tmp_path / "out.xlsx")
+    assert pd.read_excel(path).equals(df)
+
+
+def test_save_table_creates_parent_directories(tmp_path):
+    df = pd.DataFrame({"a": [1]})
+    path = save_table(df, tmp_path / "nested" / "dir" / "out.csv")
+    assert path.exists()
+
+
+def test_save_table_rejects_unsupported_extension(tmp_path):
+    df = pd.DataFrame({"a": [1]})
+    with pytest.raises(ValueError, match="unsupported file extension"):
+        save_table(df, tmp_path / "out.txt")
+
+
+def test_save_table_xlsx_without_engine_raises_clear_error(tmp_path, monkeypatch):
+    df = pd.DataFrame({"a": [1]})
+
+    def fake_to_excel(self, *args, **kwargs):
+        raise ImportError("no engine")
+
+    monkeypatch.setattr(pd.DataFrame, "to_excel", fake_to_excel)
+    with pytest.raises(ImportError, match="xlsx"):
+        save_table(df, tmp_path / "out.xlsx")
+
+
+def test_save_tables_writes_one_file_per_table(tmp_path):
+    tables = {"team_report": pd.DataFrame({"a": [1]}), "player_report": pd.DataFrame({"b": [2]})}
+    paths = save_tables(tables, tmp_path / "out", fmt="csv")
+    assert set(paths) == {"team_report", "player_report"}
+    for name, path in paths.items():
+        assert path == tmp_path / "out" / f"{name}.csv"
+        assert path.exists()
 
 
 def test_corner_report_html_without_model_has_core_tables():
