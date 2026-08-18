@@ -1,6 +1,43 @@
 Changelog
 =========
 
+0.17.1
+------
+
+Bugfix release: the cross-match ``eventId``-collision defect fixed in
+0.13.x/0.14.x for ``chains``/``metrics``/``value``/``shot_value`` turned out
+to have three more instances in modules built after that fix, found by a
+targeted audit of every module touching a raw ``eventId`` lookup. All three
+only misfire on a multi-match frame (``SeasonDataset``/``load_events_multi``)
+that shares ``eventId`` values across matches for the same team -- a normal
+single match is unaffected -- and all three are covered by new regression
+tests that fail against the pre-fix code.
+
+- **Fix**: ``delivery_outcomes`` (and therefore ``outcome_summary``,
+  ``aerial_duel_summary``) resolved a delivery's first-contact/aerial event
+  by bare ``(contestantId, eventId)``, with no per-match loop. On a
+  multi-match frame this silently returned whichever match's row came
+  first in the concatenated frame for *every* delivery -- most visibly,
+  misattributing who won an aerial duel. Now match-safe the same way
+  ``restart_routines`` already was, and carries a ``matchId`` column when
+  the input has one.
+- **Fix**: ``core.attribution.first_contact_detail`` looked ahead by row
+  position with only a ``periodId`` check, so a delivery near the end of
+  one match could pick up an unrelated event from the start of the next
+  match (clock reset to ~0) as its "first contact". Now loops per match
+  like ``restart_routines``/``delivery_outcomes`` and carries ``matchId``.
+- **Fix**: ``core.routines.long_throw_second_phases`` built ``matchId``-aware
+  keys to pick out long throws but then handed ``classify_phase`` the
+  *whole* multi-match frame, which walks forward by position and only
+  breaks on a ``periodId`` change -- the same failure mode as the
+  ``first_contact_detail`` bug above, for the one throw-in path that reuses
+  ``classify_phase`` directly. Now classifies each throw-in against its own
+  match's events only.
+- **Improved**: ``penalty_placement_detail`` now carries a ``matchId``
+  column when the input has one (previously the only per-restart detail
+  table that didn't), so a penalty's ``eventId`` stays attributable to the
+  right match on a season-combined frame.
+
 0.17.0
 ------
 

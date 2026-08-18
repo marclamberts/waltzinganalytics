@@ -15,7 +15,26 @@ def first_contact_detail(
     This is an event-order heuristic, not tracking-derived contact detection.
     ``confidence`` is therefore ``"event_sequence"`` and lets consumers keep
     inferred attribution distinct from provider-native facts.
+
+    Match-safe: when ``matchId`` is present each match is walked
+    independently, so a delivery near the end of one match can't pick up
+    its "first contact" from the start of the next match in the frame.
     """
+    if "matchId" not in events.columns:
+        return _first_contact_detail_single(events, set_piece_type, window_seconds=window_seconds)
+    frames = []
+    for match_id, frame in events.groupby("matchId", sort=False):
+        detail = _first_contact_detail_single(
+            frame.drop(columns="matchId"), set_piece_type, window_seconds=window_seconds
+        )
+        detail.insert(0, "matchId", match_id)
+        frames.append(detail)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["matchId"])
+
+
+def _first_contact_detail_single(
+    events: pd.DataFrame, set_piece_type: str, *, window_seconds: float = 5.0
+) -> pd.DataFrame:
     tagged = tag_set_pieces(events).reset_index(drop=True)
     absolute = tagged["timeMin"].astype(float) * 60 + tagged["timeSec"].astype(float)
     rows = []

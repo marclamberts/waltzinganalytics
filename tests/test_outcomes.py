@@ -188,3 +188,43 @@ def test_aerial_duel_summary_rejects_more_than_two_teams(events):
     bad.loc[bad.index[0], "contestantId"] = "a_third_team"
     with pytest.raises(ValueError):
         aerial_duel_summary(bad, "corner")
+
+
+def test_delivery_outcomes_stays_within_match_boundaries():
+    # Regression test: _event_xy_in_attacking_frame and _aerial_winner used
+    # to resolve a raw event by (contestantId, eventId) alone, and eventId
+    # is unique only within one team's own stream *per match*. On a
+    # multi-match frame with reused eventIds, a bare lookup returns
+    # whichever match's row comes first in the concatenated frame for
+    # *every* delivery, regardless of which match is actually being
+    # classified. Two matches below share contestantId "A" and eventId 11
+    # for the aerial event, but disagree on who won it (m1: A wins, m2: A
+    # loses so B must be reported) -- delivery_outcomes must now classify
+    # each match independently and get both right.
+    def match_rows(match_id, aerial_outcome):
+        return [
+            dict(
+                matchId=match_id, eventId=10, typeId=c.TYPE_PASS, periodId=1,
+                timeMin=0, timeSec=0, contestantId="A", playerId="pA1",
+                playerName="A1", outcome=1, x=99.0, y=50.0, q_6=True,
+            ),
+            dict(
+                matchId=match_id, eventId=11, typeId=c.TYPE_AERIAL, periodId=1,
+                timeMin=0, timeSec=2, contestantId="A", playerId="pA2",
+                playerName="A2", outcome=aerial_outcome, x=90.0, y=50.0,
+            ),
+            dict(
+                matchId=match_id, eventId=90, typeId=c.TYPE_PASS, periodId=1,
+                timeMin=10, timeSec=0, contestantId="B", playerId="pB1",
+                playerName="B1", outcome=1, x=50.0, y=50.0,
+            ),
+        ]
+
+    events = pd.DataFrame(match_rows("m1", aerial_outcome=1) + match_rows("m2", aerial_outcome=0))
+    outcomes = delivery_outcomes(events, "corner")
+    assert set(outcomes["matchId"]) == {"m1", "m2"}
+    assert (outcomes["delivery_outcome"] == "aerial_duel").all()
+
+    winners = outcomes.set_index("matchId")["aerial_winner_contestant_id"]
+    assert winners["m1"] == "A"
+    assert winners["m2"] == "B"

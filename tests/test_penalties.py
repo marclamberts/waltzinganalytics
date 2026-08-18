@@ -51,6 +51,17 @@ def test_penalty_placement_detail_one_row_per_penalty(penalty_events):
     assert detail["result"].tolist() == ["scored", "saved", "missed", "post"]
 
 
+def test_penalty_placement_detail_carries_match_id_when_present(penalty_events):
+    tagged = penalty_events.copy()
+    tagged["matchId"] = "m1"
+    detail = penalty_placement_detail(tagged)
+    assert "matchId" in detail.columns
+    assert (detail["matchId"] == "m1").all()
+
+    # And is simply absent, not NaN-filled, when the input has none.
+    assert "matchId" not in penalty_placement_detail(penalty_events).columns
+
+
 def test_penalty_placement_detail_zone_within_grid_when_present(penalty_events):
     detail = penalty_placement_detail(penalty_events)
     with_placement = detail.dropna(subset=["goal_y_norm"])

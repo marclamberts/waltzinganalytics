@@ -219,12 +219,35 @@ def classify_delivery_outcome(
     return {**base, "delivery_outcome": category, "x": x, "y": y}
 
 
+_OUTCOME_COLUMNS = [
+    "delivery_event_id", "set_piece_type", "contestantId", "playerId",
+    "playerName", "delivery_outcome", "x", "y", "is_goal",
+    "aerial_winner_contestant_id", "aerial_winner_player_id", "aerial_winner_player_name",
+]
+
+
+def _delivery_outcomes_single(events: pd.DataFrame, set_piece_type: str, **kwargs) -> pd.DataFrame:
+    deliveries = _EXTRACTORS[set_piece_type](events)
+    records = []
+    for _, delivery_row in deliveries.iterrows():
+        delivery_row = delivery_row.copy()
+        delivery_row["set_piece_type"] = set_piece_type
+        records.append(classify_delivery_outcome(events, delivery_row, **kwargs))
+    if not records:
+        return pd.DataFrame(columns=_OUTCOME_COLUMNS)
+    return pd.DataFrame.from_records(records, columns=_OUTCOME_COLUMNS)
+
+
 def delivery_outcomes(
     events: pd.DataFrame,
     set_piece_type: str,
     **kwargs,
 ) -> pd.DataFrame:
     """:func:`classify_delivery_outcome` for every delivery of one set-piece type.
+
+    Match-safe: when ``matchId`` is present each match is classified
+    independently, preventing ``eventId`` (unique only within one team's
+    stream *per match*) from being resolved against the wrong match's event.
 
     Args:
         set_piece_type: ``"corner"`` or ``"free_kick"``.
@@ -236,26 +259,23 @@ def delivery_outcomes(
         contestantId, playerId, playerName, delivery_outcome, x, y, is_goal,
         aerial_winner_contestant_id, aerial_winner_player_id,
         aerial_winner_player_name (the last three populated only where
-        ``delivery_outcome == "aerial_duel"``).
+        ``delivery_outcome == "aerial_duel"``), plus ``matchId`` when the
+        input carries one.
     """
     if set_piece_type not in _EXTRACTORS:
         raise ValueError(
             f"set_piece_type must be one of {sorted(_EXTRACTORS)}, got {set_piece_type!r}"
         )
-    deliveries = _EXTRACTORS[set_piece_type](events)
-    records = []
-    for _, delivery_row in deliveries.iterrows():
-        delivery_row = delivery_row.copy()
-        delivery_row["set_piece_type"] = set_piece_type
-        records.append(classify_delivery_outcome(events, delivery_row, **kwargs))
-    columns = [
-        "delivery_event_id", "set_piece_type", "contestantId", "playerId",
-        "playerName", "delivery_outcome", "x", "y", "is_goal",
-        "aerial_winner_contestant_id", "aerial_winner_player_id", "aerial_winner_player_name",
-    ]
-    if not records:
-        return pd.DataFrame(columns=columns)
-    return pd.DataFrame.from_records(records, columns=columns)
+    if "matchId" not in events.columns:
+        return _delivery_outcomes_single(events, set_piece_type, **kwargs)
+    frames = []
+    for match_id, frame in events.groupby("matchId", sort=False):
+        outcomes = _delivery_outcomes_single(frame.drop(columns="matchId"), set_piece_type, **kwargs)
+        outcomes.insert(0, "matchId", match_id)
+        frames.append(outcomes)
+    if not frames:
+        return pd.DataFrame(columns=["matchId", *_OUTCOME_COLUMNS])
+    return pd.concat(frames, ignore_index=True)
 
 
 def outcome_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> pd.DataFrame:

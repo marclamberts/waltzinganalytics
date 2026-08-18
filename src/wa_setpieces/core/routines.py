@@ -462,9 +462,11 @@ def long_throw_second_phases(events: pd.DataFrame, min_distance: float = 25.0, *
     ones rather than running :func:`~wa_setpieces.core.phases.second_phases`
     (a derived heuristic -- same caveats as that module) over every throw-in.
 
-    Same single-match assumption as ``second_phases``/``classify_phase``
-    themselves (they walk the event stream by position, see
-    ``core.loader``'s docstring on what's safe to concatenate first).
+    ``classify_phase`` itself walks the event stream by position within
+    whatever frame it's given (see ``core.loader``'s docstring on what's
+    safe to concatenate first), so when ``matchId`` is present each throw-in
+    is classified against its own match's events only -- otherwise the walk
+    could run off the end of one match into the next.
     """
     from .filters import extract_throw_ins
     from .phases import PhaseResult, classify_phase
@@ -482,6 +484,7 @@ def long_throw_second_phases(events: pd.DataFrame, min_distance: float = 25.0, *
     if not long_keys:
         return pd.DataFrame(columns=columns)
 
+    match_frames = dict(tuple(events.groupby("matchId", sort=False))) if has_match_id else None
     throw_ins = extract_throw_ins(events)
     records = []
     for _, row in throw_ins.iterrows():
@@ -490,6 +493,7 @@ def long_throw_second_phases(events: pd.DataFrame, min_distance: float = 25.0, *
             continue
         delivery_row = row.copy()
         delivery_row["set_piece_type"] = "throw_in"
-        result = classify_phase(events, delivery_row, **phase_kwargs)
+        match_events = match_frames[row["matchId"]] if has_match_id else events
+        result = classify_phase(match_events, delivery_row, **phase_kwargs)
         records.append(result.as_dict())
     return pd.DataFrame.from_records(records, columns=columns) if records else pd.DataFrame(columns=columns)

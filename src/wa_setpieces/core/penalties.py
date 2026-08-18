@@ -40,15 +40,21 @@ def penalty_placement_detail(events: pd.DataFrame) -> pd.DataFrame:
     :func:`~wa_setpieces.core.placement.goal_placement` -- see that
     module's docstring for what's confirmed vs guessed about qualifiers
     102/103. ``NaN``/``-1`` when those qualifiers aren't present in the feed.
+
+    Includes ``matchId`` when the input has one, so a penalty's
+    ``eventId`` (unique only within one team's stream *per match*) stays
+    attributable to the right match on a season-combined frame.
     """
     penalties = extract_penalties(events)
+    has_match_id = "matchId" in penalties.columns
+    columns = ["matchId", *_DETAIL_COLUMNS] if has_match_id else _DETAIL_COLUMNS
     if penalties.empty:
-        return pd.DataFrame(columns=_DETAIL_COLUMNS)
+        return pd.DataFrame(columns=columns)
 
     rows = []
     for _, row in penalties.iterrows():
         placement = goal_placement(row)
-        rows.append({
+        record = {
             "eventId": row["eventId"],
             "contestantId": row["contestantId"],
             "playerId": row.get("playerId"),
@@ -58,8 +64,11 @@ def penalty_placement_detail(events: pd.DataFrame) -> pd.DataFrame:
             "goal_h_norm": placement["goal_h_norm"],
             "corner_zone": placement["corner_zone"],
             "placement_score": placement["placement_score"],
-        })
-    return pd.DataFrame(rows, columns=_DETAIL_COLUMNS)
+        }
+        if has_match_id:
+            record = {"matchId": row["matchId"], **record}
+        rows.append(record)
+    return pd.DataFrame(rows, columns=columns)
 
 
 def penalty_taker_summary(events: pd.DataFrame) -> pd.DataFrame:

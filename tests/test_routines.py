@@ -199,3 +199,50 @@ def test_long_throw_second_phases_empty_when_no_long_throws(events):
 
     result = long_throw_second_phases(events, min_distance=1000.0)
     assert result.empty
+
+
+def test_long_throw_second_phases_stays_within_match_boundaries():
+    # Regression test: long_throw_second_phases built matchId-aware keys to
+    # pick out long throws, but then handed classify_phase the *whole*
+    # multi-match frame, which walks forward by raw position and only
+    # breaks on a periodId change -- so a throw-in that is the last event
+    # of match m1 would pick up the first event of match m2 (right after
+    # it in the concatenated frame, same periodId, clock reset to ~0) as if
+    # it were the very next event of its own match. Below, m1's long throw
+    # has no real follow-up at all; m2's first event is an unrelated goal
+    # 1 second later on the reset clock. Without per-match scoping this
+    # throw-in is misreported as producing that goal as a direct shot.
+    from wa_setpieces.core import constants as c
+    from wa_setpieces.core.routines import long_throw_second_phases
+
+    events = pd.DataFrame(
+        [
+            dict(
+                matchId="m1", eventId=50, typeId=c.TYPE_PASS, periodId=1,
+                timeMin=0, timeSec=0, contestantId="B", playerId="pB1",
+                playerName="B1", outcome=1, x=50.0, y=50.0,
+            ),
+            dict(
+                matchId="m1", eventId=1, typeId=c.TYPE_PASS, periodId=1,
+                timeMin=0, timeSec=5, contestantId="A", playerId="pA1",
+                playerName="A1", outcome=1, x=0.0, y=0.0,
+                q_107=True, q_140=40.0, q_141=0.0,
+            ),
+            dict(
+                matchId="m2", eventId=1, typeId=c.TYPE_GOAL, periodId=1,
+                timeMin=0, timeSec=6, contestantId="A", playerId="pA2",
+                playerName="A2", outcome=1, x=95.0, y=50.0,
+            ),
+            dict(
+                matchId="m2", eventId=51, typeId=c.TYPE_PASS, periodId=1,
+                timeMin=0, timeSec=0, contestantId="B", playerId="pB2",
+                playerName="B2", outcome=1, x=50.0, y=50.0,
+            ),
+        ]
+    )
+    result = long_throw_second_phases(events, min_distance=25.0)
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["direct_shot"] == False  # noqa: E712
+    assert row["direct_shot_is_goal"] == False  # noqa: E712
+    assert row["first_contact_event_id"] is None
