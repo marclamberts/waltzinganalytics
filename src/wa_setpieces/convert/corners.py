@@ -33,7 +33,7 @@ Beyond the set-piece qualifiers already in :mod:`wa_setpieces.core.constants`
 (corner qualifier, pass end x/y, delivery zone), this module reads a few
 qualifiers specific to describing a delivery's *outcome*: qualifier 103
 (xG, percentage string), 22 (headed), 82 (blocked, on Attempt Saved
-events), and 72/224 (inswinging/outswinging corner).
+events), and 223/224 (inswinging/outswinging corner).
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ from ..core.loader import load_events
 Q_XG = 103
 Q_HEADED = 22
 Q_BLOCKED = 82
-Q_INSWING = 72
+Q_INSWING = 223
 Q_OUTSWING = 224
 
 # Event typeIds that break a running possession (out of play, sub, card,

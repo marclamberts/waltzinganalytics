@@ -65,6 +65,35 @@ def test_corner_rows_for_match_returns_one_row_per_corner(events):
     )
 
 
+def test_corner_technique_uses_inswinger_not_left_footed_qualifier(events):
+    # Regression test: Q_INSWING was 72, which is actually "Left Footed"
+    # (confirmed against the sample match: qualifier 72 also appears on
+    # shot events, where swing direction is meaningless, and co-occurs
+    # with both the real in-swing and out-swing qualifiers depending on
+    # which foot the taker used -- not correlated with swing direction at
+    # all). The real in-swinger qualifier is 223, confirmed mutually
+    # exclusive with 224 (out-swinger) across every corner in the sample
+    # match. Cross-check technique against the raw qualifiers directly.
+    team_map = {HOME_ID: "Home FC", AWAY_ID: "Away FC"}
+    rows = corner_rows_for_match(events, team_map, match_id=42, label="Home FC - Away FC")
+    corners = events.loc[(events["typeId"] == 1) & events["q_6"].notna()].reset_index(drop=True)
+    assert len(rows) == len(corners)
+    for row, (_, corner) in zip(rows, corners.iterrows()):
+        if pd.notna(corner.get("q_223")):
+            assert row["pass.technique.name"] == "Inswinging"
+        elif pd.notna(corner.get("q_224")):
+            assert row["pass.technique.name"] == "Outswinging"
+        else:
+            assert row["pass.technique.name"] is None
+    # eventId 786 has both q_224 (outswinger) and q_72 (left-footed) --
+    # exactly the case the old Q_INSWING=72 bug mislabeled as "Inswinging".
+    left_footed_outswinger = corners.loc[corners["eventId"] == 786].iloc[0]
+    assert pd.notna(left_footed_outswinger.get("q_72"))
+    assert pd.notna(left_footed_outswinger.get("q_224"))
+    idx = corners.index[corners["eventId"] == 786][0]
+    assert rows[idx]["pass.technique.name"] == "Outswinging"
+
+
 def test_build_corners_dataset_matches_file_to_csv_row_by_date_and_ids(tmp_path):
     events_dir = tmp_path / "events"
     events_dir.mkdir()

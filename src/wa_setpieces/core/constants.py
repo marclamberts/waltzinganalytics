@@ -69,6 +69,8 @@ QUALIFIER_KEEPER_THROW = 123
 QUALIFIER_GOAL_KICK = 124
 QUALIFIER_THROW_IN = 107
 QUALIFIER_KICK_OFF = 279
+QUALIFIER_INSWINGER = 223
+QUALIFIER_OUTSWINGER = 224
 
 # ---------------------------------------------------------------------------
 # The six set-piece categories this package reports on, keyed by the
