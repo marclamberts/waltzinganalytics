@@ -1,6 +1,51 @@
 Changelog
 =========
 
+0.15.0
+------
+
+A batch of corner-focused additions, all built on already-existing pieces
+rather than new inference:
+
+- **New**: ``restart_routines`` gains ``delivery_technique``
+  (``"inswinger"``/``"outswinger"``, from Opta qualifiers 223/224) and
+  ``post_target`` (``"near_post"``/``"far_post"``/``"central"``, relative
+  to which flank the restart was taken from) columns for corners and free
+  kicks.
+- **Fixed a real bug found along the way**: ``convert.corners``'s
+  ``Q_INSWING`` was qualifier 72, which is actually "Left Footed" (also
+  used, correctly, by ``ml.shot_value.QUALIFIER_LEFT_FOOTED``) -- confirmed
+  against the sample match, where qualifier 72 also appears on shot
+  events (where swing direction is meaningless) and co-occurs with both
+  the real in-swing and out-swing qualifiers depending on which foot the
+  taker used. Every genuine in-swinger was going undetected unless the
+  taker also happened to be left-footed, and a left-footed player's
+  out-swinger was mislabeled "Inswinging". The real in-swinger qualifier
+  is 223 (confirmed mutually exclusive with 224 across every corner in
+  the sample match), now shared as ``core.constants.QUALIFIER_INSWINGER``.
+- **New**: ``cluster_routines`` -- k-means over delivery geometry as a
+  data-driven alternative to ``routine_type``'s fixed rule-based taxonomy,
+  surfacing whatever patterns a team actually repeats. Optional ``ml``
+  extra (scikit-learn); ``cluster_summary`` rolls it up per cluster.
+- **New**: ``defending.defensive_routine_summary`` /
+  ``defensive_zone_summary`` -- flip ``restart_routines``'s attacking
+  perspective to "which routines/zones is this team's defending most
+  exposed to", e.g. conceding disproportionately from near-post
+  inswingers.
+- **New**: ``outcomes.classify_delivery_outcome`` identifies the winner of
+  each ``aerial_duel`` delivery from the raw Opta Aerial event's own
+  outcome flag (confirmed as a matched winner/loser pair per duel);
+  ``aerial_duel_summary`` rolls that up into per-team win rate and
+  per-player wins.
+- **New**: ``corner_report_html`` -- a ready-to-view HTML scouting report
+  for corners (team report, rating, outcome breakdown, routine mix, plus
+  a delivery map and outcome shot map when the ``viz`` extra is
+  installed), assembled from already-existing tables via the existing
+  ``render_html_report``.
+- **New**: ``delivery_clip_windows`` -- clip in/out timestamp windows (in
+  match-clock seconds) for every delivery of any set-piece type, for
+  handing off to video-clipping tools.
+
 0.14.0
 ------
 

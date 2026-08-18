@@ -303,8 +303,9 @@ outcome:
 from wa_setpieces import restart_routines, routine_summary, all_routine_summaries
 
 restart_routines(events, "corner")
-# one row per corner: routine_type, distance, progression, direction, side,
-# start/end third, start/target channel, retention, shots and goals
+# one row per corner: routine_type, delivery_technique (inswinger/outswinger),
+# post_target (near_post/far_post/central), distance, progression, direction,
+# side, start/end third, start/target channel, retention, shots and goals
 
 routine_summary(events, "goal_kick")
 # usage share and outcome rates for short_build / medium_build / long routines
@@ -340,6 +341,34 @@ verticality, a tactical destination zone, a hierarchical outcome category and
 a stable ``routine_key`` combining family, side and destination. Multi-match
 frames with ``matchId`` are automatically separated before temporal analysis.
 
+## Corner-specific extras
+
+A few additions built specifically around corners, all thin layers over the
+pieces above rather than new inference:
+
+```python
+from wa_setpieces import (
+    cluster_routines, cluster_summary,          # data-driven routine clusters (k-means)
+    defensive_routine_summary, defensive_zone_summary,  # what a team concedes, by routine/zone
+    aerial_duel_summary,                          # per-team/player aerial-duel win rate
+    corner_report_html,                           # ready-to-view HTML scouting report
+    delivery_clip_windows,                        # clip in/out timestamps for video tools
+)
+
+clustered = cluster_routines(events, "corner", n_clusters=5)  # optional `ml` extra
+cluster_summary(clustered)   # usage/outcome roll-up per cluster, instead of the fixed routine_type buckets
+
+defensive_routine_summary(events, "corner")  # attempts/shots/goals CONCEDED, by opponent's routine_type
+defensive_zone_summary(events, "corner")     # same, by destination_zone
+
+team_win_rate, player_wins = aerial_duel_summary(events, "corner")  # who actually won each 50/50
+
+html = corner_report_html(events, model=xt_model)  # write_html_report(path, ..., tables) also works directly
+
+delivery_clip_windows(events, "corner", pre_seconds=5, post_seconds=15)
+# clip_start_seconds / clip_end_seconds per delivery, in match-clock seconds
+```
+
 ## What counts as a set piece
 
 | Type        | Detected on                              | Opta qualifierId |
@@ -368,11 +397,15 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.core.retention` — possession retention after any restart.
 - `wa_setpieces.core.xt` — grid-based Expected Threat (xT), fit from data.
 - `wa_setpieces.core.value` — set-piece added value: delivery xT + resulting shot quality + goals, blended.
-- `wa_setpieces.core.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter.
+- `wa_setpieces.core.outcomes` — per-delivery outcome classification (short corner, direct/second-phase shot, aerial duel, cleared, first/lost touch) for a shot-map scatter, plus `aerial_duel_summary` for who wins the 50/50s.
+- `wa_setpieces.core.routines` — `restart_routines`'s rule-based taxonomy (including `delivery_technique`/`post_target` for corners), plus `cluster_routines`/`cluster_summary` for a data-driven (k-means) alternative (optional `ml` extra).
+- `wa_setpieces.core.defending` — `defensive_set_piece_summary`/`defensive_rating`, plus `defensive_routine_summary`/`defensive_zone_summary` for what a team concedes by routine type or destination zone.
+- `wa_setpieces.core.clips` — `delivery_clip_windows`: clip in/out timestamps per delivery, for video-clipping tools.
 - `wa_setpieces.ml.shot_value` — five bundled pre-trained models (on-target probability, xGOT, post-shot xG, situational quality, outcome class) for a richer per-shot value score (optional `ml` extra; **experimental**, read the module docstring).
 - `wa_setpieces.core.report` — `corner_report`/`free_kick_report`: everything above, merged into one table per team.
 - `wa_setpieces.core.rating` — benchmarked 0-100 team/player "how good" scores from a report (see Ratings below).
 - `wa_setpieces.core.workflow` — `run_workflow`: the whole pipeline above, one function call (see "The whole pipeline in one call").
+- `wa_setpieces.reporting` — `corner_report_html`/`render_html_report`/`write_html_report`: portable self-contained HTML reports.
 - `wa_setpieces.providers.statsbomb` — convert a StatsBomb open-data export into the same internal frame Opta F24 produces.
 - `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar, rating benchmark (optional `viz` extra).
 - `wa_setpieces.viz.theme` — the validated dark/light color palettes every plot draws from.
