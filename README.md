@@ -44,6 +44,14 @@ Optional extras, installed as needed throughout this README:
 batch exporter), `xlsx` (Excel export) — e.g. `pip install
 "wa-setpieces[viz,ml]"`.
 
+Prefer to run things instead of reading them?
+[`examples/full_walkthrough.ipynb`](examples/full_walkthrough.ipynb) is a
+single notebook that exercises essentially everything below — loading,
+extraction, routines/outcomes/aerial duels, xT and added value, ratings,
+defending/opponent scouting, penalties, long throws, season form,
+plotting, and CSV/Excel export — against the bundled sample match, with
+every cell's real output saved in the notebook.
+
 ## Quickstart
 
 ```python
