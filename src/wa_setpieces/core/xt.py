@@ -213,10 +213,17 @@ class XTModel:
             move_probability = np.where(total_actions > 0, move_count / total_actions, 0.0)
             goal_probability = np.where(shot_count > 0, goal_count / shot_count, 0.0)
 
+        # Normalized by move_count (all move attempts from that cell, success
+        # or fail) -- the same denominator move_probability uses -- not by
+        # the count of successful transitions alone. Rows therefore sum to
+        # that cell's own pass-success rate rather than always 1, so a cell
+        # whose passes rarely complete gets correctly discounted in the
+        # recurrence below instead of being credited as if every attempt
+        # succeeded and landed like its rare completions did.
         transition_matrix = np.zeros_like(transition_count)
-        row_totals = transition_count.sum(axis=1, keepdims=True)
-        nonzero = row_totals[:, 0] > 0
-        transition_matrix[nonzero] = transition_count[nonzero] / row_totals[nonzero]
+        move_totals = move_count.reshape(-1, 1)
+        nonzero = move_totals[:, 0] > 0
+        transition_matrix[nonzero] = transition_count[nonzero] / move_totals[nonzero]
 
         xt = np.zeros(n_cells)
         shot_value = (shot_probability * goal_probability).reshape(-1)
