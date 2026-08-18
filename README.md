@@ -192,6 +192,9 @@ from wa_setpieces.viz.plots import (
     plot_set_piece_radar,   # two-team radar over a corner_report/free_kick_report
     plot_set_piece_outcomes,  # shot map: every delivery, colored by outcome category
     plot_rating_benchmark,   # team/player rating vs. the sample-average baseline
+    plot_routine_clusters,   # delivery map colored by cluster_routines' data-driven clusters
+    plot_defensive_routine_bars,  # what a team concedes most, by routine type or zone
+    plot_aerial_duel_win_rate,    # per-team aerial-duel win rate from aerial_duel_summary
 )
 
 plot_delivery_map(
@@ -216,7 +219,7 @@ looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
 title) and `footer` (a small credit/source line, bottom-right) are
 optional on every plot. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all sixteen plots (in both modes) with full source code.
+for all fifteen plots (in both modes) with full source code.
 
 ## Other data providers
 
