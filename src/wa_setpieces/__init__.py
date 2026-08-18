@@ -90,7 +90,7 @@ from .core.zones import (
     zone_id,
 )
 
-__version__ = "0.15.0"
+__version__ = "0.16.0"
 
 __all__ = [
     "Match",

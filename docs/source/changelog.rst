@@ -1,6 +1,55 @@
 Changelog
 =========
 
+0.16.0
+------
+
+Finished the module-by-module review that produced 0.14.0/0.15.0, then
+built out the corner-focused additions further: plots, gallery coverage,
+and confirmation they already generalize to every set-piece type.
+
+- **Fixed a real correctness bug**: ``convert.corners`` and
+  ``providers.statsbomb`` both tagged in-swinging deliveries with
+  qualifier 72, which is actually "Left Footed" in this package's
+  Opta-derived schema (confirmed against the sample match: qualifier 72
+  also appears on shot events, where swing direction is meaningless, and
+  co-occurs with both real swing-direction qualifiers depending on which
+  foot the taker used). The real in-swinger qualifier is 223, confirmed
+  mutually exclusive with 224 (out-swinger) across every corner in the
+  sample match. Every genuine in-swinger was previously going undetected
+  unless the taker also happened to be left-footed (right label, wrong
+  reason); a left-footed out-swinger was mislabeled "Inswinging". Added
+  ``QUALIFIER_INSWINGER``/``QUALIFIER_OUTSWINGER`` to ``core.constants``
+  as the shared, verified source.
+- **Fixed a real correctness bug**: ``ml.shot_value.build_shot_features``
+  re-looked-up each shot's raw event by ``(contestantId, eventId)``
+  alone -- only unique within one match, since ``eventId`` resets every
+  match -- so a shot in one match could silently inherit another match's
+  qualifiers (foot preference, goal placement, ...) for the same pair.
+  Reproduced directly and fixed by scoping to ``(matchId, contestantId,
+  eventId)`` when ``matchId`` is present, the same pattern already
+  applied to ``chains.link_set_piece_shots``/``value.set_piece_added_value``
+  in 0.14.0. ``build_shot_features``/``shot_value`` now also carry
+  ``matchId`` through to their output.
+- **Fixed a real correctness bug**: ``providers.statsbomb.load_statsbomb_events``
+  produced a columnless DataFrame for an empty export (same bug
+  ``core.loader.load_events`` had for a zero-event match, fixed in
+  0.14.0), failing ``schema.validate_events`` for the wrong reason.
+- **New**: ``plot_routine_clusters``, ``plot_defensive_routine_bars`` and
+  ``plot_aerial_duel_win_rate`` in ``wa_setpieces.viz.plots``, for
+  ``cluster_routines``, ``defensive_routine_summary``/
+  ``defensive_zone_summary`` and ``aerial_duel_summary`` respectively.
+  Gallery grew from 17 examples to 20.
+- Confirmed (no code change needed) that every 0.15.0 addition --
+  ``delivery_technique``, ``post_target``, ``cluster_routines``,
+  ``defensive_routine_summary``/``defensive_zone_summary``,
+  ``aerial_duel_summary`` -- already works for every set-piece type, not
+  just corners, since none of them hard-coded a corner-only restriction.
+- Reviewed every remaining previously-unreviewed module
+  (``ml.shot_value``, ``viz.plots``, ``viz.theme``, ``providers.statsbomb``,
+  ``cli``) for correctness; ``viz.plots``, ``viz.theme`` and ``cli`` had
+  no issues.
+
 0.15.0
 ------
 
