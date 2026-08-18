@@ -62,6 +62,14 @@ def retention_detail(
     """
     if set_piece_type == "penalty":
         raise ValueError("retention is not meaningful for penalties")
+    if "matchId" in events.columns and events["matchId"].nunique() > 1:
+        raise ValueError(
+            "retention_detail assumes a single chronologically-ordered match "
+            "(it looks ahead by periodId, which repeats every match), but "
+            "events spans multiple matchId values. Run it per match -- e.g. "
+            "SeasonDataset.iter_matches(), or restart_routines() which "
+            "already does this -- and combine the results afterward."
+        )
     tagged = tag_set_pieces(events)
     deliveries = tagged.loc[tagged["set_piece_type"] == set_piece_type]
 

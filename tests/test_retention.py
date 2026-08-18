@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from wa_setpieces import load_events
@@ -43,3 +44,29 @@ def test_retention_rate_between_zero_and_one(events):
     rates = retention_rate(events, "throw_in")
     assert rates["retention_rate"].between(0, 1).all()
     assert (rates["retained"] <= rates["deliveries"]).all()
+
+
+def test_retention_rejects_multi_match_frames():
+    # Regression test: _retained looks ahead by periodId alone, which
+    # repeats every match, so a season-combined frame can pick up an
+    # unrelated later match's event as if it followed this match's
+    # delivery. Without a guard, team A's only throw-in below (with no
+    # real follow-up event in its own match) picks up team B's kickoff
+    # from an unrelated later match 4s afterward and is misreported as
+    # lost possession, when the correct answer is "no signal" (None/True).
+    events = pd.DataFrame(
+        [
+            dict(
+                matchId="m1", eventId=50, typeId=1, periodId=1, timeMin=0, timeSec=5,
+                contestantId="A", playerId="p50", playerName="P50", outcome=1,
+                x=50, y=50, q_107=True,
+            ),
+            dict(
+                matchId="m2", eventId=1, typeId=1, periodId=1, timeMin=0, timeSec=9,
+                contestantId="B", playerId="p1", playerName="P1", outcome=1,
+                x=50, y=50,
+            ),
+        ]
+    )
+    with pytest.raises(ValueError):
+        retention_detail(events, "throw_in")
