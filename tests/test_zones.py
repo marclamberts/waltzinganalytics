@@ -46,6 +46,24 @@ def test_add_channels_rejects_bad_n(events):
         add_channels(events, n=4)
 
 
+def test_add_thirds_and_channels_clip_out_of_bounds_coordinates():
+    # Regression test: Opta records some out-of-play events just beyond the
+    # nominal 0-100 pitch boundary (see core.schema's -5..105 plausibility
+    # range and the real out-of-bounds rows in sample_match.json). x/y must
+    # be clipped into range before binning, or these come back NaN instead
+    # of their nearest third/channel.
+    import pandas as pd
+
+    df = pd.DataFrame({"x": [-1.4, 101.4], "y": [-1.8, 101.8]})
+    thirds = add_thirds(df)
+    assert thirds["third"].notna().all()
+    assert list(thirds["third"]) == ["defensive_third", "attacking_third"]
+
+    channels = add_channels(df, n=5)
+    assert channels["channel"].notna().all()
+    assert list(channels["channel"]) == ["left_wide", "right_wide"]
+
+
 def test_zone_id_corners_of_grid():
     assert zone_id(0, 0, x_bins=6, y_bins=3) == "R0C0"
     assert zone_id(99.9, 99.9, x_bins=6, y_bins=3) == "R2C5"

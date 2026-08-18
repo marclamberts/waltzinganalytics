@@ -46,14 +46,16 @@ CHANNEL3_LABELS = ("left", "central", "right")
 
 
 def add_thirds(df: pd.DataFrame, x_col: str = "x", out_col: str = "third") -> pd.DataFrame:
-    """Tag each row with its pitch third (defensive/middle/attacking), by ``x``."""
+    """Tag each row with its pitch third (defensive/middle/attacking), by ``x``.
+
+    Opta records some out-of-play events just beyond the nominal 0-100 pitch
+    boundary (see ``core.schema``'s -5..105 plausibility range) -- x is
+    clipped to 0-100 first so those still land in their nearest third
+    instead of coming back NaN.
+    """
     out = df.copy()
-    out[out_col] = pd.cut(
-        pd.to_numeric(out[x_col], errors="coerce"),
-        bins=THIRD_EDGES,
-        labels=THIRD_LABELS,
-        include_lowest=True,
-    )
+    x = pd.to_numeric(out[x_col], errors="coerce").clip(0, 100)
+    out[out_col] = pd.cut(x, bins=THIRD_EDGES, labels=THIRD_LABELS, include_lowest=True)
     return out
 
 
@@ -65,6 +67,11 @@ def add_channels(
     ``n=5`` (default) gives the standard wide/half-space/central split used
     for crossing and delivery analysis. ``n=3`` gives a coarser left/central/
     right split.
+
+    Opta records some out-of-play events just beyond the nominal 0-100 pitch
+    boundary (see ``core.schema``'s -5..105 plausibility range) -- y is
+    clipped to 0-100 first so those still land in their nearest channel
+    instead of coming back NaN.
     """
     if n == 5:
         edges, labels = CHANNEL5_EDGES, CHANNEL5_LABELS
@@ -73,12 +80,8 @@ def add_channels(
     else:
         raise ValueError("n must be 3 or 5")
     out = df.copy()
-    out[out_col] = pd.cut(
-        pd.to_numeric(out[y_col], errors="coerce"),
-        bins=edges,
-        labels=labels,
-        include_lowest=True,
-    )
+    y = pd.to_numeric(out[y_col], errors="coerce").clip(0, 100)
+    out[out_col] = pd.cut(y, bins=edges, labels=labels, include_lowest=True)
     return out
 
 
