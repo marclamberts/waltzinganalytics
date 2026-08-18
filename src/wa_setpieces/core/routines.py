@@ -57,6 +57,34 @@ def _routine_type(row: pd.Series, set_piece_type: str) -> str:
     return "other"
 
 
+def _delivery_technique(row: pd.Series) -> str | None:
+    """"inswinger" / "outswinger" from Opta qualifiers 223/224, when tagged."""
+    if pd.notna(row.get(f"q_{c.QUALIFIER_INSWINGER}")):
+        return "inswinger"
+    if pd.notna(row.get(f"q_{c.QUALIFIER_OUTSWINGER}")):
+        return "outswinger"
+    return None
+
+
+def _post_target(start_y: float, end_x: float, end_y: float) -> str | None:
+    """"near_post" / "far_post" / "central" for a delivery that reaches the box.
+
+    Near/far is relative to which flank the restart was taken from (the
+    goalpost on the same side of the pitch as the delivery's own start ``y``
+    is the "near" post) -- not a fixed pitch side. ``None`` for deliveries
+    that don't reach the penalty area at all (``end_x < 83``, matching the
+    threshold :func:`_destination_zone` already uses for "penalty_area").
+    """
+    if pd.isna(start_y) or pd.isna(end_x) or pd.isna(end_y):
+        return None
+    if end_x < 83:
+        return None
+    if 42 <= end_y <= 58:
+        return "central"
+    same_side_as_restart = (end_y < 50) == (start_y < 50)
+    return "near_post" if same_side_as_restart else "far_post"
+
+
 def _destination_zone(x: float, y: float, third: str | None, channel: str | None) -> str | None:
     if pd.isna(x) or pd.isna(y): return None
     if x >= 94 and 37 <= y <= 63: return "six_yard_box"
@@ -126,6 +154,11 @@ def _restart_routines_single(
     restarts["side"] = np.select([restarts["y"] < 40, restarts["y"] > 60], ["left", "right"], default="central")
     restarts["successful"] = pd.to_numeric(restarts["outcome"], errors="coerce").fillna(0).eq(1)
     restarts["routine_type"] = restarts.apply(_routine_type, axis=1, set_piece_type=set_piece_type)
+    restarts["delivery_technique"] = restarts.apply(_delivery_technique, axis=1)
+    restarts["post_target"] = [
+        _post_target(sy, ex, ey)
+        for sy, ex, ey in zip(restarts["y"], restarts["end_x"], restarts["end_y"])
+    ]
 
     linked = link_set_piece_shots(events)
     produced = linked.loc[linked["set_piece_type"] == set_piece_type].groupby(
@@ -148,6 +181,7 @@ def _restart_routines_single(
     )
     columns = [
         "eventId", "contestantId", "playerId", "playerName", "set_piece_type", "routine_type",
+        "delivery_technique", "post_target",
         "x", "y", "end_x", "end_y", "distance", "distance_m", "progression", "lateral_change",
         "angle_degrees", "verticality", "direction", "side", "start_third", "end_third",
         "start_channel", "target_channel", "destination_zone", "successful", "retained", "shots",
@@ -172,6 +206,89 @@ def restart_routines(
         detail.insert(0, "matchId", match_id)
         frames.append(detail)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def _describe_cluster(members: pd.DataFrame) -> str:
+    avg_distance = members["distance"].mean()
+    avg_progression = members["progression"].mean()
+    avg_y = members["y"].mean()
+    length = "short" if avg_distance <= 12 else "medium" if avg_distance <= 30 else "long"
+    direction = "forward" if avg_progression > 3 else "backward" if avg_progression < -3 else "lateral"
+    side = "left" if avg_y < 40 else "right" if avg_y > 60 else "central"
+    return f"{length}, {direction}, {side}"
+
+
+def cluster_routines(
+    events: pd.DataFrame,
+    set_piece_type: str,
+    n_clusters: int = 5,
+    *,
+    features: list[str] | None = None,
+    random_state: int = 0,
+    **kwargs,
+) -> pd.DataFrame:
+    """Group deliveries into ``n_clusters`` data-driven clusters by geometry.
+
+    An alternative to ``routine_type``'s fixed rule-based taxonomy: instead
+    of hand-picked named buckets, groups deliveries by similarity in
+    ``features`` (default: start/end x/y) using k-means, surfacing whatever
+    patterns a team actually repeats rather than only the categories
+    :func:`restart_routines` already names.
+
+    Requires the optional ``ml`` extra (scikit-learn):
+    ``pip install "wa-setpieces[ml]"``.
+
+    Returns :func:`restart_routines`'s detail table plus ``cluster`` (int,
+    ``0..n_clusters-1``) and ``cluster_label`` (a short auto-generated
+    summary of that cluster's average geometry, e.g. ``"short, forward,
+    central"``). Rows missing any feature value, or where there are fewer
+    fully-featured deliveries than ``n_clusters``, get ``cluster=-1``
+    (unclustered) rather than raising.
+    """
+    try:
+        from sklearn.cluster import KMeans
+    except ImportError as exc:
+        raise ImportError(
+            'cluster_routines requires the \'ml\' extra: pip install "wa-setpieces[ml]"'
+        ) from exc
+
+    detail = restart_routines(events, set_piece_type, **kwargs)
+    out = detail.copy()
+    out["cluster"] = -1
+    out["cluster_label"] = pd.NA
+    if detail.empty:
+        return out
+
+    feature_cols = features or ["x", "y", "end_x", "end_y"]
+    X = detail[feature_cols].apply(pd.to_numeric, errors="coerce")
+    valid = X.notna().all(axis=1)
+    if valid.sum() < n_clusters:
+        return out
+
+    km = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    out.loc[valid, "cluster"] = km.fit_predict(X.loc[valid])
+    for cluster_id in range(n_clusters):
+        members = out.loc[out["cluster"] == cluster_id]
+        if not members.empty:
+            out.loc[out["cluster"] == cluster_id, "cluster_label"] = _describe_cluster(members)
+    return out
+
+
+def cluster_summary(clustered: pd.DataFrame) -> pd.DataFrame:
+    """Per-cluster usage and outcome roll-up, from :func:`cluster_routines`'s output."""
+    known = clustered.loc[clustered["cluster"] >= 0]
+    if known.empty:
+        return pd.DataFrame(columns=["cluster", "cluster_label", "attempts"])
+    out = known.groupby(["cluster", "cluster_label"], as_index=False).agg(
+        attempts=("eventId", "count"), successful=("successful", "sum"),
+        shots=("shots", "sum"), goals=("goals", "sum"),
+        avg_distance=("distance", "mean"), avg_progression=("progression", "mean"),
+    )
+    out["success_rate"] = (out["successful"] / out["attempts"]).round(3)
+    out["shot_rate"] = (out["shots"] / out["attempts"]).round(3)
+    out["avg_distance"] = out["avg_distance"].round(2)
+    out["avg_progression"] = out["avg_progression"].round(2)
+    return out.sort_values("attempts", ascending=False).reset_index(drop=True)
 
 
 def routine_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> pd.DataFrame:

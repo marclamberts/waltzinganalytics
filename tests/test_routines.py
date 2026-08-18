@@ -11,6 +11,7 @@ from wa_setpieces import (
     restart_routines,
     routine_summary,
 )
+from wa_setpieces.core.routines import cluster_routines, cluster_summary
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -93,3 +94,68 @@ def test_multi_match_routines_are_analysed_within_boundaries():
     detail = analyze_routines(season.events, "corner").detail
     assert len(detail) == 18
     assert set(detail["matchId"]) == {"m1", "m2"}
+
+
+def test_delivery_technique_from_inswing_outswing_qualifiers(events):
+    detail = restart_routines(events, "corner")
+    assert set(detail["delivery_technique"].dropna()) <= {"inswinger", "outswinger"}
+    # Cross-checked against the raw qualifiers (see test_convert_corners.py's
+    # regression test for the same qualifierId verification): every corner
+    # tagged with qualifier 223 is an inswinger, 224 an outswinger, and a
+    # delivery can't be both.
+    corners = events.loc[(events["typeId"] == 1) & events["q_6"].notna()]
+    n_inswing = corners["q_223"].notna().sum() if "q_223" in corners else 0
+    n_outswing = corners["q_224"].notna().sum() if "q_224" in corners else 0
+    assert (detail["delivery_technique"] == "inswinger").sum() == n_inswing
+    assert (detail["delivery_technique"] == "outswinger").sum() == n_outswing
+
+
+def test_cluster_routines_groups_deliveries_by_geometry(events):
+    pytest.importorskip("sklearn")
+    clustered = cluster_routines(events, "corner", n_clusters=3, random_state=0)
+    assert len(clustered) == len(restart_routines(events, "corner"))
+    assert {"cluster", "cluster_label"}.issubset(clustered.columns)
+    assert clustered["cluster"].between(0, 2).all()  # every corner has a full x/y/end_x/end_y
+    assert clustered["cluster_label"].notna().all()
+
+    summary = cluster_summary(clustered)
+    assert summary["attempts"].sum() == len(clustered)
+    assert {"success_rate", "shot_rate", "avg_distance", "avg_progression"}.issubset(summary.columns)
+
+
+def test_cluster_routines_too_few_deliveries_leaves_unclustered(events):
+    pytest.importorskip("sklearn")
+    clustered = cluster_routines(events, "corner", n_clusters=50, random_state=0)
+    assert (clustered["cluster"] == -1).all()
+    assert clustered["cluster_label"].isna().all()
+
+
+def test_cluster_routines_requires_ml_extra_without_sklearn(events, monkeypatch):
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "sklearn.cluster":
+            raise ImportError("no sklearn")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(ImportError, match="ml"):
+        cluster_routines(events, "corner")
+
+
+def test_post_target_near_far_central(events):
+    detail = restart_routines(events, "corner")
+    assert set(detail["post_target"].dropna()) <= {"near_post", "far_post", "central"}
+    # A corner taken from the near-zero-y side that ends up on the same
+    # (low-y) side of the box is a near-post delivery; one that ends up
+    # curling to the opposite (high-y) side is far-post.
+    reached_box = detail[detail["end_x"] >= 83]
+    for _, row in reached_box.iterrows():
+        if 42 <= row["end_y"] <= 58:
+            assert row["post_target"] == "central"
+        elif (row["end_y"] < 50) == (row["y"] < 50):
+            assert row["post_target"] == "near_post"
+        else:
+            assert row["post_target"] == "far_post"
