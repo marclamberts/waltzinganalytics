@@ -61,8 +61,12 @@ def test_kick_offs_originate_at_centre_spot(events):
 
 
 def test_free_kicks_and_corners_are_mutually_exclusive(events):
-    fk_ids = set(extract_free_kicks(events)["eventId"])
-    corner_ids = set(extract_corners(events)["eventId"])
+    # Compared on "id" (Opta's globally unique event id), not "eventId":
+    # eventId is only unique within one team's own stream, so two events
+    # from different teams can share an eventId and would falsely look
+    # like a collision here.
+    fk_ids = set(extract_free_kicks(events)["id"])
+    corner_ids = set(extract_corners(events)["id"])
     assert fk_ids.isdisjoint(corner_ids)
 
 
