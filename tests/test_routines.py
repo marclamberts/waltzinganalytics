@@ -41,6 +41,30 @@ def test_routine_summary_usage_sums_to_one_per_team(events):
     assert summary["success_rate"].between(0, 1).all()
 
 
+def test_routine_channel_and_side_match_zones_convention(events):
+    # Regression test: routines.py used to define its own private
+    # third/channel thresholds with the opposite left/right direction from
+    # zones.add_channels' canonical convention (low y = left), so the same
+    # delivery could get contradictory flank labels depending on which
+    # function was called. It now reuses zones.add_thirds/add_channels
+    # directly, so start_channel must agree with add_channels on the same
+    # rows, and side/start_channel must agree with each other.
+    from wa_setpieces.core.filters import extract_corners
+    from wa_setpieces.core.zones import add_channels
+
+    corners = extract_corners(events)
+    direct = add_channels(corners, n=5).set_index("eventId")["channel"]
+    detail = restart_routines(events, "corner").set_index("eventId")
+    assert (detail["start_channel"].astype(str) == direct.loc[detail.index].astype(str)).all()
+
+    low_y = detail["y"] < 40
+    assert (detail.loc[low_y, "side"] == "left").all()
+    assert (detail.loc[low_y, "start_channel"].isin(["left_wide", "left_half_space"])).all()
+    high_y = detail["y"] > 60
+    assert (detail.loc[high_y, "side"] == "right").all()
+    assert (detail.loc[high_y, "start_channel"].isin(["right_wide", "right_half_space"])).all()
+
+
 def test_penalty_taxonomy():
     base = {"id": 1, "eventId": 1, "periodId": 1, "timeMin": 10, "timeSec": 0,
             "contestantId": "A", "playerId": "p", "playerName": "Player", "outcome": 1,

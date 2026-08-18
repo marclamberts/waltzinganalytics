@@ -15,22 +15,7 @@ from . import constants as c
 from .chains import link_set_piece_shots
 from .filters import tag_set_pieces
 from .retention import retention_detail
-
-
-def _third(x: float) -> str | None:
-    if pd.isna(x):
-        return None
-    return "defensive" if x < 100 / 3 else "middle" if x < 200 / 3 else "attacking"
-
-
-def _channel(y: float) -> str | None:
-    if pd.isna(y):
-        return None
-    if y < 20: return "right_wide"
-    if y < 40: return "right_half_space"
-    if y <= 60: return "central"
-    if y <= 80: return "left_half_space"
-    return "left_wide"
+from .zones import add_channels, add_thirds
 
 
 def _routine_type(row: pd.Series, set_piece_type: str) -> str:
@@ -72,13 +57,13 @@ def _routine_type(row: pd.Series, set_piece_type: str) -> str:
     return "other"
 
 
-def _destination_zone(x: float, y: float) -> str | None:
+def _destination_zone(x: float, y: float, third: str | None, channel: str | None) -> str | None:
     if pd.isna(x) or pd.isna(y): return None
     if x >= 94 and 37 <= y <= 63: return "six_yard_box"
     if x >= 83 and 21 <= y <= 79: return "penalty_area"
     if 75 <= x < 83 and 21 <= y <= 79: return "box_edge"
     if x >= 83: return "wide_final_third"
-    return f"{_third(x)}_{_channel(y)}"
+    return f"{third}_{channel}"
 
 
 def _outcome_category(row: pd.Series) -> str:
@@ -122,12 +107,23 @@ def _restart_routines_single(
         [restarts["progression"] > 3, restarts["progression"] < -3],
         ["forward", "backward"], default="lateral",
     )
-    restarts["start_third"] = restarts["x"].map(_third)
-    restarts["end_third"] = restarts["end_x"].map(_third)
-    restarts["start_channel"] = restarts["y"].map(_channel)
-    restarts["target_channel"] = restarts["end_y"].map(_channel)
-    restarts["destination_zone"] = [_destination_zone(x, y) for x, y in zip(restarts["end_x"], restarts["end_y"])]
-    restarts["side"] = np.select([restarts["y"] < 40, restarts["y"] > 60], ["right", "left"], default="central")
+    # Reuse zones.py's canonical third/channel bins and left/right convention
+    # (low y = left) rather than a separately maintained set of thresholds --
+    # a previous private copy here used different bin edges *and* the
+    # opposite left/right direction from zones.add_channels, so the same
+    # delivery could get contradictory flank labels depending on which
+    # function was called.
+    restarts = add_thirds(restarts, x_col="x", out_col="start_third")
+    restarts = add_thirds(restarts, x_col="end_x", out_col="end_third")
+    restarts = add_channels(restarts, y_col="y", out_col="start_channel", n=5)
+    restarts = add_channels(restarts, y_col="end_y", out_col="target_channel", n=5)
+    restarts["destination_zone"] = [
+        _destination_zone(x, y, third, channel)
+        for x, y, third, channel in zip(
+            restarts["end_x"], restarts["end_y"], restarts["end_third"], restarts["target_channel"]
+        )
+    ]
+    restarts["side"] = np.select([restarts["y"] < 40, restarts["y"] > 60], ["left", "right"], default="central")
     restarts["successful"] = pd.to_numeric(restarts["outcome"], errors="coerce").fillna(0).eq(1)
     restarts["routine_type"] = restarts.apply(_routine_type, axis=1, set_piece_type=set_piece_type)
 
