@@ -77,11 +77,24 @@ def load_events(source: str | Path | dict) -> Match:
         row.update(_qualifier_columns(e.get("qualifier", [])))
         rows.append(row)
 
-    events = pd.DataFrame(rows)
+    events = pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
     if not events.empty:
-        events = events.sort_values(
-            ["periodId", "timeMin", "timeSec", "eventId"]
-        ).reset_index(drop=True)
+        # eventId is only unique within one team's own stream (see
+        # docs/source/advanced.rst), so it can't reliably break ties between
+        # two teams' events in the same second. timeStamp carries
+        # sub-second precision when the export provides it, so prefer it as
+        # a finer-grained tiebreak; eventId remains the final fallback for
+        # exports without it (or for genuine same-timestamp ties).
+        sort_ts = pd.to_datetime(events.get("timeStamp"), errors="coerce")
+        events = (
+            events.assign(_sort_ts=sort_ts)
+            .sort_values(
+                ["periodId", "timeMin", "timeSec", "_sort_ts", "eventId"],
+                na_position="last",
+            )
+            .drop(columns="_sort_ts")
+            .reset_index(drop=True)
+        )
 
     return Match(match_details=data.get("matchDetails", {}), events=events)
 

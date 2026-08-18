@@ -54,14 +54,20 @@ def test_known_category_counts_for_corners(events):
     # match: eventId 723 goes (99.7, 99.1) -> (95.7, 89.9), a 10-unit pass
     # that stays tight in the corner area rather than crossing into the
     # box -- a genuine short corner. The rest are normal crosses (30-58
-    # units of travel), split between two second-phase shots, two aerial
-    # duels, three lost first touches, and one won.
+    # units of travel), split between two second-phase shots, one aerial
+    # duel, four lost first touches, and one won. (Corner eventId 404's
+    # following events -- a cxb4... aerial duel and an f2yd... clearance --
+    # share the same rounded timeMin/timeSec; their timeStamp values (which
+    # loader.load_events now uses to break exactly this kind of tie, see
+    # core/loader.py) show the clearance logged ~0.1s earlier, so it is the
+    # true next event and this delivery is a lost first touch, not an
+    # aerial duel.)
     corners = delivery_outcomes(events, "corner")
     counts = corners["category"].value_counts().to_dict()
     assert counts == {
-        "first_touch_lost": 3,
+        "first_touch_lost": 4,
         "second_phase_shot": 2,
-        "aerial_duel": 2,
+        "aerial_duel": 1,
         "first_touch_won": 1,
         "short_corner": 1,
     }
