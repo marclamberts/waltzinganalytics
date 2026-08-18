@@ -36,6 +36,8 @@ from .defending import defensive_routine_summary as _defensive_routine_summary
 from .defending import defensive_zone_summary as _defensive_zone_summary
 from .attribution import first_contact_detail
 from .routines import analyze_routines, cluster_routines
+from .routines import long_throw_second_phases as _long_throw_second_phases
+from .routines import long_throw_taker_summary as _long_throw_taker_summary
 from .outcomes import aerial_duel_summary as _aerial_duel_summary
 from .penalties import penalty_placement_detail as _penalty_placement_detail
 from .penalties import penalty_taker_summary as _penalty_taker_summary
@@ -79,6 +81,8 @@ class SetPieceWorkflow:
     aerial_duel_player_summary: pd.DataFrame | None
     penalty_placement: pd.DataFrame | None
     penalty_taker_summary: pd.DataFrame | None
+    long_throw_taker_summary: pd.DataFrame | None
+    long_throw_second_phases: pd.DataFrame | None
 
 
 def run_workflow(
@@ -174,6 +178,12 @@ def run_workflow(
     else:
         placement, taker_summary = None, None
 
+    if set_piece_type == "throw_in":
+        long_throw_takers = _long_throw_taker_summary(events)
+        long_throw_phases = _long_throw_second_phases(events)
+    else:
+        long_throw_takers, long_throw_phases = None, None
+
     return SetPieceWorkflow(
         set_piece_type=set_piece_type,
         summary=summary,
@@ -200,4 +210,6 @@ def run_workflow(
         aerial_duel_player_summary=aerial_player,
         penalty_placement=placement,
         penalty_taker_summary=taker_summary,
+        long_throw_taker_summary=long_throw_takers,
+        long_throw_second_phases=long_throw_phases,
     )

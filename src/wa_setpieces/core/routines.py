@@ -402,3 +402,94 @@ def analyze_routines(events: pd.DataFrame, set_piece_type: str, *, min_taker_att
         taker_profiles=routine_taker_profiles(events, set_piece_type, min_attempts=min_taker_attempts, **kwargs),
         target_matrix=routine_target_matrix(events, set_piece_type, **kwargs),
     )
+
+
+_LONG_THROW_COLUMNS = [
+    "playerId", "playerName", "contestantId", "long_throws",
+    "share_of_team_throws", "retention_rate", "shots_created", "goals_created",
+]
+
+
+def long_throw_taker_summary(events: pd.DataFrame, min_distance: float = 25.0, **kwargs) -> pd.DataFrame:
+    """Per-player long-throw usage and threat created.
+
+    A "long throw" is a throw-in traveling at least ``min_distance`` pitch
+    units (matching :func:`restart_routines`' own "long" ``routine_type``
+    threshold by default) -- the one throw-in pattern that plays like a
+    corner, a direct ball into a crowded box, where a genuine long-throw
+    specialist is a real tactical weapon rather than just whoever's
+    nearest the line.
+
+    ``shots_created``/``goals_created`` come from :func:`restart_routines`'s
+    own assist-chain link (:func:`~wa_setpieces.core.chains.link_set_piece_shots`);
+    see :func:`long_throw_second_phases` for the event-sequence-based
+    second-phase (flick-on/knockdown) signal instead.
+    """
+    detail = restart_routines(events, "throw_in", **kwargs)
+    if detail.empty:
+        return pd.DataFrame(columns=_LONG_THROW_COLUMNS)
+    team_totals = detail.groupby("contestantId").size()
+    long_throws = detail[detail["distance"] >= min_distance]
+    if long_throws.empty:
+        return pd.DataFrame(columns=_LONG_THROW_COLUMNS)
+
+    out = (
+        long_throws.groupby(["playerId", "playerName", "contestantId"], dropna=False)
+        .agg(
+            long_throws=("eventId", "count"),
+            retained=("retained", lambda s: s.fillna(False).sum()),
+            shots_created=("shots", "sum"),
+            goals_created=("goals", "sum"),
+        )
+        .reset_index()
+    )
+    out["retention_rate"] = (out["retained"] / out["long_throws"]).round(3)
+    out["share_of_team_throws"] = [
+        round(row["long_throws"] / team_totals.get(row["contestantId"], 1), 3)
+        for _, row in out.iterrows()
+    ]
+    return out[_LONG_THROW_COLUMNS].sort_values("long_throws", ascending=False).reset_index(drop=True)
+
+
+def long_throw_second_phases(events: pd.DataFrame, min_distance: float = 25.0, **phase_kwargs) -> pd.DataFrame:
+    """Second-phase (flick-on/knockdown) detection for long throw-ins only --
+    the throw-in equivalent of :func:`~wa_setpieces.core.phases.second_phases`,
+    restricted to deliveries that actually travel far enough to threaten
+    (``distance >= min_distance``, matching :func:`long_throw_taker_summary`'s
+    default). Most throw-ins are a midfield restart with no "did this
+    produce a shot" question worth asking, so this reuses
+    :func:`~wa_setpieces.core.phases.classify_phase` directly on the long
+    ones rather than running :func:`~wa_setpieces.core.phases.second_phases`
+    (a derived heuristic -- same caveats as that module) over every throw-in.
+
+    Same single-match assumption as ``second_phases``/``classify_phase``
+    themselves (they walk the event stream by position, see
+    ``core.loader``'s docstring on what's safe to concatenate first).
+    """
+    from .filters import extract_throw_ins
+    from .phases import PhaseResult, classify_phase
+
+    detail = restart_routines(events, "throw_in")
+    columns = list(PhaseResult.__annotations__)
+    if detail.empty:
+        return pd.DataFrame(columns=columns)
+
+    has_match_id = "matchId" in detail.columns
+    key_cols = [*(["matchId"] if has_match_id else []), "contestantId", "eventId"]
+    long_keys = set(
+        map(tuple, detail.loc[detail["distance"] >= min_distance, key_cols].to_numpy())
+    )
+    if not long_keys:
+        return pd.DataFrame(columns=columns)
+
+    throw_ins = extract_throw_ins(events)
+    records = []
+    for _, row in throw_ins.iterrows():
+        key = tuple(row[col] for col in key_cols)
+        if key not in long_keys:
+            continue
+        delivery_row = row.copy()
+        delivery_row["set_piece_type"] = "throw_in"
+        result = classify_phase(events, delivery_row, **phase_kwargs)
+        records.append(result.as_dict())
+    return pd.DataFrame.from_records(records, columns=columns) if records else pd.DataFrame(columns=columns)

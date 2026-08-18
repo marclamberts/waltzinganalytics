@@ -159,3 +159,43 @@ def test_post_target_near_far_central(events):
             assert row["post_target"] == "near_post"
         else:
             assert row["post_target"] == "far_post"
+
+
+def test_long_throw_taker_summary_only_includes_long_throws(events):
+    from wa_setpieces.core.routines import long_throw_taker_summary
+
+    all_throws = restart_routines(events, "throw_in")
+    summary = long_throw_taker_summary(events, min_distance=25.0)
+    assert summary["long_throws"].sum() == (all_throws["distance"] >= 25.0).sum()
+    assert {"share_of_team_throws", "retention_rate", "shots_created", "goals_created"}.issubset(summary.columns)
+    assert summary["share_of_team_throws"].between(0, 1).all()
+
+
+def test_long_throw_taker_summary_empty_when_threshold_too_high(events):
+    from wa_setpieces.core.routines import long_throw_taker_summary
+
+    summary = long_throw_taker_summary(events, min_distance=1000.0)
+    assert summary.empty
+    assert list(summary.columns) == [
+        "playerId", "playerName", "contestantId", "long_throws",
+        "share_of_team_throws", "retention_rate", "shots_created", "goals_created",
+    ]
+
+
+def test_long_throw_second_phases_covers_only_long_deliveries(events):
+    from wa_setpieces.core.routines import long_throw_second_phases
+
+    all_throws = restart_routines(events, "throw_in")
+    result = long_throw_second_phases(events, min_distance=25.0)
+    assert len(result) == (all_throws["distance"] >= 25.0).sum()
+    assert result["delivery_event_id"].isin(
+        all_throws.loc[all_throws["distance"] >= 25.0, "eventId"]
+    ).all()
+    assert result["second_phase_shot"].isin([True, False]).all()
+
+
+def test_long_throw_second_phases_empty_when_no_long_throws(events):
+    from wa_setpieces.core.routines import long_throw_second_phases
+
+    result = long_throw_second_phases(events, min_distance=1000.0)
+    assert result.empty

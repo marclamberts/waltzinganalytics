@@ -89,6 +89,16 @@ def test_run_workflow_penalty_placement_only_populated_for_penalty(events):
     assert result.penalty_taker_summary is None
 
 
+def test_run_workflow_long_throw_fields_only_populated_for_throw_in(events):
+    result = run_workflow(events, "throw_in")
+    assert result.long_throw_taker_summary is not None
+    assert result.long_throw_second_phases is not None
+
+    other = run_workflow(events, "corner")
+    assert other.long_throw_taker_summary is None
+    assert other.long_throw_second_phases is None
+
+
 def test_run_workflow_throw_in_has_deliveries_and_retention_but_no_second_phase(events):
     result = run_workflow(events, "throw_in")
     assert result.deliveries is not None
