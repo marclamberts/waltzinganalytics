@@ -39,3 +39,60 @@ def write_html_report(path: str | Path, title: str, tables: dict[str, pd.DataFra
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render_html_report(title, tables, **kwargs), encoding="utf-8")
     return target
+
+
+def corner_report_html(
+    events: pd.DataFrame,
+    *,
+    model=None,
+    title: str = "Corner Report",
+    include_figures: bool = True,
+) -> str:
+    """A ready-to-view HTML report for corners: team report (+ rating and
+    added value if ``model`` is given), outcome breakdown and routine mix,
+    with a delivery map and outcome shot map when the optional ``viz``
+    extra (matplotlib/mplsoccer) is installed.
+
+    A thin assembly of already-existing tables (:func:`~wa_setpieces.core.report.corner_report`,
+    :func:`~wa_setpieces.core.rating.team_rating`,
+    :func:`~wa_setpieces.core.outcomes.outcome_summary`,
+    :func:`~wa_setpieces.core.routines.routine_summary`) into one portable
+    HTML string via :func:`render_html_report` -- computes nothing new.
+    """
+    from .core.metrics import delivery_locations
+    from .core.outcomes import delivery_outcomes, outcome_summary
+    from .core.rating import team_rating
+    from .core.report import corner_report
+    from .core.routines import routine_summary
+
+    report = corner_report(events, model=model)
+    tables = {"Team report": report}
+    if not report.empty:
+        tables["Team rating"] = team_rating(report)
+    tables["Outcome breakdown"] = outcome_summary(events, "corner")
+    tables["Routine usage"] = routine_summary(events, "corner")
+
+    figures = {}
+    if include_figures:
+        try:
+            from .viz.plots import plot_delivery_map, plot_set_piece_outcomes
+        except ImportError:
+            pass  # viz extra not installed -- tables-only report is still useful
+        else:
+            deliveries = delivery_locations(events, "corner")
+            if not deliveries.empty:
+                fig, _ = plot_delivery_map(deliveries, title="Corner deliveries")
+                figures["Delivery map"] = fig
+            outcomes_detail = delivery_outcomes(events, "corner")
+            if not outcomes_detail.empty:
+                fig, _ = plot_set_piece_outcomes(outcomes_detail, title="Corner outcomes")
+                figures["Outcome shot map"] = fig
+
+    methodology = (
+        "Corner-specific view built on wa_setpieces.core.report.corner_report, "
+        "core.outcomes.outcome_summary and core.routines.routine_summary. "
+        "Second-phase detection, retention, outcome classification and "
+        "routine taxonomy are all derived heuristics -- see their module "
+        "docstrings for the exact assumptions."
+    )
+    return render_html_report(title, tables, figures=figures or None, methodology=methodology)

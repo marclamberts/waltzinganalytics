@@ -53,7 +53,7 @@ from .core.routines import (
     routine_target_matrix,
     routine_team_profiles,
 )
-from .reporting import render_html_report, write_html_report
+from .reporting import corner_report_html, render_html_report, write_html_report
 from .core.metrics import (
     delivery_locations,
     player_set_piece_counts,
@@ -104,7 +104,7 @@ __all__ = [
     "RoutineAnalysis", "analyze_routines", "routine_team_profiles",
     "routine_taker_profiles", "routine_target_matrix",
     "cluster_routines", "cluster_summary",
-    "render_html_report", "write_html_report",
+    "render_html_report", "write_html_report", "corner_report_html",
     "extract_all",
     "extract_corners",
     "extract_free_kicks",
