@@ -158,3 +158,33 @@ def test_no_action_preserves_falsy_but_valid_end_position():
     assert result["category"] == "no_action"
     assert result["x"] == 0.0
     assert result["y"] == 0.0
+
+
+def test_aerial_duel_winner_identified_from_raw_outcome(events):
+    outcomes = delivery_outcomes(events, "corner")
+    aerials = outcomes[outcomes["category"] == "aerial_duel"]
+    assert not aerials.empty
+    # Winner must be one of the two match contestants, never the delivering
+    # team's own attempt mistaken for the other side's.
+    assert aerials["aerial_winner_contestant_id"].notna().all()
+    assert set(aerials["aerial_winner_contestant_id"]) <= set(events["contestantId"].dropna().unique())
+
+
+def test_aerial_duel_summary_team_and_player_tables(events):
+    from wa_setpieces.core.outcomes import aerial_duel_summary
+
+    team_summary, player_summary = aerial_duel_summary(events, "corner")
+    assert set(team_summary["contestantId"]) == set(events["contestantId"].dropna().unique())
+    assert team_summary["win_rate"].between(0, 1).all()
+    assert team_summary["duels_won"].sum() == team_summary["duels_involved"].iloc[0]
+    assert {"playerId", "playerName", "contestantId", "duels_won"}.issubset(player_summary.columns)
+    assert player_summary["duels_won"].sum() <= team_summary["duels_won"].sum()
+
+
+def test_aerial_duel_summary_rejects_more_than_two_teams(events):
+    from wa_setpieces.core.outcomes import aerial_duel_summary
+
+    bad = events.copy()
+    bad.loc[bad.index[0], "contestantId"] = "a_third_team"
+    with pytest.raises(ValueError):
+        aerial_duel_summary(bad, "corner")

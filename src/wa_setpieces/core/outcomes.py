@@ -91,6 +91,33 @@ def _event_xy_in_attacking_frame(
     return float(row.iloc[0]["x"]), float(row.iloc[0]["y"])
 
 
+def _aerial_winner(
+    events: pd.DataFrame, first_contact_team: str, first_contact_event_id, other_team: str
+):
+    """Who won an aerial duel, from the raw Opta Aerial event's own ``outcome``
+    (1 = the recording team's player won that header, 0 = lost it -- Opta
+    logs one Aerial event per team involved, verified as a matched
+    winner/loser pair against the sample match).
+
+    Returns ``(winner_contestant_id, winner_player_id, winner_player_name)``,
+    all ``None`` if the outcome can't be determined.
+    """
+    row = events.loc[
+        (events["contestantId"] == first_contact_team) & (events["eventId"] == first_contact_event_id)
+    ]
+    if row.empty:
+        return None, None, None
+    row = row.iloc[0]
+    outcome = pd.to_numeric(row.get("outcome"), errors="coerce")
+    if pd.isna(outcome):
+        return None, None, None
+    if outcome == 1:
+        return first_contact_team, row.get("playerId"), row.get("playerName")
+    # This team's own event says it lost the duel -- the other side won it,
+    # but this team's record has no data on who from the other side did.
+    return other_team, None, None
+
+
 def classify_delivery_outcome(
     events: pd.DataFrame,
     delivery_row: pd.Series,
@@ -106,7 +133,10 @@ def classify_delivery_outcome(
         A dict: ``delivery_event_id``, ``set_piece_type``, ``contestantId``,
         ``playerId``, ``playerName``, ``category``, ``x``, ``y`` (the plot
         location for that category -- see module docstring for which event
-        each category's location comes from), ``is_goal``.
+        each category's location comes from), ``is_goal``, plus (only
+        populated when ``category == "aerial_duel"``, from the raw Aerial
+        event's own outcome) ``aerial_winner_contestant_id``,
+        ``aerial_winner_player_id``, ``aerial_winner_player_name``.
     """
     set_piece_type = delivery_row.get("set_piece_type")
     attacking_team = delivery_row["contestantId"]
@@ -167,6 +197,18 @@ def classify_delivery_outcome(
 
     if result.first_contact_type_id == c.TYPE_AERIAL:
         category = "aerial_duel"
+        other_team = (
+            result.opponent_id if result.first_contact_team == attacking_team else attacking_team
+        )
+        winner_id, winner_player_id, winner_player_name = _aerial_winner(
+            events, result.first_contact_team, result.first_contact_event_id, other_team
+        )
+        return {
+            **base, "category": category, "x": x, "y": y,
+            "aerial_winner_contestant_id": winner_id,
+            "aerial_winner_player_id": winner_player_id,
+            "aerial_winner_player_name": winner_player_name,
+        }
     elif result.cleared_immediately:
         category = "cleared"
     elif result.first_contact_team == result.opponent_id:
@@ -191,7 +233,10 @@ def delivery_outcomes(
 
     Returns:
         One row per delivery: delivery_event_id, set_piece_type,
-        contestantId, playerId, playerName, category, x, y, is_goal.
+        contestantId, playerId, playerName, category, x, y, is_goal,
+        aerial_winner_contestant_id, aerial_winner_player_id,
+        aerial_winner_player_name (the last three populated only where
+        ``category == "aerial_duel"``).
     """
     if set_piece_type not in _EXTRACTORS:
         raise ValueError(
@@ -206,6 +251,7 @@ def delivery_outcomes(
     columns = [
         "delivery_event_id", "set_piece_type", "contestantId", "playerId",
         "playerName", "category", "x", "y", "is_goal",
+        "aerial_winner_contestant_id", "aerial_winner_player_id", "aerial_winner_player_name",
     ]
     if not records:
         return pd.DataFrame(columns=columns)
@@ -223,3 +269,61 @@ def outcome_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> pd.D
         .rename("count")
         .reset_index()
     )
+
+
+def aerial_duel_summary(events: pd.DataFrame, set_piece_type: str, **kwargs) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Per-team and per-player aerial-duel win rate at this set-piece type.
+
+    Built on :func:`delivery_outcomes`'s ``aerial_duel`` category: for every
+    delivery where the first contact was a contested header, who actually
+    won it (from the raw Opta Aerial event's own outcome -- see
+    :func:`classify_delivery_outcome`). Both teams contest every aerial
+    duel, so both are credited an "involved" duel regardless of which one
+    took the delivery. Requires exactly two contestants in ``events`` (same
+    single-match assumption :func:`classify_phase` already makes).
+
+    Returns:
+        Two DataFrames, ``(team_summary, player_summary)``:
+
+        - ``team_summary``: contestantId, duels_involved, duels_won, win_rate
+        - ``player_summary``: playerId, playerName, contestantId, duels_won
+          (only players with at least one *identified* win -- a loss
+          identifies the winning team but not the winning player, since
+          only the loser's own event is what's being read)
+    """
+    teams = [t for t in events["contestantId"].dropna().unique()]
+    if len(teams) != 2:
+        raise ValueError(f"aerial_duel_summary needs exactly 2 teams in events, found {len(teams)}")
+
+    outcomes = delivery_outcomes(events, set_piece_type, **kwargs)
+    aerials = outcomes.loc[outcomes["category"] == "aerial_duel"]
+    team_summary = pd.DataFrame(columns=["contestantId", "duels_involved", "duels_won", "win_rate"])
+    player_summary = pd.DataFrame(columns=["playerId", "playerName", "contestantId", "duels_won"])
+    if aerials.empty:
+        return team_summary, player_summary
+
+    decided = aerials.dropna(subset=["aerial_winner_contestant_id"])
+    wins = decided["aerial_winner_contestant_id"].value_counts()
+    team_summary = pd.DataFrame({"contestantId": teams})
+    team_summary["duels_involved"] = len(aerials)
+    team_summary["duels_won"] = team_summary["contestantId"].map(wins).fillna(0).astype(int)
+    team_summary["win_rate"] = (team_summary["duels_won"] / team_summary["duels_involved"]).round(3)
+
+    identified = decided.dropna(subset=["aerial_winner_player_id"])
+    if not identified.empty:
+        player_summary = (
+            identified.groupby(
+                ["aerial_winner_player_id", "aerial_winner_player_name", "aerial_winner_contestant_id"]
+            )
+            .size()
+            .rename("duels_won")
+            .reset_index()
+            .rename(columns={
+                "aerial_winner_player_id": "playerId",
+                "aerial_winner_player_name": "playerName",
+                "aerial_winner_contestant_id": "contestantId",
+            })
+            .sort_values("duels_won", ascending=False)
+            .reset_index(drop=True)
+        )
+    return team_summary, player_summary

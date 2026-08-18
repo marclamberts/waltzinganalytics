@@ -34,7 +34,12 @@ from .core.filters import (
 from .core.loader import Match, load_events, load_events_multi
 from .core.schema import EventCapabilities, EventSchemaError, event_capabilities, validate_events
 from .core.season import SeasonDataset
-from .core.defending import defensive_rating, defensive_set_piece_summary
+from .core.defending import (
+    defensive_rating,
+    defensive_routine_summary,
+    defensive_set_piece_summary,
+    defensive_zone_summary,
+)
 from .core.attribution import first_contact_detail, first_contact_summary
 from .core.routines import (
     RoutineAnalysis,
@@ -62,7 +67,7 @@ from .core.phases import (
     second_phases,
 )
 from .providers.statsbomb import load_statsbomb_events
-from .core.outcomes import OUTCOME_CATEGORIES, delivery_outcomes, outcome_summary
+from .core.outcomes import OUTCOME_CATEGORIES, aerial_duel_summary, delivery_outcomes, outcome_summary
 from .core.rating import (
     player_delivery_rating,
     player_finishing_rating,
@@ -93,6 +98,7 @@ __all__ = [
     "load_statsbomb_events",
     "EventCapabilities", "EventSchemaError", "event_capabilities", "validate_events",
     "SeasonDataset", "defensive_set_piece_summary", "defensive_rating",
+    "defensive_routine_summary", "defensive_zone_summary",
     "first_contact_detail", "first_contact_summary",
     "restart_routines", "routine_summary", "all_routine_summaries",
     "RoutineAnalysis", "analyze_routines", "routine_team_profiles",
@@ -130,6 +136,7 @@ __all__ = [
     "OUTCOME_CATEGORIES",
     "delivery_outcomes",
     "outcome_summary",
+    "aerial_duel_summary",
     "team_rating",
     "player_rating",
     "player_delivery_rating",
