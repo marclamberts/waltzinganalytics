@@ -57,10 +57,25 @@ QUALIFIER_HEADED = 15  # shot body part, distinct from QUALIFIER_HEAD_PASS above
 QUALIFIER_FREE_KICK_TAKEN = 5
 QUALIFIER_CORNER_TAKEN = 6
 QUALIFIER_PLAYERS_CAUGHT_OFFSIDE = 7
-QUALIFIER_DIRECT = 9  # also reused as "Penalty" flag on shot events, see below
 QUALIFIER_PENALTY = 9
-QUALIFIER_NOT_ASSISTED = 26
-QUALIFIER_ASSISTED = 28
+# QUALIFIER_ASSIST is the shot's own "this shot was assisted" flag (Opta
+# calls it "Assisted" on the shot event, not "Assist" -- the pass event's
+# own assist flag is a different qualifier, 210, not currently used by
+# this package). Confirmed against tests/data/sample_match.json: q_29
+# appears on 19 shots, always paired with q_55 (the assist-chain link).
+#
+# Two qualifierIds that used to live here -- QUALIFIER_NOT_ASSISTED (26)
+# and QUALIFIER_ASSISTED (28) -- were removed after a qualifier-by-
+# qualifier audit against the sample match found both were simply wrong,
+# the same mistake class as the QUALIFIER_INSWINGER/QUALIFIER_HEADED
+# fixes elsewhere in this file: 26 is actually Opta's "Free kick" shot-
+# situation flag (it partitions cleanly with 22/23/24/25 across every
+# shot in the sample, and all three q_26 shots fire directly off a foul
+# with no intervening pass); 28 never appears in the sample at all, while
+# 29 -- the value this package actually needs and already uses below --
+# does. Neither was referenced anywhere in this codebase, so removing
+# them fixed no live bug, only a landmine for whoever reached for them
+# next.
 QUALIFIER_ASSIST = 29
 QUALIFIER_RELATED_EVENT_ID = 55
 QUALIFIER_ZONE = 56

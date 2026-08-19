@@ -69,6 +69,35 @@ def test_value_summary_matches_detail_totals(events, model):
     assert summary["total_added_value"].sum() == pytest.approx(detail["added_value"].sum(), abs=1e-3)
 
 
+def test_added_value_extracts_shot_value_for_a_linked_shot(model):
+    # The sample match has no direct/assist-chain-linked shot off a corner
+    # or free kick (its two corner shots are both second-phase, which
+    # link_set_piece_shots -- an assist-chain lookup, not phases.py's
+    # sequencing heuristic -- doesn't reach), so the branch that actually
+    # extracts a linked shot's coordinates and computes shot_value/is_goal
+    # was never exercised by any existing test. Build one directly.
+    import pandas as pd
+
+    events = pd.DataFrame([
+        dict(
+            eventId=1, typeId=1, periodId=1, timeMin=10, timeSec=0,
+            contestantId="A", playerId="p1", playerName="Taker", outcome=1,
+            x=99.5, y=50.0, q_6=True, q_140=90.0, q_141=50.0,
+        ),
+        dict(
+            eventId=2, typeId=16, periodId=1, timeMin=10, timeSec=2,
+            contestantId="A", playerId="p2", playerName="Scorer", outcome=1,
+            x=95.0, y=50.0, q_55="1",  # assist-chain link back to eventId 1
+        ),
+    ])
+    detail = set_piece_added_value(events, "corner", model)
+    assert len(detail) == 1
+    row = detail.iloc[0]
+    assert row["is_goal"] == True  # noqa: E712
+    assert row["shot_value"] > 0
+    assert row["added_value"] == pytest.approx(row["delivery_xt_added"] + row["shot_value"])
+
+
 def test_value_summary_empty_when_no_deliveries(model):
     import pandas as pd
 

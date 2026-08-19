@@ -55,8 +55,10 @@ own already-validated logic):
   :func:`wa_setpieces.core.phases.second_phases`, which are already-tested
   logic elsewhere in this package, not new inference.
 - ``is_assisted``, ``is_individual_play`` -- from qualifierId 29
-  ("Assist"), already a validated constant in
-  :mod:`wa_setpieces.core.constants` (``QUALIFIER_ASSIST``).
+  (Opta calls it "Assisted" on the shot itself, not "Assist" -- the
+  passer's own assist flag is a different qualifier, 210, not modeled
+  here), already a validated constant in :mod:`wa_setpieces.core.constants`
+  (``QUALIFIER_ASSIST``).
 - ``is_right_foot``, ``is_left_foot`` -- from qualifierId 20/72, which
   partition 100% of shots in both sample matches (52/52); their relative
   frequency (77%/23%) matches typical player footedness, consistent with

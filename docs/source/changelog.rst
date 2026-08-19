@@ -1,6 +1,43 @@
 Changelog
 =========
 
+0.18.2
+------
+
+A hygiene pass following up on the pattern behind three prior real bugs
+(``QUALIFIER_INSWINGER``, ``QUALIFIER_HEADED``, the goal-mouth-z/xG
+collision): a systematic cross-check of every qualifierId constant in the
+package against real co-occurrence data in the sample match, plus closing
+the one meaningful test-coverage gap it turned up along the way. No live
+bugs this time -- everything actually read or written by this package
+checked out -- but two constants were simply wrong and sitting unused,
+which is exactly how the three prior bugs started.
+
+- **Removed**: ``QUALIFIER_NOT_ASSISTED`` (was 26) and ``QUALIFIER_ASSISTED``
+  (was 28) -- both wrong and both unreferenced anywhere in the codebase.
+  26 is actually Opta's "Free kick" shot-situation flag (it partitions
+  cleanly with four sibling situation qualifiers across every shot in the
+  sample, and all three q_26 shots fire directly off a foul with no
+  intervening pass); 28 never appears in the sample at all, while 29 --
+  the value ``QUALIFIER_ASSIST`` already correctly uses -- does. Neither
+  removal fixes a live bug (nothing referenced them), only a landmine for
+  whoever reached for them next.
+- **Docs**: ``core.placement``'s module docstring now documents the
+  qualifier 102/103 confirmation in full (previously only ``goal_y_norm``
+  was called confirmed) and a newly-noticed Opta convention: blocked
+  shots carry a fixed placeholder ``q_103`` of ``"19"`` (exactly half the
+  assumed 0-38 scale) rather than a real height, so ``goal_h_norm`` for a
+  blocked shot is a fabricated 0.5, not a measurement.
+- **Tests**: closed the one real coverage gap the audit surfaced --
+  ``set_piece_added_value``'s branch that actually extracts a
+  assist-chain-linked shot's coordinates and computes ``shot_value``/
+  ``is_goal`` had never been exercised by any test, because the sample
+  match has no *direct* linked shot off a corner or free kick (its two
+  corner shots are both second-phase, which the assist-chain qualifier
+  doesn't reach). Also closed ``providers/statsbomb.py``'s remaining
+  coverage gaps (outswinger technique, headed pass, blocked shot, penalty
+  shot) -- both files now at 100%/97%.
+
 0.18.1
 ------
 

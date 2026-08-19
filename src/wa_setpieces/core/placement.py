@@ -7,14 +7,27 @@ bundled shot-value models) and :mod:`wa_setpieces.core.penalties`
 (unlike the trained models in :mod:`wa_setpieces.ml.shot_value`, which do
 need the ``ml`` extra).
 
-``goal_y_norm`` is confirmed by its value range (spans well outside the
-goal-post band for shots that missed wide, consistent with a
-whole-pitch-width coordinate). ``goal_h_norm`` additionally assumes
-qualifier 103 is on a 0-38 scale (38 = crossbar), a figure seen in other
-open-source Opta parsers but not independently confirmed here -- treat it
-as a reasonable placeholder, not ground truth, same caveat
-:mod:`wa_setpieces.ml.shot_value`'s module docstring gives its own
-placement features.
+Both qualifiers are confirmed against ``tests/data/sample_match.json``:
+every on-target shot's ``q_102`` falls inside the goal-post band and every
+on-target shot's ``q_103`` sits below crossbar height, while off-target
+misses fall outside one or the other -- exactly the behaviour a
+goal-y/goal-z pair should have (and, together with the body-part
+qualifiers confirmed in :mod:`wa_setpieces.ml.shot_value`, independently
+rules out ``q_103`` being an expected-goals value, an earlier mistake in
+:mod:`wa_setpieces.providers.statsbomb` and :mod:`wa_setpieces.convert.corners`
+that collided with this same qualifier). The 0-38 scale
+(``GOAL_HEIGHT_QUALIFIER_MAX``, 38 = crossbar) is a figure seen in other
+open-source Opta parsers, not officially documented, but the sample
+brackets it plausibly (widest on-target ``q_103`` 28.5, narrowest
+high-and-wide miss 58.3).
+
+Opta appears to encode blocked shots (``typeId`` 15 with the "Blocked"
+qualifier) with a fixed placeholder ``q_103`` of exactly half that scale
+(``"19"``, seen on all 7 blocked shots in the sample) rather than a real
+height -- there's no way to distinguish that from a genuine value from
+this qualifier alone, so a blocked shot's ``goal_h_norm`` here is a
+fabricated 0.5, not a real measurement. Treat blocked-shot placement as
+unreliable specifically; everything else is corroborated as above.
 """
 
 from __future__ import annotations
@@ -24,7 +37,7 @@ import pandas as pd
 
 PITCH_WIDTH_M = 68.0
 GOAL_WIDTH_M = 7.32
-GOAL_HEIGHT_QUALIFIER_MAX = 38.0  # unconfirmed assumption, see module docstring
+GOAL_HEIGHT_QUALIFIER_MAX = 38.0  # not officially documented, see module docstring
 
 GOAL_Y_LOW = 50.0 - (GOAL_WIDTH_M / PITCH_WIDTH_M * 100.0) / 2.0
 GOAL_Y_HIGH = 50.0 + (GOAL_WIDTH_M / PITCH_WIDTH_M * 100.0) / 2.0

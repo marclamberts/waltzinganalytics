@@ -156,6 +156,60 @@ def test_chains_links_the_goal_back_to_the_corner(events):
     assert goal_row["playerName"] == "Scorer"
 
 
+def test_pass_outswinging_technique_uses_outswinger_qualifier():
+    raw = [{
+        "id": "a", "index": 1, "period": 1, "minute": 0, "second": 0,
+        "timestamp": "00:00:00.000", "type": {"id": 30, "name": "Pass"},
+        "team": {"id": 100, "name": "Home FC"}, "player": {"id": 10, "name": "Taker"},
+        "location": [102.0, 0.5],
+        "pass": {
+            "type": {"id": 61, "name": "Corner"},
+            "end_location": [110.0, 40.0],
+            "technique": {"id": 2, "name": "Outswinging"},
+        },
+    }]
+    row = load_statsbomb_events(raw).iloc[0]
+    assert row.get("q_224") == True  # noqa: E712  # QUALIFIER_OUTSWINGER
+
+
+def test_pass_headed_body_part_uses_head_pass_qualifier():
+    raw = [{
+        "id": "a", "index": 1, "period": 1, "minute": 0, "second": 0,
+        "timestamp": "00:00:00.000", "type": {"id": 30, "name": "Pass"},
+        "team": {"id": 100, "name": "Home FC"}, "player": {"id": 10, "name": "Taker"},
+        "location": [50.0, 40.0],
+        "pass": {"body_part": {"id": 37, "name": "Head"}},
+    }]
+    row = load_statsbomb_events(raw).iloc[0]
+    assert row.get("q_3") == True  # noqa: E712  # QUALIFIER_HEAD_PASS
+
+
+def test_shot_blocked_outcome_uses_blocked_qualifier():
+    raw = [{
+        "id": "a", "index": 1, "period": 1, "minute": 0, "second": 0,
+        "timestamp": "00:00:00.000", "type": {"id": 16, "name": "Shot"},
+        "team": {"id": 100, "name": "Home FC"}, "player": {"id": 10, "name": "Scorer"},
+        "location": [110.0, 40.0],
+        "shot": {"outcome": {"id": 96, "name": "Blocked"}},
+    }]
+    events = load_statsbomb_events(raw)
+    row = events.iloc[0]
+    assert row["typeId"] == 15  # TYPE_ATTEMPT_SAVED
+    assert row.get("q_82") == True  # noqa: E712
+
+
+def test_shot_penalty_type_uses_penalty_qualifier():
+    raw = [{
+        "id": "a", "index": 1, "period": 1, "minute": 0, "second": 0,
+        "timestamp": "00:00:00.000", "type": {"id": 16, "name": "Shot"},
+        "team": {"id": 100, "name": "Home FC"}, "player": {"id": 10, "name": "Taker"},
+        "location": [111.0, 40.0],
+        "shot": {"outcome": {"id": 97, "name": "Goal"}, "type": {"id": 88, "name": "Penalty"}},
+    }]
+    row = load_statsbomb_events(raw).iloc[0]
+    assert row.get("q_9") == True  # noqa: E712  # QUALIFIER_PENALTY
+
+
 def test_load_statsbomb_events_accepts_a_json_file(tmp_path):
     import json
 
