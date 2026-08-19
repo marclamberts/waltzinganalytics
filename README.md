@@ -151,6 +151,33 @@ team_summary, player_summary = aerial_duel_summary(match.events, "corner")
 # player_summary: duels_won per player who won at least one identified duel
 ```
 
+An `XTModel` fitted on a season (not one match — see the module docstring
+for why) persists whole: every probability grid plus training metadata,
+so a fitted model is a portable artifact you train once and reuse:
+
+```python
+model.save("league-model.npz")
+loaded = XTModel.load("league-model.npz")
+loaded.evaluate(held_out_events)  # shot count, goals and Brier score on data it wasn't fit on
+```
+
+`wa_setpieces.core.attribution` adds player-level attribution for what
+happened right after a delivery, on top of `second_phases`' team-level
+view:
+
+```python
+from wa_setpieces import first_contact_detail, first_contact_summary
+
+first_contact_detail(match.events, "corner")
+# per-delivery: who touched the ball next (first_contact_player_id/_name,
+# _team_id), whether their team won it, and seconds_to_contact --
+# explicitly labelled confidence="event_sequence" throughout, since event
+# data can prove ordering but not physical contact the way tracking can
+
+first_contact_summary(match.events, "corner")
+# per-player: contacts, contacts_won, win_rate
+```
+
 All of the above are **derived heuristics**, not raw Opta fields — see
 `docs/source/advanced.rst` (or the hosted docs) for the exact assumptions
 and tunable thresholds behind each one. That page also documents a real bug
@@ -334,6 +361,34 @@ html = opponent_scouting_report_html(events, opponent_id="...", set_piece_type="
 Path("scouting.html").write_text(html, encoding="utf-8")
 ```
 
+`SeasonDataset` makes multi-match aggregation safe by requiring a
+`matchId` boundary (`validate_events(..., require_match_id=True)` on
+construction) and running every temporal heuristic within each match
+rather than across the combined frame:
+
+```python
+from wa_setpieces import SeasonDataset
+
+season = SeasonDataset.from_sources(paths)  # matchId defaults to each file's stem
+season.summary()                       # competition totals and per-match rates
+season.report("corner", model)         # match-level report rows -- one per (team, match)
+season.season_report("corner", model)  # the same fields, rolled up into one row per team
+season.rolling_summary(window=5)            # rolling attacking form
+season.rolling_defensive_summary(window=5)  # rolling defensive form (conceding side)
+```
+
+`rolling_summary`/`rolling_defensive_summary` are only meaningful if
+`paths`/`match_ids` were supplied to `from_sources` already in
+chronological order — there's no date field in the loaded event schema
+to derive true match order from otherwise. `from_sources` refuses two
+sources that resolve to the same `matchId` (e.g. two different
+directories both containing a same-named file) rather than silently
+merging them into one match.
+
+`validate_events` documents and checks the provider-neutral event contract
+every module in this package assumes; `event_capabilities` reports which
+optional information a given adapter (Opta vs StatsBomb) actually supplies.
+
 ## Command line
 
 ```bash
@@ -347,50 +402,29 @@ The command-line interface also exposes the complete workflow:
 ```bash
 wa-setpieces summary match.json --output summary.json --format json
 wa-setpieces train-xt season/*.json --output league-model.npz
-wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/
+wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/ --format xlsx
 wa-setpieces report match.json --type corner --model league-model.npz --output report.html
+wa-setpieces scout match.json --opponent <contestantId> --type corner --output scouting.html
+wa-setpieces season match_1.json match_2.json ... --action season-report --type corner --output season.csv
 ```
 
-`workflow`/`report` export every table `run_workflow` produces —
-including the defensive, routine-cluster, aerial-duel, penalty and
-long-throw tables above — with no extra flags needed. Use
-`--provider statsbomb` with any new-style command for a StatsBomb events
-export. Outputs support CSV, JSON and Parquet where applicable; for CSV
-or Excel from Python directly, see `save_table`/`save_tables` below.
-
-## Season analysis and defending
-
-`SeasonDataset` makes multi-match aggregation safe by requiring a
-`matchId` boundary and running temporal heuristics within each match:
-
-```python
-from wa_setpieces import SeasonDataset
-
-season = SeasonDataset.from_sources(paths)
-season.summary()                    # competition totals and per-match rates
-season.rolling_summary(window=5)    # rolling attacking form
-season.rolling_defensive_summary(window=5)  # rolling defensive form (conceding side)
-season.report("corner", model)      # match-level report rows
-```
-
-`rolling_summary`/`rolling_defensive_summary` are only meaningful if
-`paths`/`match_ids` were supplied to `from_sources` already in
-chronological order — there's no date field in the loaded event schema
-to derive true match order from otherwise.
-
-`validate_events` documents and checks the provider-neutral event contract;
-`event_capabilities` reports which optional information an adapter supplies.
-`first_contact_detail` and `first_contact_summary` add player attribution,
-explicitly labelled `event_sequence` because event data cannot prove physical
-contact as tracking data can.
-
-Full xT artifacts now persist all probability grids and training metadata:
-
-```python
-model.save("league-model.npz")
-loaded = XTModel.load("league-model.npz")
-loaded.evaluate(held_out_events)  # shot count, goals and Brier score
-```
+`workflow` exports every table `run_workflow` produces — including the
+defensive, routine-cluster, aerial-duel, penalty and long-throw tables
+above — as one CSV (default) or Excel (`--format xlsx`) file per table,
+with no extra flags needed. `report --type corner` writes the curated
+report above (rating, outcome/routine breakdowns, delivery/outcome maps
+if `viz` is installed); other `--type`s fall back to a generic dump of
+every workflow table since there's no equivalent curated report for them
+yet. `scout` writes an [opponent scouting report](#defending-opponent-scouting-and-season-form)
+for one team. `season` runs [`SeasonDataset`](#defending-opponent-scouting-and-season-form)
+over every file given (each tagged with its own filename as `matchId` —
+distinct filenames required, or it refuses rather than silently merging
+two matches into one) — `--action` is one of `summary`, `report`
+(match-level rows), `season-report` (whole-season roll-up), `rolling` or
+`rolling-defense` (`--window` trailing matches). Use `--provider
+statsbomb` with any command for a StatsBomb events export. Outputs
+support CSV, JSON and Parquet where applicable; for CSV or Excel from
+Python directly, see `save_table`/`save_tables` below.
 
 ## Reports and exporting
 

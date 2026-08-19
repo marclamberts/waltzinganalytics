@@ -273,6 +273,7 @@ its season-safe aggregation:
    season = SeasonDataset.from_sources(match_files)  # already in chronological order
    season.rolling_summary(window=5)            # rolling attacking form
    season.rolling_defensive_summary(window=5)  # rolling defensive form
+   season.season_report("corner", model)       # whole season, one row per team
 
 Any table this package produces can be saved to CSV or Excel:
 
@@ -293,12 +294,24 @@ Command line
 The ``workflow``/``report`` subcommands export the full
 :func:`~wa_setpieces.run_workflow` output -- every table above, including
 the defensive, routine-cluster, aerial-duel, penalty and long-throw
-tables -- with no extra flags needed:
+tables -- with no extra flags needed. ``report --type corner`` uses the
+curated HTML report (with figures if ``viz`` is installed); other types
+fall back to a plain table dump. ``scout`` and ``season`` put
+:func:`~wa_setpieces.opponent_scouting_report_html` and
+:class:`~wa_setpieces.SeasonDataset` on the command line too:
 
 .. code-block:: bash
 
-   wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/
+   wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/ --format xlsx
    wa-setpieces report match.json --type corner --model league-model.npz --output report.html
+   wa-setpieces scout match.json --opponent <contestantId> --type corner --output scouting.html
+   wa-setpieces season match_1.json match_2.json --action season-report --type corner --output season.csv
+
+``season``'s ``--action`` is one of ``summary``, ``report``,
+``season-report``, ``rolling`` or ``rolling-defense`` (``--window`` for
+the rolling ones); each input file is tagged with its own filename as
+``matchId``, so distinct filenames are required -- see the ``matchId``
+note under :doc:`advanced`'s "Multiple matches" section.
 
 Plotting
 ---------

@@ -116,6 +116,15 @@ def load_events_multi(
             (``"2026-02-20_match"`` from ``2026-02-20_match.json``) for path
             sources, or the source's position for dict sources.
 
+    Raises:
+        ValueError: if two sources resolve to the same ``matchId`` (whether
+            passed explicitly or derived from the file stem -- e.g. two
+            different directories both containing a ``matchday3.json``).
+            Every safety this module and :class:`~wa_setpieces.core.season.SeasonDataset`
+            build on top of ``matchId`` being unique per match depends on
+            this; silently merging two matches under one ID would defeat
+            all of it, so this fails loudly instead.
+
     Returns:
         One combined events DataFrame, sorted within each match by time but
         with no relationship implied *between* matches.
@@ -134,15 +143,34 @@ def load_events_multi(
     if match_ids is not None and len(match_ids) != len(sources):
         raise ValueError("match_ids must be the same length as sources")
 
-    frames = []
+    resolved_ids = []
     for i, source in enumerate(sources):
-        match = load_events(source)
         if match_ids is not None:
-            match_id = match_ids[i]
+            resolved_ids.append(match_ids[i])
         elif isinstance(source, dict):
-            match_id = str(i)
+            resolved_ids.append(str(i))
         else:
-            match_id = Path(source).stem
+            resolved_ids.append(Path(source).stem)
+    seen: dict[str, int] = {}
+    duplicates = {}
+    for i, match_id in enumerate(resolved_ids):
+        if match_id in seen:
+            duplicates.setdefault(match_id, [seen[match_id]]).append(i)
+        else:
+            seen[match_id] = i
+    if duplicates:
+        detail = "; ".join(
+            f"{match_id!r} used by sources at positions {positions}"
+            for match_id, positions in duplicates.items()
+        )
+        raise ValueError(
+            f"duplicate matchId would silently merge distinct matches: {detail}. "
+            "Pass explicit unique match_ids."
+        )
+
+    frames = []
+    for match_id, source in zip(resolved_ids, sources):
+        match = load_events(source)
         df = match.events.copy()
         df.insert(0, "matchId", match_id)
         frames.append(df)

@@ -341,9 +341,17 @@ per-match-then-concatenate dance for you:
 
    season = SeasonDataset.from_sources(match_files)  # chronological order matters, see below
    season.summary()                            # competition totals and per-match rates
-   season.report("corner", model)               # match-level report rows
+   season.report("corner", model)               # match-level report rows -- one per (team, match)
+   season.season_report("corner", model)        # the same fields, rolled up into one row per team
    season.rolling_summary(window=5)             # rolling attacking form
    season.rolling_defensive_summary(window=5)   # rolling defensive form (conceding side)
+
+:meth:`~wa_setpieces.core.season.SeasonDataset.season_report` sums every
+underlying count across matches first and re-derives rates from those
+sums -- the same idiom ``rolling_summary``/``rolling_defensive_summary``
+use for a trailing window, applied to the whole season instead. It never
+averages a per-match rate directly (a match with 8 corners and a match
+with 1 should not count equally toward a season conversion rate).
 
 .. important::
 
@@ -352,6 +360,16 @@ per-match-then-concatenate dance for you:
    in chronological order -- there's no date field in the loaded event
    schema to derive true match order from otherwise (a directory listing,
    for example, sorts alphabetically, not chronologically).
+
+.. important::
+
+   ``from_sources`` (and the underlying ``load_events_multi``) rejects two
+   sources that resolve to the same ``matchId`` -- whether passed
+   explicitly via ``match_ids`` or derived from the default file-stem
+   convention (e.g. two different directories both containing a
+   ``matchday3.json``) -- rather than silently merging two distinct
+   matches into one. Every match-safety guarantee in this section depends
+   on ``matchId`` actually being unique per match.
 
 Set-piece added value
 -------------------------

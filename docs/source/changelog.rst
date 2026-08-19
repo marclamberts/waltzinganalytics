@@ -1,6 +1,47 @@
 Changelog
 =========
 
+0.18.0
+------
+
+A completeness pass prompted by a coverage audit (``cli.py`` 72%,
+``convert/corners.py`` 74%, ``core/season.py`` 82%, against ~95%+ for the
+rest of the package): closed the gaps that were actually missing
+capability rather than just missing tests, and found one more real bug
+along the way.
+
+- **New**: ``SeasonDataset.season_report`` -- the whole-season roll-up
+  that was missing next to ``.summary()`` (basic counts only) and
+  ``.report()`` (the full field set, but one row per team *per match*).
+  Sums every count across matches first and re-derives rates from the
+  sums, never averaging a per-match rate directly -- the same idiom
+  ``rolling_summary``/``rolling_defensive_summary`` already used for a
+  trailing window, now applied to the whole season.
+- **New CLI**: ``season`` subcommand puts ``SeasonDataset`` on the command
+  line (``--action summary|report|season-report|rolling|rolling-defense``);
+  ``scout`` puts ``opponent_scouting_report_html`` on the command line.
+  Both were Python-only before.
+- **Improved CLI**: ``report --type corner`` now writes the curated
+  ``corner_report_html`` (rating, outcome/routine breakdowns, delivery/
+  outcome maps) instead of a generic table dump; other types still use
+  the generic dump since there's no curated report for them yet.
+  ``workflow`` gained ``--format csv|xlsx`` (was CSV-only).
+- **Fixed a real bug**: ``load_events_multi`` (and therefore
+  ``SeasonDataset.from_sources`` and the new ``season``/``scout``/
+  ``train-xt`` CLI commands) derived a default ``matchId`` from each
+  source's filename stem with no collision check -- two sources sharing a
+  stem (the same filename from two different directories, or the same
+  file passed twice by mistake) silently merged under one ``matchId``,
+  defeating every match-safety guarantee built on top of it being unique.
+  Found while manually testing the new ``season`` CLI subcommand with a
+  copy-pasted example. Now raises a clear ``ValueError`` naming the
+  colliding sources, for both default and explicitly-passed ``match_ids``.
+- **Docs**: deduplicated two README sections that had drifted into
+  covering the same ``SeasonDataset`` ground (one had gained the CLI
+  section wedged in between them); ``core.attribution`` and
+  ``XTModel.save``/``.load`` persistence, previously only mentioned in
+  passing, now have real usage examples.
+
 0.17.1
 ------
 

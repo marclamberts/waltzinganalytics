@@ -31,6 +31,70 @@ def test_cli_summary_json(tmp_path):
     assert output.exists() and "contestantId" in output.read_text()
 
 
+def test_cli_workflow_xlsx_writes_one_file_per_table(tmp_path):
+    pytest.importorskip("openpyxl")
+    output = tmp_path / "workflow"
+    assert main(["workflow", str(DATA), "--type", "corner", "--format", "xlsx", "--output", str(output)]) == 0
+    assert (output / "summary.xlsx").exists()
+    assert not (output / "summary.csv").exists()
+
+
+def test_cli_report_corner_uses_curated_html(tmp_path):
+    output = tmp_path / "report.html"
+    assert main(["report", str(DATA), "--type", "corner", "--output", str(output)]) == 0
+    html = output.read_text()
+    assert "Team report" in html and "Outcome breakdown" in html and "Routine usage" in html
+
+
+def test_cli_report_non_corner_falls_back_to_generic_dump(tmp_path):
+    output = tmp_path / "report.html"
+    assert main(["report", str(DATA), "--type", "throw_in", "--output", str(output)]) == 0
+    assert "Throw In report" in output.read_text()
+
+
+def test_cli_scout_writes_opponent_report(tmp_path):
+    events = load_events(DATA).events
+    opponent = events["contestantId"].dropna().unique()[0]
+    output = tmp_path / "scout.html"
+    assert main(["scout", str(DATA), "--opponent", opponent, "--output", str(output)]) == 0
+    html = output.read_text()
+    assert "Conceded by routine type" in html
+
+
+def test_cli_season_summary(tmp_path):
+    match_a = tmp_path / "match_a.json"
+    match_b = tmp_path / "match_b.json"
+    match_a.write_text(DATA.read_text())
+    match_b.write_text(DATA.read_text())
+    output = tmp_path / "season_summary.csv"
+    assert main(["season", str(match_a), str(match_b), "--action", "summary", "--output", str(output)]) == 0
+    result = pd.read_csv(output)
+    assert (result["matches"] == 2).all()
+
+
+def test_cli_season_season_report(tmp_path):
+    match_a = tmp_path / "match_a.json"
+    match_b = tmp_path / "match_b.json"
+    match_a.write_text(DATA.read_text())
+    match_b.write_text(DATA.read_text())
+    output = tmp_path / "season_report.csv"
+    assert main([
+        "season", str(match_a), str(match_b), "--action", "season-report",
+        "--type", "corner", "--output", str(output),
+    ]) == 0
+    result = pd.read_csv(output)
+    assert "matchId" not in result.columns
+    single = load_events(DATA).events
+    from wa_setpieces import corner_report
+    assert result["attempts"].sum() == 2 * single.pipe(corner_report)["attempts"].sum()
+
+
+def test_cli_season_rejects_duplicate_filenames(tmp_path):
+    output = tmp_path / "out.csv"
+    with pytest.raises(ValueError, match="duplicate matchId"):
+        main(["season", str(DATA), str(DATA), "--action", "summary", "--output", str(output)])
+
+
 def test_save_table_csv_round_trips(tmp_path):
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     path = save_table(df, tmp_path / "out.csv")

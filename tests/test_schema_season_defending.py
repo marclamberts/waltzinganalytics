@@ -59,6 +59,54 @@ def test_season_rolling_defensive_summary_rejects_bad_window():
         season.rolling_defensive_summary(window=0)
 
 
+def test_season_report_is_one_row_per_team_not_per_match():
+    # Unlike .report() (one row per team per match), .season_report() rolls
+    # the whole season up into one row per team -- counts summed first,
+    # rates re-derived from the sums, never averaged directly.
+    from wa_setpieces import XTModel
+
+    season = SeasonDataset.from_sources([DATA, DATA], match_ids=["one", "two"])
+    model = XTModel.fit(season.events)
+    per_match = season.report("corner", model=model)
+    whole_season = season.season_report("corner", model=model)
+
+    assert len(whole_season) == whole_season["contestantId"].nunique()
+    assert "matchId" not in whole_season.columns
+    for _, row in whole_season.iterrows():
+        matches = per_match[per_match["contestantId"] == row["contestantId"]]
+        assert row["attempts"] == matches["attempts"].sum()
+        assert row["successful"] == matches["successful"].sum()
+        assert row["second_phases"] == matches["second_phases"].sum()
+        assert row["goals"] == matches["goals"].sum()
+    assert whole_season["success_rate"].between(0, 1).all()
+    assert whole_season["retention_rate"].between(0, 1).all()
+
+
+def test_season_report_without_model_omits_value_columns():
+    season = SeasonDataset.from_sources([DATA, DATA], match_ids=["one", "two"])
+    report = season.season_report("corner")
+    assert not {"total_added_value", "avg_added_value", "goals"}.intersection(report.columns)
+
+
+def test_season_report_penalty_omits_retention_and_phase_columns():
+    # The sample match has no penalties, so this also exercises the
+    # empty-but-columned aggregation path (columns must still be right).
+    season = SeasonDataset.from_sources([DATA, DATA], match_ids=["one", "two"])
+    report = season.season_report("penalty")
+    assert not {"retention_rate", "second_phases", "second_phase_rate"}.intersection(report.columns)
+
+
+def test_season_report_empty_events_returns_empty_frame():
+    import pandas as pd
+
+    empty = pd.DataFrame(columns=[
+        "matchId", "eventId", "typeId", "periodId", "timeMin", "timeSec",
+        "contestantId", "outcome", "x", "y",
+    ])
+    season = SeasonDataset(empty)
+    assert season.season_report("corner").empty
+
+
 def test_defensive_summary_and_rating(events):
     summary = defensive_set_piece_summary(events)
     assert {"shots_conceded", "goals_conceded", "shots_conceded_per_100"}.issubset(summary)
