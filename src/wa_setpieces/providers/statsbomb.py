@@ -28,6 +28,13 @@ cutoff takes over. Set-piece detection, the assist-chain shot link
 :mod:`wa_setpieces.core.rating` do not depend on that event and are
 unaffected.
 
+**Known gap**: ``shot.statsbomb_xg`` is dropped rather than converted --
+F24 has no xG qualifier to map it onto, and an earlier version of this
+adapter wrote it into qualifier 103, which collides with
+:data:`wa_setpieces.core.placement.QUALIFIER_GOAL_MOUTH_Z` and silently
+corrupted :mod:`wa_setpieces.ml.shot_value`'s goal-mouth placement
+features for every StatsBomb-sourced shot.
+
 No extra dependency is needed (unlike the ``viz``/``ml``/``convert``
 extras) -- StatsBomb open-data ships as plain JSON.
 """
@@ -127,13 +134,17 @@ def _convert_shot(ev: dict, qualifiers: dict[str, Any], id_to_index: dict[str, i
     if outcome_name == "Blocked":
         qualifiers["q_82"] = True
     if (shot_info.get("body_part") or {}).get("name") == "Head":
-        qualifiers["q_22"] = True
+        qualifiers[f"q_{c.QUALIFIER_HEADED}"] = True
     if (shot_info.get("type") or {}).get("name") == "Penalty":
         qualifiers[f"q_{c.QUALIFIER_PENALTY}"] = True
 
-    xg = shot_info.get("statsbomb_xg")
-    if xg is not None:
-        qualifiers["q_103"] = str(round(xg * 100, 2))
+    # statsbomb_xg has no Opta qualifier equivalent -- F24 carries no xG
+    # field at all (see convert.corners' module docstring, which found and
+    # removed the same mistake on the read side: it had been mistakenly
+    # reading qualifier 103 as xG). q_103 is core.placement's
+    # QUALIFIER_GOAL_MOUTH_Z; writing xG there previously collided with
+    # real goal-mouth-z placement, corrupting ml.shot_value's
+    # goal_h_norm feature for every StatsBomb-sourced shot.
 
     key_pass_id = shot_info.get("key_pass_id")
     if key_pass_id is not None and key_pass_id in id_to_index:

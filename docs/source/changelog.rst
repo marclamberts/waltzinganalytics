@@ -1,6 +1,54 @@
 Changelog
 =========
 
+0.18.1
+------
+
+Bugfix release: a dedicated review of ``convert/corners.py`` (74% test
+coverage, the weakest in the package, and never through this project's
+earlier section-by-section correctness pass) found five real bugs, all
+with regression tests. One of them led to a sixth in
+``providers/statsbomb.py``.
+
+- **Fixed**: ``Q_HEADED`` was reading qualifier 22 ("Regular play", a shot
+  *situation* flag) instead of 15 ("Head") -- same family as the
+  historical ``Q_INSWING = 72`` mistake. Every headed shot/corner was
+  mislabelled, and ``_body_part`` additionally always fell back to
+  "Right Foot" for left-footed shots since it never checked the left-foot
+  qualifier. Centralized as ``constants.QUALIFIER_HEADED`` (15) so
+  ``convert.corners`` and ``providers.statsbomb`` share one definition
+  instead of each risking their own drift.
+- **Fixed**: ``Q_XG`` was reading qualifier 103, which is
+  ``core.placement.QUALIFIER_GOAL_MOUTH_Z`` -- F24 has no xG qualifier at
+  all, so this was reading goal-mouth-z as if it were an expected-goals
+  value (an off-target miss's z of 65.3 became an "xG" of 0.653).
+  ``shot.statsbomb_xg`` in ``convert.corners``'s output is now always
+  empty, documented in the module docstring.
+- **Fixed**: the same qualifier-103 mistake existed on the write side in
+  ``providers.statsbomb``, encoding ``statsbomb_xg`` into ``q_103`` --
+  colliding with real goal-mouth-z placement and corrupting
+  ``ml.shot_value``'s ``goal_h_norm`` feature for every StatsBomb-sourced
+  shot with a nonzero xG. StatsBomb's xG has no Opta qualifier to map onto
+  and is no longer written.
+- **Fixed**: ``_to_sb_y`` rescaled Opta's y coordinate to StatsBomb's
+  0-80 scale but never flipped it -- Opta's y origin is the bottom
+  touchline, StatsBomb's is the top, so every delivery landed in the
+  mirror-image corner of the pitch.
+- **Fixed**: ``build_possessions`` incremented on every team alternation,
+  but Opta interleaves lone defensive touches into the attacking team's
+  own stream, inflating possession counts roughly 3-4x (the sample match:
+  ~700 possessions for 1613 events, StatsBomb-plausible is ~200). Combined
+  with the shot-linking window's off-by-one tolerance, this meant *zero*
+  corner-to-shot links resolved in the sample match even where a real one
+  existed a few events later. Now requires two consecutive touches by the
+  new team before counting it as a possession change.
+- **Fixed**: a blank cell in the match-list CSV parsed to the string
+  ``"nan"`` (truthy), defeating the "skip incomplete row" guard and
+  keeping id-less rows as matches with a literal ``"nan"`` team name.
+
+``convert/corners.py`` coverage: 74% -> 89%. Full suite: 296 passed,
+2 skipped (was 268).
+
 0.18.0
 ------
 

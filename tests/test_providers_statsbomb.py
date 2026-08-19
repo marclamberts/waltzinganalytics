@@ -116,8 +116,20 @@ def test_unmapped_event_type_gets_generic_type_other(events):
 def test_shot_maps_outcome_to_type_goal_and_flags_header(events):
     row = events.iloc[2]
     assert row["typeId"] == 16  # TYPE_GOAL
-    assert row["q_22"] is True  # headed
-    assert row["q_103"] == "30.0"  # statsbomb_xg * 100
+    assert row["q_15"] is True  # headed -- QUALIFIER_HEADED
+
+
+def test_shot_statsbomb_xg_is_not_written_as_a_qualifier():
+    # Regression test: statsbomb_xg used to be written into q_103, which
+    # collides with core.placement.QUALIFIER_GOAL_MOUTH_Z (103) -- F24 has
+    # no xG qualifier for it to correctly map onto, and the collision
+    # silently corrupted ml.shot_value's goal_h_norm placement feature for
+    # every StatsBomb-sourced shot with a nonzero xG.
+    from wa_setpieces.core.placement import QUALIFIER_GOAL_MOUTH_Z
+
+    events = load_statsbomb_events(RAW_EVENTS)
+    row = events.iloc[2]
+    assert f"q_{QUALIFIER_GOAL_MOUTH_Z}" not in events.columns or pd.isna(row.get(f"q_{QUALIFIER_GOAL_MOUTH_Z}"))
 
 
 def test_shot_links_back_to_corner_via_related_event_qualifier(events):

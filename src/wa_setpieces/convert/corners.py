@@ -3,8 +3,8 @@
 Turns a directory of per-match F24 JSON exports plus a companion match-list
 CSV into one row per corner delivery -- taker, delivery zone/technique, and
 (if the corner produced a shot within a short time/possession window) the
-resulting shot's outcome and xG. This is a different, denormalized schema
-from :func:`wa_setpieces.core.loader.load_events`'s tidy per-event frame:
+resulting shot's taker, location and outcome. This is a different,
+denormalized schema from :func:`wa_setpieces.core.loader.load_events`'s tidy per-event frame:
 it is meant to match external "<competition> - Corners <season>.parquet"
 exports (StatsBomb-style column names) that other tools already consume, so
 this dataset can be produced for a new competition without changing those
@@ -30,10 +30,14 @@ contestant IDs are exactly the ``contestantId`` values used in the event
 JSON.
 
 Beyond the set-piece qualifiers already in :mod:`wa_setpieces.core.constants`
-(corner qualifier, pass end x/y, delivery zone), this module reads a few
-qualifiers specific to describing a delivery's *outcome*: qualifier 103
-(xG, percentage string), 22 (headed), 82 (blocked, on Attempt Saved
-events), and 223/224 (inswinging/outswinging corner).
+(corner qualifier, pass end x/y, delivery zone, inswinger/outswinger), this
+module reads the qualifiers that describe *who hit it and how it ended*:
+15 (head), 72 (left footed), 21 (other body part) and 82 (blocked, on
+Attempt Saved events).
+
+``shot.statsbomb_xg`` is always empty: F24 carries no expected-goals
+qualifier. (Qualifiers 102/103 are the goal-mouth y/z coordinates -- see
+:mod:`wa_setpieces.core.placement` -- not xG.)
 """
 
 from __future__ import annotations
@@ -49,14 +53,13 @@ import pandas as pd
 from ..core import constants as c
 from ..core.loader import load_events
 
-Q_XG = 103
-Q_HEADED = 22
+Q_OTHER_BODY_PART = 21
 Q_BLOCKED = 82
-Q_INSWING = 223
-Q_OUTSWING = 224
+Q_LEFT_FOOT = 72
 
-# Event typeIds that break a running possession (out of play, sub, card,
-# formation change, ...) -- a new possession always starts after one of these.
+# Event typeIds that break a running possession (period start/end, team
+# set up, formation change, referee drop ball, injury-time announcement)
+# -- a new possession always starts after one of these.
 BREAK_TYPE_IDS = frozenset({30, 32, 34, 37, 40, 42, 68, 70})
 
 SHOT_WINDOW_DEFAULT = 30  # seconds after a corner to look for a linked shot
@@ -89,28 +92,22 @@ def _opta_id_to_int(opta_id: str) -> int:
     return zlib.crc32(opta_id.encode()) & 0x7FFFFFFF
 
 
-def _xg(row: pd.Series):
-    raw = get_q(row, Q_XG)
-    if raw is None:
-        return None
-    try:
-        return round(float(raw) / 100.0, 4)
-    except (ValueError, TypeError):
-        return None
-
-
 def _to_sb_x(v):
     return round(float(v) * 1.2, 1) if v is not None and pd.notna(v) else None
 
 
 def _to_sb_y(v):
-    return round(float(v) * 0.8, 1) if v is not None and pd.notna(v) else None
+    # Opta's y origin is the bottom touchline, StatsBomb's is the top one
+    # (mplsoccer: pitch_type="opta" has invert_y=False, "statsbomb" True),
+    # so the axis flips as well as rescaling -- without the flip every
+    # delivery lands in the mirror-image corner.
+    return round(80.0 - float(v) * 0.8, 1) if v is not None and pd.notna(v) else None
 
 
 def _technique(row: pd.Series):
-    if has_q(row, Q_INSWING):
+    if has_q(row, c.QUALIFIER_INSWINGER):
         return "Inswinging"
-    if has_q(row, Q_OUTSWING):
+    if has_q(row, c.QUALIFIER_OUTSWINGER):
         return "Outswinging"
     return None
 
@@ -133,7 +130,13 @@ def _shot_outcome(row: pd.Series):
 
 
 def _body_part(row: pd.Series):
-    return "Head" if has_q(row, Q_HEADED) else "Right Foot"
+    if has_q(row, c.QUALIFIER_HEADED):
+        return "Head"
+    if has_q(row, Q_LEFT_FOOT):
+        return "Left Foot"
+    if has_q(row, Q_OTHER_BODY_PART):
+        return "Other"
+    return "Right Foot"
 
 
 def _secs(row: pd.Series) -> int:
@@ -143,6 +146,13 @@ def _secs(row: pd.Series) -> int:
 
 
 # -- Match-list CSV -> lookup by (date, contestant id set) ------------------
+
+def _cell(row: pd.Series, col: str) -> str:
+    # A blank CSV cell reads back as NaN even with dtype=str, and str(nan)
+    # is the truthy "nan" -- so go through pd.notna, not str().
+    val = row.get(col)
+    return str(val).strip() if pd.notna(val) else ""
+
 
 def load_match_list(matches_csv: str | Path) -> dict[str, list[dict]]:
     """Read a match-list CSV into ``{date: [record, ...]}``.
@@ -156,13 +166,13 @@ def load_match_list(matches_csv: str | Path) -> dict[str, list[dict]]:
 
     by_date: dict[str, list[dict]] = {}
     for _, row in df.iterrows():
-        opta_id = str(row.get("matchInfo/id", "")).strip()
-        date = str(row.get("matchInfo/localDate", "")).strip()[:10]
-        c0_id = str(row.get("matchInfo/contestant/0/id", "")).strip()
-        c1_id = str(row.get("matchInfo/contestant/1/id", "")).strip()
-        c0_name = str(row.get("matchInfo/contestant/0/name", "")).strip()
-        c1_name = str(row.get("matchInfo/contestant/1/name", "")).strip()
-        c0_pos = str(row.get("matchInfo/contestant/0/position", "")).strip()
+        opta_id = _cell(row, "matchInfo/id")
+        date = _cell(row, "matchInfo/localDate")[:10]
+        c0_id = _cell(row, "matchInfo/contestant/0/id")
+        c1_id = _cell(row, "matchInfo/contestant/1/id")
+        c0_name = _cell(row, "matchInfo/contestant/0/name")
+        c1_name = _cell(row, "matchInfo/contestant/1/name")
+        c0_pos = _cell(row, "matchInfo/contestant/0/position")
         if not opta_id or not c0_id or not c1_id:
             continue
 
@@ -192,19 +202,28 @@ def match_record(date: str, ids: frozenset, by_date: dict[str, list[dict]]) -> d
 # -- Possession tracker -------------------------------------------------------
 
 def build_possessions(events: pd.DataFrame) -> list[int]:
-    """One running possession number per row, incrementing on a team change
-    or a break-type event (sub, card, out of play, ...)."""
+    """One running possession number per row, incrementing on a *sustained*
+    team change or a break-type event (drop ball, formation change, ...).
+
+    A lone event by the other team does not end a possession: Opta
+    interleaves defensive touches (clearance, aerial duel, challenge) into
+    the attacking team's stream, so incrementing on every alternation would
+    both inflate the count several-fold and split a corner from the shot it
+    produced, leaving practically every corner unlinked.
+    """
+    teams = list(events["contestantId"])
+    type_ids = list(events["typeId"])
     poss_num = 0
     last_team = None
     out = []
-    for team, type_id in zip(events["contestantId"], events["typeId"]):
+    for i, (team, type_id) in enumerate(zip(teams, type_ids)):
         if type_id in BREAK_TYPE_IDS or pd.isna(team):
             poss_num += 1
             last_team = None
-        elif team != last_team and last_team is not None:
-            poss_num += 1
+        elif last_team is None:
             last_team = team
-        else:
+        elif team != last_team and i + 1 < len(teams) and teams[i + 1] == team:
+            poss_num += 1
             last_team = team
         out.append(poss_num)
     return out
@@ -294,7 +313,7 @@ def corner_rows_for_match(
             "shot_position": (get_q(shot, c.QUALIFIER_ZONE) if shot is not None else None),
             "shot.body_part.name": (_body_part(shot) if shot is not None else None),
             "shot.outcome.name": (_shot_outcome(shot) if shot is not None else None),
-            "shot.statsbomb_xg": (_xg(shot) if shot is not None else None),
+            "shot.statsbomb_xg": None,  # F24 has no xG qualifier, see module docstring
             "shot_location_x": (_to_sb_x(shot.get("x")) if shot is not None else None),
             "shot_location_y": (_to_sb_y(shot.get("y")) if shot is not None else None),
             "shot_location_z": None,
