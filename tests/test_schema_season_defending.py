@@ -26,6 +26,33 @@ def test_validation_explains_missing_columns(events):
         validate_events(events.drop(columns="typeId"))
 
 
+def test_validation_rejects_non_dataframe():
+    with pytest.raises(EventSchemaError, match="pandas DataFrame"):
+        validate_events([{"eventId": 1}])
+
+
+def test_validation_rejects_non_numeric_core_columns(events):
+    bad = events.copy()
+    bad["timeMin"] = bad["timeMin"].astype(object)
+    bad.loc[bad.index[0], "timeMin"] = "not a number"
+    with pytest.raises(EventSchemaError, match="'timeMin'"):
+        validate_events(bad)
+
+
+def test_validation_rejects_implausible_coordinates(events):
+    bad = events.copy()
+    bad.loc[bad.index[0], "x"] = 500.0
+    with pytest.raises(EventSchemaError, match="'x'"):
+        validate_events(bad)
+
+
+def test_validation_rejects_missing_contestant_id(events):
+    bad = events.copy()
+    bad.loc[bad.index[0], "contestantId"] = None
+    with pytest.raises(EventSchemaError, match="contestantId"):
+        validate_events(bad)
+
+
 def test_season_summary_is_match_safe():
     season = SeasonDataset.from_sources([DATA, DATA], match_ids=["one", "two"])
     summary = season.summary()

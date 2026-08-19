@@ -1,6 +1,29 @@
 Changelog
 =========
 
+0.18.3
+------
+
+Verification pass on the two lowest-level trust boundaries left with real
+gaps: ``core/phases.py`` (the heuristic every set-piece module downstream
+ultimately builds on) and ``core/schema.py`` (``validate_events``, the
+gatekeeper every adapter's output passes through). No bugs found -- both
+already behaved correctly -- but neither had a single test proving it,
+which is its own risk on code this central.
+
+- **Tests**: ``_phase_window``'s period-boundary stop (a corner right at
+  the end of a half no longer bleeding its follow-up window into the next
+  half's kickoff, the intra-match analog of the already-tested
+  cross-match boundary) had zero coverage; confirmed correct and locked
+  in as a regression test. Same for ``classify_phase``'s two-team guard.
+- **Tests**: ``validate_events``'s four other rejection paths (non-``DataFrame``
+  input, a non-numeric core column, an implausible coordinate, a missing
+  ``contestantId``) were entirely untested beyond the one "missing
+  column" case -- all four now have explicit regression tests confirming
+  the right error and message.
+
+307 tests passing (was 301), docs build clean.
+
 0.18.2
 ------
 
