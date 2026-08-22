@@ -27,6 +27,17 @@ WA lockup, and an attribution/date stamp to the footer -- there's no
 default author, so a chart from this package carries the WA brand mark
 but not anyone's name unless you ask for it). Both are opt-in and blank
 by default; see :meth:`wa_setpieces.viz.theme.Palette.draw_header`.
+
+Every pitch-based function (a delivery map, a zone heatmap, ...) also
+takes ``vertical: bool = False`` -- draws on :class:`mplsoccer.VerticalPitch`
+instead of :class:`mplsoccer.Pitch` when ``True``, the same restart drawn
+goal-at-top instead of goal-at-right. Both classes share the same drawing
+API (arrows, scatter, heatmap, ...), so nothing else about a plotting
+call changes -- mplsoccer itself already sizes the pitch correctly within
+whichever figure canvas it's given; this module additionally picks a
+taller default canvas for ``vertical=True`` so there's less unused
+horizontal space than a landscape canvas would leave around a portrait
+pitch.
 """
 
 from __future__ import annotations
@@ -35,7 +46,7 @@ import numpy as np
 import pandas as pd
 
 try:
-    from mplsoccer import Pitch
+    from mplsoccer import Pitch, VerticalPitch
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "wa_setpieces.viz requires the 'viz' extra: pip install \"wa-setpieces[viz]\""
@@ -50,14 +61,17 @@ SUCCESS_COLOR = theme.GOOD
 FAIL_COLOR = theme.CRITICAL
 
 
-def _new_pitch(pal: theme.Palette, pitch_type: str = "opta", **pitch_kwargs) -> Pitch:
+def _new_pitch(pal: theme.Palette, pitch_type: str = "opta", vertical: bool = False, **pitch_kwargs) -> Pitch:
     kwargs = dict(pitch_color=pal.surface, line_color=pal.pitch_line, linewidth=1.5)
     kwargs.update(pitch_kwargs)
-    return Pitch(pitch_type=pitch_type, **kwargs)
+    pitch_cls = VerticalPitch if vertical else Pitch
+    return pitch_cls(pitch_type=pitch_type, **kwargs)
 
 
-def _draw_pitch(pal: theme.Palette, ax, pitch_kwargs, figsize=(8, 5.2)):
-    pitch = _new_pitch(pal, **(pitch_kwargs or {}))
+def _draw_pitch(pal: theme.Palette, ax, pitch_kwargs, vertical: bool = False, figsize=None):
+    pitch = _new_pitch(pal, vertical=vertical, **(pitch_kwargs or {}))
+    if figsize is None:
+        figsize = (5.6, 8.2) if vertical else (8, 5.2)
     fig = None
     if ax is None:
         fig, ax = pitch.draw(figsize=figsize)
@@ -129,6 +143,7 @@ def plot_delivery_map(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -141,6 +156,9 @@ def plot_delivery_map(
     Args:
         dark: render on the dark (default) or light palette from
             :mod:`wa_setpieces.viz.theme`.
+        vertical: draw on a vertical (goal-at-top) pitch via
+            :class:`mplsoccer.VerticalPitch` instead of the default
+            horizontal (goal-at-right) :class:`mplsoccer.Pitch`.
         subtitle: optional muted line under the title (e.g. a date/venue).
         eyebrow: optional small category label above the title (e.g.
             ``"Corner"``), WA-house-style.
@@ -153,7 +171,7 @@ def plot_delivery_map(
         ``(fig, ax)``. ``fig`` is ``None`` if an existing ``ax`` was passed in.
     """
     pal = theme.get_palette(dark)
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
 
     success = deliveries[deliveries["outcome"] == 1]
     fail = deliveries[deliveries["outcome"] != 1]
@@ -188,6 +206,7 @@ def plot_zone_heatmap(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     cmap=None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -198,11 +217,13 @@ def plot_zone_heatmap(
     :func:`~wa_setpieces.extract_corners`) to see where a specific
     set-piece type happens most often. Defaults to the single-hue
     sequential blue ramp (counts are a magnitude, not a category).
+    ``vertical=True`` draws on a goal-at-top :class:`mplsoccer.VerticalPitch`
+    instead of the default horizontal one.
     """
     import matplotlib.patheffects as path_effects
 
     pal = theme.get_palette(dark)
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
     cmap = cmap if cmap is not None else pal.sequential_blue_cmap()
 
     x = pd.to_numeric(events[x_col], errors="coerce")
@@ -232,6 +253,7 @@ def plot_xt_grid(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     cmap=None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -245,7 +267,7 @@ def plot_xt_grid(
     should climb steadily towards the opponent's goal (``x=100``).
     """
     pal = theme.get_palette(dark)
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
     cmap = cmap if cmap is not None else pal.sequential_green_cmap()
 
     stats = pitch.bin_statistic(
@@ -267,6 +289,7 @@ def plot_second_phase(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     ax=None,
     pitch_kwargs: dict | None = None,
     **phase_kwargs,
@@ -335,7 +358,7 @@ def plot_second_phase(
     if not window.empty:
         window = to_reference_frame(window, attacking_team)
 
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
 
     pitch.arrows(
         [delivery_row["x"]], [delivery_row["y"]],
@@ -697,6 +720,7 @@ def plot_dashboard(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
 ):
     """One-figure set-piece report card for a team: delivery map, end-zone
     heatmap, and attempts/success-rate comparison against their opponent.
@@ -705,7 +729,11 @@ def plot_dashboard(
     :func:`plot_team_comparison` into a single figure with
     :class:`matplotlib.gridspec.GridSpec`, in the spirit of a scouting
     report -- this is the "hero" figure to reach for over the individual
-    plots when you want one shareable image.
+    plots when you want one shareable image. ``vertical=True`` draws the
+    two pitch panels goal-at-top instead of goal-at-right -- the grid
+    cells they sit in stay the same shape, so mplsoccer letterboxes a
+    vertical pitch within that landscape-ish cell rather than the panel
+    itself changing shape.
 
     Returns:
         ``fig`` (a new figure; there's no single ``ax`` to hand back).
@@ -724,12 +752,15 @@ def plot_dashboard(
     label = (team_names or {}).get(team_id, f"{team_id[:8]}…")
 
     ax_map = fig.add_subplot(gs[0, 0])
-    plot_delivery_map(team_deliveries, title=f"{label} — {set_piece_type} deliveries", dark=dark, ax=ax_map)
+    plot_delivery_map(
+        team_deliveries, title=f"{label} — {set_piece_type} deliveries",
+        dark=dark, vertical=vertical, ax=ax_map,
+    )
 
     ax_heat = fig.add_subplot(gs[0, 1])
     plot_zone_heatmap(
         team_deliveries, x_col="end_x", y_col="end_y",
-        title=f"{label} — {set_piece_type} end zones", dark=dark, ax=ax_heat,
+        title=f"{label} — {set_piece_type} end zones", dark=dark, vertical=vertical, ax=ax_heat,
     )
 
     summary = set_piece_summary(events)
@@ -898,6 +929,7 @@ def plot_set_piece_outcomes(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -923,7 +955,7 @@ def plot_set_piece_outcomes(
     from ..core.outcomes import OUTCOME_CATEGORIES
 
     pal = theme.get_palette(dark)
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
 
     color_map = {cat: pal.categorical[i % len(pal.categorical)] for i, cat in enumerate(OUTCOME_CATEGORIES)}
     present = [cat for cat in OUTCOME_CATEGORIES if (outcomes["delivery_outcome"] == cat).any()]
@@ -956,6 +988,7 @@ def plot_routine_clusters(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    vertical: bool = False,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -970,7 +1003,7 @@ def plot_routine_clusters(
     don't compete with the categorical palette.
     """
     pal = theme.get_palette(dark)
-    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
 
     clusters = sorted(cid for cid in clustered["cluster"].unique() if cid >= 0)
     color_map = {cid: pal.categorical[i % len(pal.categorical)] for i, cid in enumerate(clusters)}

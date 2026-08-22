@@ -1,6 +1,35 @@
 Changelog
 =========
 
+0.19.3
+------
+
+- **Added**: ``vertical: bool = False`` on every pitch-based plotting
+  function -- :func:`~wa_setpieces.viz.plot_delivery_map`,
+  :func:`~wa_setpieces.viz.plot_zone_heatmap`,
+  :func:`~wa_setpieces.viz.plot_xt_grid`,
+  :func:`~wa_setpieces.viz.plot_second_phase`,
+  :func:`~wa_setpieces.viz.plot_set_piece_outcomes`,
+  :func:`~wa_setpieces.viz.plot_routine_clusters`, and
+  :func:`~wa_setpieces.viz.plot_dashboard` (which draws two of them).
+  Draws on :class:`mplsoccer.VerticalPitch` (goal-at-top) instead of the
+  default :class:`mplsoccer.Pitch` (goal-at-right) -- both classes share
+  mplsoccer's own drawing API, so nothing else about a call changes; a
+  zone heatmap's grid rotates with the pitch too (6x3 becomes 3x6), not
+  just the outline.
+- The default vertical canvas (5.6in x 8.2in) is taller/narrower than
+  the horizontal default (8in x 5.2in), so a portrait pitch doesn't sit
+  in a landscape canvas with wasted space on either side.
+- New gallery example, ``plot_21_vertical_pitch.py``, showing the same
+  deliveries and zone heatmap in both orientations side by side.
+- Noted in :func:`~wa_setpieces.viz.plot_dashboard`'s docstring:
+  ``vertical=True`` there letterboxes the two pitch panels within their
+  existing landscape-shaped grid cells rather than reshaping the cells
+  themselves -- usable, but the standalone functions are the better fit
+  for a vertical pitch as the main image.
+
+313 tests passing (unchanged), docs build clean.
+
 0.19.2
 ------
 
