@@ -79,8 +79,9 @@ def load_events(source: str | Path | dict) -> Match:
 
     events = pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
     if not events.empty:
-        # eventId is only unique within one team's own stream (see
-        # docs/source/advanced.rst), so it can't reliably break ties between
+        # eventId is only unique within one team's own stream (see the
+        # user guide's "Linking to shots and goals" section), so it can't
+        # reliably break ties between
         # two teams' events in the same second. timeStamp carries
         # sub-second precision when the export provides it, so prefer it as
         # a finer-grained tiebreak; eventId remains the final fallback for

@@ -23,7 +23,7 @@ running the test suite, or building the docs:
    pip install -e ".[convert]"  # pyarrow -- wa_setpieces.convert.corners
    pip install -e ".[xlsx]"     # openpyxl -- Excel export via save_table/save_tables
    pip install -e ".[dev]"      # pytest
-   pip install -e ".[docs]"     # sphinx, pydata-sphinx-theme, sphinx-gallery, viz, ml
+   pip install -e ".[docs]"     # sphinx, pydata-sphinx-theme, sphinx-gallery, sphinx-design, viz, ml
 
 Requirements
 ------------

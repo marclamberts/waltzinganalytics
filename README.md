@@ -25,6 +25,22 @@ built on [mplsoccer](https://mplsoccer.readthedocs.io) — all as tidy
 
 **Full documentation, with a runnable plot gallery: https://waltzinganalytics.readthedocs.io**
 
+## By set piece
+
+Pick your set piece, then pick what you want from it. Full breakdown
+(including exactly which fields each type returns) is on the
+[By set piece](https://waltzinganalytics.readthedocs.io/en/latest/categories.html)
+docs page; this table is the fast version.
+
+| Type | Export to CSV/Excel | Metrics to pull | Value model | Visualisation |
+| --- | --- | --- | --- | --- |
+| **Corner** | [`workflow --type corner --format xlsx`](#command-line) | counts, deliveries, [second phases + retention](#second-phases-xt-zones-retention-added-value-and-outcomes), [routines + clusters](#routines-taxonomy-technique-target-and-clusters) | [xT added value + team/player rating](#ratings) (needs a fitted model) | full [plot set](#plots) + corner sonar + curated [HTML report](#reports-and-exporting) |
+| **Free kick** | [`workflow --type free_kick --format xlsx`](#command-line) | same as corner | same as corner (xT added value + rating) | full [plot set](#plots) (no sonar, no curated report) |
+| **Throw-in** | [`workflow --type throw_in --format xlsx`](#command-line) | counts, deliveries, retention, [long-throw detection](#long-throws) | not available — rating runs off success/retention rate only | delivery map, zone heatmap, [routine clusters](#plots) |
+| **Penalty** | [`workflow --type penalty --format xlsx`](#command-line) | counts, [placement zone + taker conversion](#penalties) | not applicable — rating runs off conversion rate | no dedicated plot yet — read the [placement table](#penalties) |
+| **Goal kick** | [`workflow --type goal_kick --format xlsx`](#command-line) | counts, deliveries, retention, routines | not available — rating runs off success/retention rate only | delivery map, zone heatmap, [team comparison](#plots) |
+| **Kick off** *(coming soon)* | [`workflow --type kick_off --format xlsx`](#command-line) works today | counts, deliveries, retention, routines — no curated extras yet | not available yet | general plots only — no curated layer yet |
+
 ## Install
 
 ```bash
@@ -178,12 +194,13 @@ first_contact_summary(match.events, "corner")
 # per-player: contacts, contacts_won, win_rate
 ```
 
-All of the above are **derived heuristics**, not raw Opta fields — see
-`docs/source/advanced.rst` (or the hosted docs) for the exact assumptions
-and tunable thresholds behind each one. That page also documents a real bug
-this uncovered and fixed: F24's `eventId` is only unique *within one team's
-own event stream, per match* — every delivery/shot lookup in this
-package is scoped accordingly (including across matches, where relevant).
+All of the above are **derived heuristics**, not raw Opta fields — see the
+[user guide](https://waltzinganalytics.readthedocs.io/en/latest/user_guide/index.html)
+for the exact assumptions and tunable thresholds behind each one. That guide
+also documents a real bug this uncovered and fixed: F24's `eventId` is only
+unique *within one team's own event stream, per match* — every
+delivery/shot lookup in this package is scoped accordingly (including
+across matches, where relevant).
 
 ## Shot value (experimental)
 

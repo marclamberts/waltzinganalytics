@@ -1,23 +1,11 @@
 wa-setpieces
 ===============
 
-**Set-piece analytics and pitch visualizations for Opta / Stats Perform F24
-(and, via an adapter, StatsBomb) event data**, built on
-`pandas <https://pandas.pydata.org>`_ and
+**Set-piece analytics for football, in pandas.** Point it at an Opta F24
+match export (or StatsBomb open data, via an adapter) and get every
+corner, free kick, throw-in, penalty, goal kick and kick-off tagged,
+measured and rated -- as tidy DataFrames, plus pitch plots built on
 `mplsoccer <https://mplsoccer.readthedocs.io>`_.
-
-Point it at an F24 match export (or a StatsBomb export, through
-:func:`~wa_setpieces.load_statsbomb_events`) and get: penalty, kick-off,
-free-kick, corner, throw-in and goal-kick detection; team/player attempt
-and success rates; second-phase shot detection; possession retention;
-pitch zones/thirds/channels; a grid-based Expected Threat (xT) model;
-blended added-value scoring; per-delivery outcome classification
-(including who wins each aerial duel); a rule-based *and* data-driven
-(k-means) routine taxonomy; benchmarked 0-100 team/player ratings;
-defensive conceding profiles and opponent-scouting reports; penalty
-placement; long-throw specialist detection; season-safe multi-match
-aggregation with rolling form; self-contained HTML reports; CSV/Excel
-export -- all as tidy DataFrames, plus ready-made pitch plots.
 
 .. code-block:: python
 
@@ -36,8 +24,60 @@ export -- all as tidy DataFrames, plus ready-made pitch plots.
    :align: center
    :width: 640px
 
-See the :ref:`gallery` for the full set of plots (delivery maps, zone
-heatmaps, second-phase sequences, xT grids) with source code for each.
+That one call already answers "how many, how successful, who took them" --
+:func:`~wa_setpieces.set_piece_summary` returns attempts, success rate,
+shots and goals for every set-piece type, per team, in one table. Everything
+past that -- second phases, retention, an xT value model, benchmarked
+0-100 ratings, routine taxonomies, defensive scouting, season form, HTML
+reports, CSV/Excel export -- is one function call away. The
+:doc:`quickstart` walks through your first match end to end; the
+:doc:`user_guide/index` is the full tour, organized topic by topic; and
+:doc:`categories` is the fast path if you already know which set piece
+you care about.
+
+.. grid:: 1 2 2 2
+   :gutter: 3
+   :class-container: intro-card-grid
+
+   .. grid-item-card:: Quickstart
+      :link: quickstart
+      :link-type: doc
+
+      Load a match, get a summary table and a plot on screen in five
+      minutes.
+
+   .. grid-item-card:: By set piece
+      :link: categories
+      :link-type: doc
+
+      Corner, free kick, throw-in, penalty, goal kick, kick-off -- pick
+      yours, see what's available.
+
+   .. grid-item-card:: User guide
+      :link: user_guide/index
+      :link-type: doc
+
+      Every piece of the pipeline, topic by topic, with runnable
+      examples.
+
+   .. grid-item-card:: Gallery
+      :link: gallery/index
+      :link-type: doc
+
+      Every plot this package makes, with the source that made it.
+
+Why this package
+-----------------
+
+Event-feed set-piece analysis means re-deriving the same handful of hard
+things on every project: which qualifier actually means "in-swinger" and
+not something else entirely, whether a defensive clearance travelled far
+enough to count as "cleared," how to fit an xT model without a season's
+worth of matches lying around. ``wa_setpieces`` does that derivation once,
+with its reasoning written down next to the code -- see the
+:doc:`qualifiers` page for exactly which Opta qualifier backs every
+column, and each guide page's callouts for what's a verified fact about
+the feed versus a tunable heuristic.
 
 Install
 -------
@@ -47,14 +87,18 @@ Install
    pip install wa-setpieces          # core package
    pip install "wa-setpieces[viz]"   # + matplotlib/mplsoccer for the plotting helpers
 
+See :doc:`installation` for the full set of optional extras.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents
+   :hidden:
 
    installation
    quickstart
+   categories
+   user_guide/index
    gallery/index
-   advanced
    qualifiers
    api
    changelog
