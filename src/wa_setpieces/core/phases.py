@@ -1,6 +1,6 @@
 """Second-phase detection for corners and free kicks.
 
-Opta's F24 feed has no explicit "phase" or "possession chain" field, so
+Opta's event feed has no explicit "phase" or "possession chain" field, so
 this is a derived heuristic, not a raw data attribute -- treat it as an
 estimate and tune the thresholds for your use case.
 
@@ -9,7 +9,7 @@ delivery and classifies what happened to the ball:
 
 - **Cleared immediately**: the defending team's first meaningful touch is a
   clearance/save/claim that sends the ball back up the pitch past
-  ``clear_safe_x`` (using the confirmed F24 convention that every event's
+  ``clear_safe_x`` (using the confirmed convention that every event's
   ``x`` is in *that event's own team's* attacking direction, i.e. low ``x``
   = deep in that team's own defensive zone -- see :mod:`wa_setpieces.core.zones`).
 - **Direct shot**: the attacking team shoots directly off the delivery

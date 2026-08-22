@@ -3,12 +3,12 @@ Quickstart
 
 This walks through one match end to end: load it, summarize it, plot it.
 Five minutes, no data of your own required -- the package ships a real
-(anonymized) F24 match export for exactly this.
+(anonymized) match export for exactly this.
 
 Load a match
 ------------
 
-:func:`~wa_setpieces.load_events` reads an F24 JSON file and returns a
+:func:`~wa_setpieces.load_events` reads an Opta JSON file and returns a
 :class:`~wa_setpieces.core.loader.Match`: the raw ``matchDetails`` block,
 plus a tidy events :class:`pandas.DataFrame` -- one row per event, one
 column per qualifierId, named ``q_<id>``.

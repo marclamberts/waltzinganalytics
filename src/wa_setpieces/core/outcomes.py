@@ -16,7 +16,7 @@ caveats apply) and adds two things phases.py doesn't track on its own:
   drop below 85 *and* distance under 15 leaves under half a unit of
   overlap, and any sideways component removes it entirely).
 - **aerial_duel** ("50/50"): the first contact after the delivery is an
-  aerial duel (``typeId`` 44, confirmed in the F24 spec) -- a contested
+  aerial duel (``typeId`` 44, confirmed in the event spec) -- a contested
   header, regardless of which team's event actually recorded the win/loss,
   since in football terms a challenged header stays a "50/50" moment.
 

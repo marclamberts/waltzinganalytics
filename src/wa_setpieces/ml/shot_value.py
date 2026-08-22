@@ -30,7 +30,7 @@ multi-model breakdown, once you've read the limitations below.
 Known limitations -- READ BEFORE TRUSTING THE OUTPUT
 ------------------------------------------------------
 These models were trained elsewhere, against a feature schema this module
-has to *reconstruct* from Opta F24 qualifiers on each shot event -- F24
+has to *reconstruct* from Opta qualifiers on each shot event -- the feed
 does not ship these exact named features, and the module docstring the
 models were trained with is not available here. Some inputs are
 confidently derived; others are the module's best empirical guess from
@@ -42,7 +42,7 @@ ground truth -- verify against your own labeled shots before relying on
 it for anything high-stakes, and prefer passing in a corrected
 :data:`FEATURE_OVERRIDES` mapping over trusting the default.
 
-Confidently derived (verified against real F24 data or this package's
+Confidently derived (verified against real event data or this package's
 own already-validated logic):
 
 - ``distance``, ``angle``, ``y_sym`` -- pure geometry from ``x``/``y``,

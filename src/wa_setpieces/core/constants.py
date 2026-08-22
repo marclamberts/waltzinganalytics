@@ -1,13 +1,13 @@
-"""Opta (Stats Perform) F24 event-feed constants used to identify set pieces.
+"""Opta (Stats Perform) event-feed constants used to identify set pieces.
 
-The F24 feed encodes every action as an ``event`` with a numeric ``typeId``
+The event feed encodes every action as an ``event`` with a numeric ``typeId``
 and a list of ``qualifier`` objects (each carrying a numeric ``qualifierId``
 and, often, a string ``value``). Set pieces are not their own event type --
 they are ordinary events (mostly passes, ``typeId == 1``) carrying a
 qualifier that flags the restart type.
 
 The IDs below are the standard Opta/Stats Perform qualifier vocabulary and
-were cross-checked against a real F24 match export (see
+were cross-checked against a real match export (see
 ``tests/data/sample_match.json``): each qualifier's tagged events line up
 with the expected pitch location (e.g. qualifier 279 "Kick off" events sit
 at the centre spot, qualifier 6 "Corner taken" events sit in the corner

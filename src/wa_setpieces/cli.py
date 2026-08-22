@@ -47,7 +47,7 @@ def _tagged_frames(inputs: list[str], provider: str) -> list[pd.DataFrame]:
     return [_events(path, provider).assign(matchId=stem) for path, stem in zip(inputs, stems)]
 
 def _season_from_inputs(inputs: list[str], provider: str) -> SeasonDataset:
-    # SeasonDataset.from_sources only speaks Opta F24, so building the
+    # SeasonDataset.from_sources only speaks Opta's native format, so building the
     # frame through _events() first is what makes `season` work for
     # StatsBomb input too.
     return SeasonDataset(pd.concat(_tagged_frames(inputs, provider), ignore_index=True))

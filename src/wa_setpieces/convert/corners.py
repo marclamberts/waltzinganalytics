@@ -1,6 +1,6 @@
-"""Convert Opta F24 event exports into a flat "corners" table.
+"""Convert Opta event exports into a flat "corners" table.
 
-Turns a directory of per-match F24 JSON exports plus a companion match-list
+Turns a directory of per-match Opta JSON exports plus a companion match-list
 CSV into one row per corner delivery -- taker, delivery zone/technique, and
 (if the corner produced a shot within a short time/possession window) the
 resulting shot's taker, location and outcome. This is a different,
@@ -24,7 +24,7 @@ per match):
     matchInfo/contestant/1/name     contestant B name
     matchInfo/contestant/1/position "home" / "away"
 
-Each ``<date>...json`` F24 export is matched to a match-list row by (date,
+Each ``<date>...json`` Opta export is matched to a match-list row by (date,
 {contestantId set}) rather than fuzzy name matching, since the match-list's
 contestant IDs are exactly the ``contestantId`` values used in the event
 JSON.
@@ -35,7 +35,7 @@ module reads the qualifiers that describe *who hit it and how it ended*:
 15 (head), 72 (left footed), 21 (other body part) and 82 (blocked, on
 Attempt Saved events).
 
-``shot.statsbomb_xg`` is always empty: F24 carries no expected-goals
+``shot.statsbomb_xg`` is always empty: the feed carries no expected-goals
 qualifier. (Qualifiers 102/103 are the goal-mouth y/z coordinates -- see
 :mod:`wa_setpieces.core.placement` -- not xG.)
 """
@@ -313,7 +313,7 @@ def corner_rows_for_match(
             "shot_position": (get_q(shot, c.QUALIFIER_ZONE) if shot is not None else None),
             "shot.body_part.name": (_body_part(shot) if shot is not None else None),
             "shot.outcome.name": (_shot_outcome(shot) if shot is not None else None),
-            "shot.statsbomb_xg": None,  # F24 has no xG qualifier, see module docstring
+            "shot.statsbomb_xg": None,  # the feed has no xG qualifier, see module docstring
             "shot_location_x": (_to_sb_x(shot.get("x")) if shot is not None else None),
             "shot_location_y": (_to_sb_y(shot.get("y")) if shot is not None else None),
             "shot_location_z": None,
@@ -349,7 +349,7 @@ def build_corners_dataset(
     shot_window: int = SHOT_WINDOW_DEFAULT,
     verbose: bool = True,
 ) -> pd.DataFrame:
-    """Convert every ``<date>...json`` F24 export in ``events_dir`` -- matched
+    """Convert every ``<date>...json`` Opta export in ``events_dir`` -- matched
     to a row in ``matches_csv`` by (date, contestant ID set) -- into one
     combined corners table.
 
@@ -421,11 +421,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="wa-setpieces-convert-corners",
         description=(
-            "Convert a directory of Opta F24 match JSON exports, plus a "
+            "Convert a directory of Opta match JSON exports, plus a "
             "match-list CSV, into a flat corners parquet."
         ),
     )
-    parser.add_argument("events_dir", help="Directory of <date>...json F24 exports")
+    parser.add_argument("events_dir", help="Directory of <date>...json Opta exports")
     parser.add_argument("matches_csv", help="Match-list CSV (matchInfo/... columns)")
     parser.add_argument("output", help="Output .parquet path")
     parser.add_argument("--glob", default="*.json", help="Event file glob (default: *.json)")

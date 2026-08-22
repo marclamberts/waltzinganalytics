@@ -1,4 +1,4 @@
-"""Load Opta F24 JSON event feeds into a flat :class:`pandas.DataFrame`."""
+"""Load Opta JSON event feeds into a flat :class:`pandas.DataFrame`."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import pandas as pd
 
 @dataclass(frozen=True)
 class Match:
-    """A parsed Opta F24 match export.
+    """A parsed Opta match export.
 
     ``match_details`` holds the raw ``matchDetails`` block (periods, scores,
     ...). ``events`` has one row per event and one column per distinct
@@ -54,11 +54,11 @@ _CORE_FIELDS = (
 
 
 def load_events(source: str | Path | dict) -> Match:
-    """Parse an Opta F24 JSON export (path or already-loaded dict).
+    """Parse an Opta JSON export (path or already-loaded dict).
 
     Args:
         source: Path to a ``.json`` file, or a dict already produced by
-            ``json.load`` on an F24 export.
+            ``json.load`` on an Opta export.
 
     Returns:
         A :class:`Match` with a tidy events DataFrame, sorted by match time.
@@ -80,8 +80,8 @@ def load_events(source: str | Path | dict) -> Match:
     events = pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
     if not events.empty:
         # eventId is only unique within one team's own stream (see the
-        # user guide's "Linking to shots and goals" section), so it can't
-        # reliably break ties between
+        # "By metric" docs page's "Linking to shots and goals" entry), so
+        # it can't reliably break ties between
         # two teams' events in the same second. timeStamp carries
         # sub-second precision when the export provides it, so prefer it as
         # a finer-grained tiebreak; eventId remains the final fallback for
@@ -104,10 +104,10 @@ def load_events_multi(
     sources: Sequence[str | Path | dict],
     match_ids: Sequence[str] | None = None,
 ) -> pd.DataFrame:
-    """Load and concatenate several F24 match exports into one events DataFrame.
+    """Load and concatenate several Opta match exports into one events DataFrame.
 
     Each source is parsed with :func:`load_events`, then stacked with a new
-    ``matchId`` column so rows stay attributable to their match (F24 itself
+    ``matchId`` column so rows stay attributable to their match (the feed itself
     carries no match identifier, and per-match ``eventId`` numbering restarts
     at 1, so without this column rows from different matches would collide).
 

@@ -121,7 +121,7 @@ def test_shot_maps_outcome_to_type_goal_and_flags_header(events):
 
 def test_shot_statsbomb_xg_is_not_written_as_a_qualifier():
     # Regression test: statsbomb_xg used to be written into q_103, which
-    # collides with core.placement.QUALIFIER_GOAL_MOUTH_Z (103) -- F24 has
+    # collides with core.placement.QUALIFIER_GOAL_MOUTH_Z (103) -- the feed has
     # no xG qualifier for it to correctly map onto, and the collision
     # silently corrupted ml.shot_value's goal_h_norm placement feature for
     # every StatsBomb-sourced shot with a nonzero xG.

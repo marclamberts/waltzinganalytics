@@ -1,5 +1,5 @@
 """wa-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
-corners, throw-ins, goal kicks) from Opta / Stats Perform F24 -- and, via
+corners, throw-ins, goal kicks) from Opta / Stats Perform -- and, via
 :mod:`wa_setpieces.providers`, StatsBomb -- event data.
 
 Layout:
@@ -8,11 +8,11 @@ Layout:
   retention, xT, added-value and :mod:`~wa_setpieces.core.rating` (no
   extra dependencies; imported eagerly).
 - :mod:`wa_setpieces.providers` -- adapters that convert other providers'
-  feeds (currently StatsBomb) into the same internal events frame Opta F24
+  feeds (currently StatsBomb) into the same internal events frame Opta
   produces, so everything else works unchanged regardless of source.
 - :mod:`wa_setpieces.ml` -- pre-trained shot-value scoring (``ml`` extra).
 - :mod:`wa_setpieces.viz` -- mplsoccer/matplotlib plots (``viz`` extra).
-- :mod:`wa_setpieces.convert` -- turn raw Opta F24 exports plus a match
+- :mod:`wa_setpieces.convert` -- turn raw Opta exports plus a match
   list into the flat corner/delivery table other tools expect.
 
 The names below are the stable public API and are re-exported here so

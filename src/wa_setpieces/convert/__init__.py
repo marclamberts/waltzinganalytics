@@ -1,4 +1,4 @@
-"""Convert raw Opta F24 event exports into flat tables other tools expect.
+"""Convert raw Opta event exports into flat tables other tools expect.
 
 See :mod:`wa_setpieces.convert.corners` for the corners-delivery converter.
 """

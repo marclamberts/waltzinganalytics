@@ -42,8 +42,8 @@ Requirements
 Input data
 ----------
 
-``wa_setpieces`` reads **Opta / Stats Perform F24** match event JSON
+``wa_setpieces`` reads **Opta / Stats Perform** match event JSON
 exports -- the feed with top-level ``matchDetails`` and ``event`` keys,
 where each event carries a ``typeId`` and a list of ``qualifier`` objects.
-This is the standard "F24" feed used across most Opta-powered football data
-providers.
+This is the standard feed format used across most Opta-powered football
+data providers.

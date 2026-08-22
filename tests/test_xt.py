@@ -74,7 +74,7 @@ def test_xt_values_are_bounded_and_non_negative(model):
 
 def test_xt_increases_towards_goal(model):
     # Deep in the acting team's own half should be worth less than right in
-    # front of the opponent's goal (using the confirmed F24 convention that
+    # front of the opponent's goal (using the confirmed convention that
     # x=100 is always the acting team's attacking end).
     deep = model.value(5, 50)
     edge_of_box = model.value(85, 50)

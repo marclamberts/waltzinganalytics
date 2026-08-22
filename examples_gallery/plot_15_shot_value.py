@@ -6,7 +6,7 @@ Shot value (experimental)
    Read :mod:`wa_setpieces.ml.shot_value`'s module docstring in full before
    trusting this output for anything real. The five bundled models were
    trained elsewhere against a feature schema this package has to
-   reconstruct from Opta F24 qualifiers -- some inputs are confidently
+   reconstruct from Opta qualifiers -- some inputs are confidently
    derived, several are experimental best-effort defaults (documented in
    the module docstring), not verified ground truth.
 

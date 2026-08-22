@@ -1,6 +1,6 @@
 """Pitch zones, thirds and channels.
 
-Opta F24 coordinates run 0-100 on both axes and are always expressed in the
+Opta coordinates run 0-100 on both axes and are always expressed in the
 *acting team's own attacking direction*: ``x=0`` is that team's own goal
 line, ``x=100`` is the opponent's. This holds regardless of which team
 touched the ball or which half is being played (verified against

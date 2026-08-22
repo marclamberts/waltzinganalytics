@@ -1,4 +1,4 @@
-"""Run the complete wa-setpieces workflow on an Opta F24 JSON file.
+"""Run the complete wa-setpieces workflow on an Opta JSON file.
 
 Examples
 --------
@@ -33,8 +33,8 @@ from wa_setpieces import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Analyse an Opta F24 event file.")
-    parser.add_argument("opta_file", type=Path, help="Path to the Opta F24 JSON export")
+    parser = argparse.ArgumentParser(description="Analyse an Opta event file.")
+    parser.add_argument("opta_file", type=Path, help="Path to the Opta JSON export")
     parser.add_argument(
         "--type",
         default="corner",
@@ -84,7 +84,7 @@ def main() -> None:
         title=f"{args.type.replace('_', ' ').title()} analysis",
         tables=tables,
         methodology=(
-            "Source: Opta F24 event data. Retention, phases, first contact and added value "
+            "Source: Opta event data. Retention, phases, first contact and added value "
             "are derived event-data heuristics. Ratings need a season-sized benchmark."
         ),
     )

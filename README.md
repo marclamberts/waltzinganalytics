@@ -1,7 +1,7 @@
 # wa-setpieces
 
 Set-piece analytics for football (soccer) matches from **Opta / Stats
-Perform F24** event-feed JSON exports (natively) and **StatsBomb**
+Perform** event-feed JSON exports (natively) and **StatsBomb**
 open-data exports (via an adapter): penalties, kick-offs, free kicks,
 corners, throw-ins and goal kicks.
 
@@ -198,7 +198,7 @@ All of the above are **derived heuristics**, not raw Opta fields — see the
 [docs](https://waltzinganalytics.readthedocs.io) for the exact assumptions
 and tunable thresholds behind each one — in particular
 [By phase and outcome](https://waltzinganalytics.readthedocs.io/en/latest/by_phase.html),
-which also documents a real bug this uncovered and fixed: F24's `eventId`
+which also documents a real bug this uncovered and fixed: the feed's `eventId`
 is only unique *within one team's own event stream, per match* — every
 delivery/shot lookup in this package is scoped accordingly (including
 across matches, where relevant).
@@ -223,7 +223,7 @@ shots = shot_value(match.events, models)
 
 **Read `wa_setpieces/ml/shot_value.py`'s module docstring before trusting
 this for anything real.** The five models were trained elsewhere against a
-feature schema this package has to reconstruct from Opta F24 qualifiers on
+feature schema this package has to reconstruct from Opta qualifiers on
 each shot event; some inputs (shot geometry, set-piece origin, assist,
 left/right foot, goal-mouth placement) are confidently derived from
 already-tested logic elsewhere in this package, but several situational
@@ -479,7 +479,7 @@ save_tables(tables, "workflow_tables/", fmt="csv")
 
 ## Other data providers
 
-Opta F24 is the native format (`wa_setpieces.core.loader.load_events`,
+Opta is the native format (`wa_setpieces.core.loader.load_events`,
 handled directly, no adapter needed). `wa_setpieces.providers` converts
 other providers' feeds into that same internal frame, so every other
 module — filters, metrics, chains, phases, retention, xT, value, rating,
@@ -584,14 +584,14 @@ delivery_clip_windows(match.events, "corner", pre_seconds=5, post_seconds=15)
 | Throw-in    | pass event                                 | 107                |
 | Goal kick   | pass event                                 | 124               |
 
-These qualifier IDs are the standard Opta/Stats Perform F24 vocabulary and
+These qualifier IDs are the standard Opta/Stats Perform vocabulary and
 were cross-checked against a real match export (see `tests/data/sample_match.json`
 and `tests/test_filters.py`): tagged events line up with their expected pitch
 location (corner arc, touchline, centre spot, six-yard line).
 
 ## Package layout
 
-- `wa_setpieces.core.loader` — parse F24 JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
+- `wa_setpieces.core.loader` — parse Opta JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
 - `wa_setpieces.core.constants` — Opta typeId / qualifierId reference.
 - `wa_setpieces.core.schema` — `validate_events`/`event_capabilities`: the provider-neutral event contract every module assumes.
 - `wa_setpieces.core.filters` — extract/tag each set-piece type.
@@ -615,10 +615,10 @@ location (corner arc, touchline, centre spot, six-yard line).
 - `wa_setpieces.core.workflow` — `run_workflow`: the whole pipeline above, one function call (see "The whole pipeline in one call").
 - `wa_setpieces.core.clips` — `delivery_clip_windows`: clip in/out timestamps per delivery, for video-clipping tools.
 - `wa_setpieces.reporting` — `corner_report_html`/`opponent_scouting_report_html`/`render_html_report`/`write_html_report`: portable self-contained HTML reports; `save_table`/`save_tables`: CSV/Excel export for any table.
-- `wa_setpieces.providers.statsbomb` — convert a StatsBomb open-data export into the same internal frame Opta F24 produces.
+- `wa_setpieces.providers.statsbomb` — convert a StatsBomb open-data export into the same internal frame Opta produces.
 - `wa_setpieces.viz.plots` — mplsoccer/matplotlib plots: delivery maps, heatmaps, sonar, timeline, dashboard, radar, rating benchmark, routine clusters, defensive conceding bars, aerial-duel win rate (optional `viz` extra).
 - `wa_setpieces.viz.theme` — the validated dark/light color palettes every plot draws from.
-- `wa_setpieces.convert.corners` — batch-convert a directory of Opta F24 exports plus a match-list CSV into a flat corners table for tools that expect that schema (optional `convert` extra).
+- `wa_setpieces.convert.corners` — batch-convert a directory of Opta exports plus a match-list CSV into a flat corners table for tools that expect that schema (optional `convert` extra).
 - `wa_setpieces.cli` — `wa-setpieces` command-line tool.
 
 ## Development

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+0.19.1
+------
+
+Wording-only pass -- no functional or schema change. "F24" (the Opta/
+Stats Perform event-feed name) is still this package's native format,
+exactly as before -- only the word itself is gone from docs, docstrings,
+comments and the changelog, replaced with "Opta" or "the (event) feed"
+depending on context. Applied everywhere it appeared: README, every
+``docs/source/*.rst`` page, every module docstring and inline comment in
+``src/``, the example scripts and notebooks, and past changelog entries.
+
+310 tests passing (unchanged), docs build clean.
+
 0.19.0
 ------
 
@@ -221,7 +234,7 @@ with regression tests. One of them led to a sixth in
   ``convert.corners`` and ``providers.statsbomb`` share one definition
   instead of each risking their own drift.
 - **Fixed**: ``Q_XG`` was reading qualifier 103, which is
-  ``core.placement.QUALIFIER_GOAL_MOUTH_Z`` -- F24 has no xG qualifier at
+  ``core.placement.QUALIFIER_GOAL_MOUTH_Z`` -- the feed has no xG qualifier at
   all, so this was reading goal-mouth-z as if it were an expected-goals
   value (an off-target miss's z of 65.3 became an "xG" of 0.653).
   ``shot.statsbomb_xg`` in ``convert.corners``'s output is now always
@@ -603,7 +616,7 @@ against the bundled sample match or a targeted synthetic reproduction:
   full season/competition, not one match -- see the module docstring.
 - **New**: ``wa_setpieces.providers`` -- adapters that convert other
   providers' event feeds into the same internal frame
-  ``wa_setpieces.core.loader.load_events`` produces from Opta F24, so
+  ``wa_setpieces.core.loader.load_events`` produces from Opta, so
   every other module works unchanged regardless of source.
   ``wa_setpieces.providers.statsbomb.load_statsbomb_events`` (also
   exported as ``wa_setpieces.load_statsbomb_events``) converts a
@@ -651,7 +664,7 @@ against the bundled sample match or a targeted synthetic reproduction:
   - ``wa_setpieces.convert`` -- new. See below.
 
 - **New**: ``wa_setpieces.convert.corners`` (optional ``convert`` extra --
-  pyarrow) batch-converts a directory of Opta F24 match JSON exports, plus
+  pyarrow) batch-converts a directory of Opta match JSON exports, plus
   a companion match-list CSV, into a flat "corners" table (one row per
   corner delivery, with any shot it produced linked by a time/possession
   heuristic) matching the schema external tools already consume. Also
@@ -667,7 +680,7 @@ against the bundled sample match or a targeted synthetic reproduction:
   ``on_target_prob``, ``xgot`` (xG On Target), ``psxg`` (Post-Shot xG),
   ``situational_prob``, a 4-class outcome distribution, and a blended
   ``shot_value`` column. ``build_shot_features()`` reconstructs the
-  models' training feature schema from Opta F24 qualifiers, reusing
+  models' training feature schema from Opta qualifiers, reusing
   already-tested logic elsewhere in this package (``chains.link_set_piece_shots``,
   ``phases.second_phases``, the validated ``QUALIFIER_ASSIST`` constant)
   wherever possible. **Read the module's docstring before trusting the
@@ -762,7 +775,7 @@ against the bundled sample match or a targeted synthetic reproduction:
 0.5.0
 -----
 
-- **Fixed a real correctness bug**: F24's ``eventId`` is only unique
+- **Fixed a real correctness bug**: the feed's ``eventId`` is only unique
   *within one team's own event stream* (both teams number their events 1,
   2, 3, ... independently -- confirmed 1464 of 1613 rows in the sample
   match share an ``eventId`` with a same-numbered row from the other
@@ -805,13 +818,13 @@ against the bundled sample match or a targeted synthetic reproduction:
   way -- ``plot_team_comparison``/``plot_dashboard`` didn't guarantee which
   team got the first (blue) categorical slot, so "our team" could silently
   swap colors between panels.
-- ``wa_setpieces.load_events_multi``: loads and stacks several F24 exports
+- ``wa_setpieces.load_events_multi``: loads and stacks several Opta exports
   into one events DataFrame tagged with a ``matchId`` column, for
   match-independent aggregation (team/player counts, zone heatmaps,
   fitting ``XTModel`` across a season) -- documented as unsafe to feed
   directly into the per-match ``phases``/``retention`` window functions.
 - Fixed ``plot_match_timeline``'s minute axis: Opta's ``timeMin`` already
-  runs cumulatively across periods in F24 (period 2 continues from ~45,
+  runs cumulatively across periods in this feed (period 2 continues from ~45,
   it doesn't reset to 0), so the previous per-period offset was double
   counting second-half events. Verified against the sample match.
 - GitHub Actions: PyPI trusted-publisher release workflow and a pytest CI
@@ -845,6 +858,6 @@ against the bundled sample match or a targeted synthetic reproduction:
 -----
 
 - Initial release: loader, extractors and metrics for penalties, kick-offs,
-  free kicks, corners, throw-ins and goal kicks from Opta F24 event data.
+  free kicks, corners, throw-ins and goal kicks from Opta event data.
 - Set-piece-to-shot/goal chain linking via the assist-chain qualifier.
 - ``wa-setpieces`` command-line tool.

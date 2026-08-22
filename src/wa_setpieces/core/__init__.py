@@ -1,4 +1,4 @@
-"""Core set-piece extraction and analytics: loading Opta F24 events, tagging
+"""Core set-piece extraction and analytics: loading Opta events, tagging
 set pieces, second phases, retention, xT and added-value scoring.
 
 These modules have no dependencies beyond pandas/numpy and are imported

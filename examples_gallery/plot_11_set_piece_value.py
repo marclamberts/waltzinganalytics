@@ -10,7 +10,7 @@ chance that shot was. ``added_value = delivery_xt_added + shot_value``.
 The shot link comes from Opta's own assist-chain qualifier
 (:func:`wa_setpieces.core.chains.link_set_piece_shots`), scoped to the shooting
 team's own event stream -- ``eventId`` is only unique *within one team's
-event stream* in F24 (both teams number their events 1, 2, 3, ...
+event stream* in this feed (both teams number their events 1, 2, 3, ...
 independently), so resolving it without that scoping can silently
 attribute a shot to the wrong team's delivery.
 """

@@ -8,7 +8,7 @@ grid, ...) and returns the ``(fig, ax)`` matplotlib pair, so you can keep
 customizing the plot afterwards.
 
 Requires the optional ``viz`` extra: ``pip install "wa-setpieces[viz]"``.
-Opta F24 coordinates (0-100 both axes, each event already in the acting
+Opta coordinates (0-100 both axes, each event already in the acting
 team's own attacking direction -- see :mod:`wa_setpieces.core.zones`) map
 directly onto :class:`mplsoccer.Pitch`'s built-in ``pitch_type="opta"``, so
 no coordinate conversion is needed.
@@ -289,7 +289,7 @@ def plot_second_phase(
     if len(matches) > 1:
         raise ValueError(
             f"eventId={delivery_event_id} matches {len(matches)} corner/free-kick "
-            f"deliveries (eventId is only unique per team in F24) -- pass "
+            f"deliveries (eventId is only unique per team in this feed) -- pass "
             f"contestant_id to disambiguate."
         )
     delivery_row = matches.iloc[0]

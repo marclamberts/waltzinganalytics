@@ -1,7 +1,7 @@
 wa-setpieces
 ===============
 
-**Set-piece analytics for football, in pandas.** Point it at an Opta F24
+**Set-piece analytics for football, in pandas.** Point it at an Opta
 match export (or StatsBomb open data, via an adapter) and get every
 corner, free kick, throw-in, penalty, goal kick and kick-off tagged,
 measured and rated -- as tidy DataFrames, plus pitch plots built on

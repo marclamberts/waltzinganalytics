@@ -1,7 +1,7 @@
 """Convert a StatsBomb open-data match events export into the internal
 events DataFrame every other ``wa_setpieces`` module consumes -- the same
 shape :func:`wa_setpieces.core.loader.load_events`'s ``.events`` produces
-from Opta F24. Once converted, ``wa_setpieces.core``, ``wa_setpieces.ml``,
+from Opta. Once converted, ``wa_setpieces.core``, ``wa_setpieces.ml``,
 ``wa_setpieces.viz`` and ``wa_setpieces.core.rating`` all work unchanged on
 StatsBomb data -- there is no separate StatsBomb code path anywhere else in
 the package.
@@ -29,7 +29,7 @@ cutoff takes over. Set-piece detection, the assist-chain shot link
 unaffected.
 
 **Known gap**: ``shot.statsbomb_xg`` is dropped rather than converted --
-F24 has no xG qualifier to map it onto, and an earlier version of this
+the feed has no xG qualifier to map it onto, and an earlier version of this
 adapter wrote it into qualifier 103, which collides with
 :data:`wa_setpieces.core.placement.QUALIFIER_GOAL_MOUTH_Z` and silently
 corrupted :mod:`wa_setpieces.ml.shot_value`'s goal-mouth placement
@@ -138,7 +138,7 @@ def _convert_shot(ev: dict, qualifiers: dict[str, Any], id_to_index: dict[str, i
     if (shot_info.get("type") or {}).get("name") == "Penalty":
         qualifiers[f"q_{c.QUALIFIER_PENALTY}"] = True
 
-    # statsbomb_xg has no Opta qualifier equivalent -- F24 carries no xG
+    # statsbomb_xg has no Opta qualifier equivalent -- the feed carries no xG
     # field at all (see convert.corners' module docstring, which found and
     # removed the same mistake on the read side: it had been mistakenly
     # reading qualifier 103 as xG). q_103 is core.placement's

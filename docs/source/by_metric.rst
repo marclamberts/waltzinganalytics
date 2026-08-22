@@ -85,7 +85,7 @@ Linking to shots and goals
 
 .. important::
 
-   F24's ``eventId`` is only unique *within one team's own event stream* --
+   The feed's ``eventId`` is only unique *within one team's own event stream* --
    both teams number their events 1, 2, 3, ... independently. This
    function scopes its lookup to a team first; an unscoped
    ``events[events["eventId"] == x]`` on the raw feed is not safe.

@@ -1,5 +1,5 @@
 """Extract set-piece events (penalties, kick-offs, free kicks, corners,
-throw-ins, goal kicks) from a parsed Opta F24 events DataFrame.
+throw-ins, goal kicks) from a parsed Opta events DataFrame.
 """
 
 from __future__ import annotations
