@@ -1,6 +1,49 @@
 Changelog
 =========
 
+0.19.0
+------
+
+Every plot in :mod:`wa_setpieces.viz` gets a real chart "card" anatomy
+now, not just a colored title -- the same WA house-style card layout
+used in Waltzing Analytics' own report work, generalized into the
+package's shared theme so every function gets it automatically.
+
+- **Added**: a header band (eyebrow category label, serif title, muted
+  subtitle) and the "WA · WALTZING ANALYTICS" brand lockup, top-right of
+  every chart that owns its own figure -- on by default, since this is
+  the package's own brand mark, not any individual's. New
+  :meth:`~wa_setpieces.viz.theme.Palette.draw_header`/:meth:`~wa_setpieces.viz.theme.Palette.draw_wa_lockup`/
+  :meth:`~wa_setpieces.viz.theme.Palette.draw_eyebrow`/:meth:`~wa_setpieces.viz.theme.Palette.draw_footer`
+  on :class:`~wa_setpieces.viz.theme.Palette`.
+- **Added**: ``eyebrow`` and ``author`` parameters on every plotting
+  function in :mod:`wa_setpieces.viz.plots`. ``author`` adds a personal
+  byline under the WA lockup and a "{author} | Created on DD-MM-YYYY"
+  stamp to the footer -- opt-in, no default, so a chart from this
+  package never carries a name that isn't yours.
+- **Changed**: the footer's ``source``/credit text (the pre-existing
+  ``footer=`` argument) moved from bottom-right to bottom-left, to make
+  room for the new author/date stamp on the right.
+- **Changed**: when a plotting function creates its own figure (i.e.
+  ``ax`` wasn't passed in), title/subtitle now render in this new
+  figure-level header band instead of as the axes' own
+  ``ax.set_title()`` -- ``ax.get_title()`` is empty in that case now.
+  Passing your own ``ax`` still uses the older, simpler axes-level title
+  (this function doesn't own the whole figure in that case and can't
+  safely reserve header margin on it).
+- **Fixed**: a real layout bug this surfaced -- :func:`mplsoccer.Pitch.draw`
+  turns on a ``TightLayoutEngine`` by default, which silently re-runs on
+  every subsequent draw/save and overrides ``subplots_adjust``, undoing
+  reserved header/footer margins the moment a pitch-based figure is
+  saved (confirmed by rendering: the title drew directly on top of the
+  legend). Fixed by disabling the figure's layout engine once the WA
+  card's own margins are set.
+- Hero image and all twenty gallery plots regenerated against the new
+  anatomy, in both light and dark mode.
+
+310 tests passing (was 309; the axes-title behavior change above gets
+its own regression test alongside the updated one), docs build clean.
+
 0.18.7
 ------
 

@@ -546,11 +546,19 @@ the job they do — a categorical palette for team identity (team-vs-team
 charts use a fixed teal-then-blue pairing in both modes), a status pair
 for success/fail, gold for goals, single-hue sequential ramps for
 magnitude, and a diverging pair for signed quantities like xT added — not
-picked for looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
-title) and `footer` (a small credit/source line, bottom-right) are
-optional on every plot. See the
+picked for looks; see `wa_setpieces/viz/theme.py`.
+
+Every plot also carries the WA card anatomy: an optional `eyebrow`
+(a small category label above the title, e.g. `"Corner"`), a serif
+`title`, a muted `subtitle` line beneath it, the "WA · WALTZING ANALYTICS"
+brand lockup top-right (on by default -- this package's own brand mark,
+not the caller's), and a footer with an optional `footer` source/credit
+line bottom-left. Pass `author="Your Name"` to add a byline under the
+lockup and a "Your Name | Created on DD-MM-YYYY" stamp to the footer --
+there's no default author, so a chart from this package always carries
+the WA mark but never a name that isn't yours. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
-for all fifteen plots (in both modes) with full source code.
+for these in action, in both modes, with full source code.
 
 ## Video clips
 

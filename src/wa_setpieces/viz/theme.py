@@ -32,8 +32,10 @@ light-mode teal-green/blue equivalents.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.lines import Line2D
 
 # Categorical hues: fixed hue order, held constant across both modes --
 # only the per-mode lightness/saturation step changes (dark surface needs
@@ -110,6 +112,10 @@ class Palette:
     good: str = GOOD
     critical: str = CRITICAL
     gold: str = GOLD
+    # WA's single brand accent -- the eyebrow bullet+label, the WA lockup
+    # mark, headline callouts. Coral in dark mode, amber in light mode,
+    # per WA's own two canvases (see the module docstring).
+    accent: str = "#e8794c"
     # A true neutral gray (R~=G~=B, only barely warm-tinted to match WA's
     # paper/navy undertone) for the diverging colormap's zero point --
     # deliberately *not* `baseline`, which carries this palette's own hue
@@ -170,6 +176,163 @@ class Palette:
         since a source credit is specific to whoever is publishing the chart."""
         fig.text(0.99, 0.01, text, ha="right", va="bottom", color=self.ink_muted, fontsize=fontsize)
 
+    def draw_eyebrow(self, fig, text: str, x_in: float = 0.28, y_in: float = 0.24, fontsize: float = 9.5) -> None:
+        """Small square bullet + all-caps label, top-left of the figure --
+        the category/context line above the title (e.g. "CORNER · TREND
+        NOTE"). A unicode square glyph inline with the text, colored with
+        it, rather than a separate patch -- simpler to position and just
+        as legible."""
+        fig_w, fig_h = fig.get_size_inches()
+        fig.text(
+            x_in / fig_w, 1 - y_in / fig_h, f"■  {text.upper()}",
+            transform=fig.transFigure, ha="left", va="top",
+            color=self.accent, fontsize=fontsize, fontweight="bold",
+        )
+
+    def draw_wa_lockup(self, fig, author: str | None = None, x_in: float = 0.28, y_in: float = 0.24) -> None:
+        """The package's own brand lockup -- a bold "WA" mark, a divider,
+        and the "WALTZING ANALYTICS" wordmark (+ an optional byline line
+        if ``author`` is given) -- top-right of the figure. This is WA's
+        own brand identity, not the caller's: pass ``author=`` to add a
+        personal byline underneath the wordmark, but there's no default
+        byline -- everyone who uses this package gets the same WA mark,
+        not a name that isn't theirs.
+
+        The divider and "WA" mark are positioned from the wordmark's
+        *measured* rendered width (a forced ``fig.canvas.draw()`` plus
+        ``get_window_extent``), not a guessed inch offset -- bold text at
+        small point sizes is reliably wider than eyeballed estimates, and
+        a guessed offset ends up drawing the divider through the text
+        instead of beside it.
+        """
+        fig_w, fig_h = fig.get_size_inches()
+        right_x = 1 - x_in / fig_w
+        top_y = 1 - y_in / fig_h
+
+        wordmark = fig.text(
+            right_x, top_y, "WALTZING ANALYTICS", transform=fig.transFigure,
+            ha="right", va="top", color=self.ink_primary, fontsize=8.5, fontweight="bold",
+        )
+        byline = None
+        if author:
+            byline = fig.text(
+                right_x, top_y, author.upper(), transform=fig.transFigure,
+                ha="right", va="top", color=self.ink_muted, fontsize=7,
+            )
+
+        # First pass: render once so each line's real height is known, then
+        # restack them top-to-bottom with a small fixed gap (their initial
+        # positions overlap -- only used to measure, not to place).
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        lines = [wordmark] + ([byline] if byline else [])
+        heights_px = [t.get_window_extent(renderer=renderer).height for t in lines]
+
+        gap_px = 3
+        y_px = top_y * fig.bbox.height
+        for text_obj, h_px in zip(lines, heights_px):
+            text_obj.set_position((right_x, y_px / fig.bbox.height))
+            y_px -= h_px + gap_px
+
+        # Second pass: positions above are final -- measure again for the
+        # real bounding box to place the divider and "WA" mark against.
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bboxes = [t.get_window_extent(renderer=renderer) for t in lines]
+        block_left_px = min(b.x0 for b in bboxes)
+        block_top_px = max(b.y1 for b in bboxes)
+        block_bottom_px = min(b.y0 for b in bboxes)
+        center_px = (block_top_px + block_bottom_px) / 2
+        half_h_px = max((block_top_px - block_bottom_px) / 2, 9) + 3
+
+        divider_x_px = block_left_px - 10
+        fig.add_artist(Line2D(
+            [divider_x_px / fig.bbox.width] * 2,
+            [(center_px - half_h_px) / fig.bbox.height, (center_px + half_h_px) / fig.bbox.height],
+            transform=fig.transFigure, color=self.gridline, linewidth=1,
+        ))
+        fig.text(
+            (divider_x_px - 10) / fig.bbox.width, center_px / fig.bbox.height, "WA",
+            transform=fig.transFigure, ha="right", va="center",
+            color=self.accent, fontsize=21, fontweight="bold", family="serif",
+        )
+
+    def draw_header(
+        self, fig, eyebrow: str | None = None, title: str | None = None,
+        subtitle: str | None = None, author: str | None = None,
+        title_fontsize: float = 15, left_x_in: float = 0.28,
+    ) -> None:
+        """The full header band: eyebrow + serif title + subtitle at the
+        top-left, the WA brand lockup at the top-right (see
+        :meth:`draw_wa_lockup`) -- and reserves the figure's top margin via
+        ``subplots_adjust`` so whatever axes are already in the figure
+        (a single axes, a GridSpec, a polar plot) shrink to make room,
+        without needing to know how they were created.
+
+        Disables the figure's layout engine first (``set_layout_engine(None)``)
+        -- :func:`mplsoccer.Pitch.draw` turns on a ``TightLayoutEngine`` by
+        default, which silently re-runs on every subsequent draw/save and
+        overrides ``subplots_adjust`` with its own recalculated margins,
+        undoing the reserved header space the moment the figure is saved.
+        Confirmed by rendering: without this, the title and the legend
+        (top-left of the now "restored" full-size axes) draw on top of
+        each other in the saved PNG despite ``subplots_adjust`` having
+        already run.
+        """
+        fig.set_layout_engine(None)
+        fig_w, fig_h = fig.get_size_inches()
+        y_in = 0.24
+        if eyebrow:
+            self.draw_eyebrow(fig, eyebrow, x_in=left_x_in, y_in=y_in)
+            y_in += 0.30
+        if title:
+            fig.text(
+                left_x_in / fig_w, 1 - y_in / fig_h, title, transform=fig.transFigure,
+                ha="left", va="top", color=self.ink_primary, fontsize=title_fontsize,
+                fontweight="bold", family="serif",
+            )
+            y_in += title_fontsize / 72 * 1.35
+        if subtitle:
+            fig.text(
+                left_x_in / fig_w, 1 - y_in / fig_h, subtitle, transform=fig.transFigure,
+                ha="left", va="top", color=self.ink_secondary, fontsize=10,
+            )
+            y_in += 0.26
+        self.draw_wa_lockup(fig, author=author, x_in=left_x_in, y_in=0.24)
+        fig.subplots_adjust(top=max(0.5, 1 - (y_in + 0.15) / fig_h))
+
+    def draw_footer(self, fig, source: str | None = None, author: str | None = None, fontsize: float = 8) -> None:
+        """The footer band: ``source`` (e.g. a data-provider credit)
+        bottom-left, and ``"{author} | Created on DD-MM-YYYY"`` bottom-right
+        if ``author`` is given -- reserves the figure's bottom margin the
+        same way :meth:`draw_header` reserves the top. A no-op if neither
+        is given, same as the pre-existing :meth:`style_footer` behavior:
+        a credit line is never defaulted. Also disables the figure's
+        layout engine -- see :meth:`draw_header`'s docstring for why."""
+        if not source and not author:
+            return
+        fig.set_layout_engine(None)
+        fig_w, fig_h = fig.get_size_inches()
+        # The footer text itself sits right at the bottom edge; the margin
+        # reserved below the axes has to clear the axes' own tick labels
+        # *and* the footer text, not just the footer text -- an axes'
+        # x-tick labels render in the space subplots_adjust(bottom=...)
+        # carves out, so too small a reserve here puts the footer text
+        # directly on top of them.
+        text_in = 0.16
+        if source:
+            fig.text(
+                0.28 / fig_w, text_in / fig_h, source, transform=fig.transFigure,
+                ha="left", va="bottom", color=self.ink_muted, fontsize=fontsize,
+            )
+        if author:
+            stamp = f"{author} | Created on {date.today():%d-%m-%Y}"
+            fig.text(
+                1 - 0.28 / fig_w, text_in / fig_h, stamp, transform=fig.transFigure,
+                ha="right", va="bottom", color=self.ink_muted, fontsize=fontsize,
+            )
+        fig.subplots_adjust(bottom=min(0.5, (text_in + 0.5) / fig_h))
+
 
 _DARK = Palette(
     dark=True,
@@ -197,6 +360,7 @@ _LIGHT = Palette(
     pitch_line="#d8d3c5",
     categorical=_CATEGORICAL_LIGHT,
     team_colors=["#1baf7a", "#2a78d6"],  # teal-green (team 1), blue (team 2)
+    accent="#eda100",  # WA's light-mode brand amber, not dark mode's coral
     _diverging_neutral="#f4f3f0",
 )
 

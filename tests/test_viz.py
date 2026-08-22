@@ -152,8 +152,28 @@ def test_subtitle_and_footer_render_without_error(events):
     fig, ax = viz.plot_delivery_map(
         corners, title="Corners", subtitle="20 June 2026 · Example", footer="Data: Opta // Example"
     )
-    assert ax.get_title() == "Corners"
+    # Title/subtitle/footer live in the figure-level WA header/footer band
+    # (not ax.set_title) whenever this function created its own figure --
+    # see _finish_figure's docstring on why that differs from the
+    # existing-ax fallback path covered by test_plotting_with_existing_axis.
+    figure_text = {t.get_text() for t in fig.texts}
+    assert "Corners" in figure_text
+    assert "20 June 2026 · Example" in figure_text
+    assert "Data: Opta // Example" in figure_text
     assert fig is not None
+
+
+def test_title_falls_back_to_axes_title_with_existing_axis(events):
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    corners = delivery_locations(events, "corner")
+    viz.plot_delivery_map(corners, title="Corners", ax=ax)
+    # With a caller-supplied ax, this function doesn't own the whole
+    # figure, so the title stays on the axes instead of the figure-level
+    # header band (which would need to reserve margin it can't safely
+    # claim on a figure it didn't create).
+    assert ax.get_title() == "Corners"
 
 
 def test_plotting_with_existing_axis(events):

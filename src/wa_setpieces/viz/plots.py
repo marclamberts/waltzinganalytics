@@ -14,11 +14,19 @@ directly onto :class:`mplsoccer.Pitch`'s built-in ``pitch_type="opta"``, so
 no coordinate conversion is needed.
 
 Every function takes ``dark: bool = True`` -- the whole figure (pitch,
-chart chrome, team colors) switches between the validated dark and light
-palettes in :mod:`wa_setpieces.viz.theme` with that one argument. Colors
-otherwise follow :mod:`wa_setpieces.viz.theme` -- assigned by the job they do
-(status, category, magnitude, sign, team identity), not picked for looks.
-See that module's docstring before adding a new plot.
+chart chrome, team colors) switches between the Waltzing Analytics dark
+and light house-style palettes in :mod:`wa_setpieces.viz.theme` with that
+one argument. Colors otherwise follow :mod:`wa_setpieces.viz.theme` --
+assigned by the job they do (status, category, magnitude, sign, team
+identity), not picked for looks. See that module's docstring before
+adding a new plot.
+
+Every function also takes ``eyebrow`` (a small category label above the
+title, e.g. ``"Corner"``) and ``author`` (adds a personal byline under the
+WA lockup, and an attribution/date stamp to the footer -- there's no
+default author, so a chart from this package carries the WA brand mark
+but not anyone's name unless you ask for it). Both are opt-in and blank
+by default; see :meth:`wa_setpieces.viz.theme.Palette.draw_header`.
 """
 
 from __future__ import annotations
@@ -58,29 +66,48 @@ def _draw_pitch(pal: theme.Palette, ax, pitch_kwargs, figsize=(8, 5.2)):
     return pitch, fig, ax
 
 
-def _style_chart_axis(pal: theme.Palette, ax, title: str | None = None, subtitle: str | None = None):
+def _style_chart_axis(pal: theme.Palette, ax) -> None:
+    """Chart chrome only (facecolor, spines, ticks) -- title/subtitle are
+    handled by :func:`_finish_figure` instead, since whether they belong on
+    the axes or in a figure-level header band depends on whether this
+    function owns the whole figure (see that function's docstring)."""
     ax.set_facecolor(pal.surface)
     for spine in ax.spines.values():
         spine.set_color(pal.gridline)
     ax.tick_params(colors=pal.ink_secondary)
     ax.xaxis.label.set_color(pal.ink_secondary)
     ax.yaxis.label.set_color(pal.ink_secondary)
-    if title:
-        pal.style_axis_text(ax, title, subtitle)
 
 
-def _finish_figure(pal: theme.Palette, fig, footer: str | None):
+def _finish_figure(
+    pal: theme.Palette, fig, ax,
+    title: str | None, subtitle: str | None, footer: str | None,
+    eyebrow: str | None = None, author: str | None = None,
+) -> None:
+    """Wrap up a plot: the full WA card header/footer (eyebrow, serif
+    title, subtitle, WA lockup, footer) if this function created and owns
+    the whole figure -- or the older, simpler axes-level title/footer if
+    the caller passed in their own ``ax``, since then we don't know the
+    rest of that figure's layout and can't safely reserve margin for a
+    header band without possibly colliding with whatever else is on it.
+    """
     if fig is not None:
         fig.patch.set_facecolor(pal.surface)
+        pal.draw_header(fig, eyebrow=eyebrow, title=title, subtitle=subtitle, author=author)
+        pal.draw_footer(fig, source=footer, author=author)
+    else:
+        pal.style_axis_text(ax, title, subtitle)
         if footer:
-            pal.style_footer(fig, footer)
+            pal.style_footer(ax.figure, footer)
 
 
 def plot_delivery_map(
     deliveries: pd.DataFrame,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -95,8 +122,12 @@ def plot_delivery_map(
         dark: render on the dark (default) or light palette from
             :mod:`wa_setpieces.viz.theme`.
         subtitle: optional muted line under the title (e.g. a date/venue).
-        footer: optional small credit/source line, bottom-right of the
+        eyebrow: optional small category label above the title (e.g.
+            ``"Corner"``), WA-house-style.
+        footer: optional small credit/source line, bottom-left of the
             figure -- never defaulted.
+        author: optional byline -- adds a name under the WA lockup and a
+            "{author} | Created on DD-MM-YYYY" stamp to the footer.
 
     Returns:
         ``(fig, ax)``. ``fig`` is ``None`` if an existing ``ax`` was passed in.
@@ -119,8 +150,7 @@ def plot_delivery_map(
         )
 
     pal.style_legend(ax)
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -132,7 +162,9 @@ def plot_zone_heatmap(
     y_bins: int = 3,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     cmap=None,
     ax=None,
@@ -166,8 +198,7 @@ def plot_zone_heatmap(
         label.set_path_effects(
             [path_effects.Stroke(linewidth=2.5, foreground=stroke_color), path_effects.Normal()]
         )
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -175,7 +206,9 @@ def plot_xt_grid(
     model,
     title: str | None = "Expected Threat (xT) grid",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     cmap=None,
     ax=None,
@@ -198,8 +231,7 @@ def plot_xt_grid(
     )
     stats["statistic"] = model.grid
     pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -209,7 +241,9 @@ def plot_second_phase(
     contestant_id: str | None = None,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -310,8 +344,7 @@ def plot_second_phase(
             else "no clear resolution"
         )
         title = f"{result.set_piece_type or 'set piece'} — eventId {delivery_event_id} ({outcome})"
-    pal.style_axis_text(ax, title, subtitle, fontsize=12)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -322,7 +355,9 @@ def plot_team_comparison(
     team_order: list | None = None,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -384,8 +419,8 @@ def plot_team_comparison(
     # verified against the sample match, where lower right clipped into the
     # throw-in bars.
     pal.style_legend(ax, loc="upper right")
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -396,7 +431,9 @@ def plot_xt_added_bars(
     top_n: int = 15,
     title: str | None = "xT added per delivery",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -441,8 +478,8 @@ def plot_xt_added_bars(
     ax.set_xlabel(value_col.replace("_", " "))
     ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -453,7 +490,9 @@ def plot_rating_benchmark(
     top_n: int | None = None,
     title: str | None = "Rating benchmark",
     subtitle: str | None = "50 = sample average",
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -503,8 +542,8 @@ def plot_rating_benchmark(
     ax.set_xlabel("rating")
     ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -512,7 +551,9 @@ def plot_corner_sonar(
     deliveries: pd.DataFrame,
     title: str | None = "Corner sonar",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -547,8 +588,7 @@ def plot_corner_sonar(
     ax.tick_params(colors=pal.ink_secondary)
     ax.spines["polar"].set_color(pal.gridline)
     ax.grid(color=pal.gridline)
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -557,7 +597,9 @@ def plot_match_timeline(
     team_names: dict | None = None,
     title: str | None = "Set pieces through the match",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -610,8 +652,8 @@ def plot_match_timeline(
     ax.set_xlabel("Match minute")
     ax.invert_yaxis()
     pal.style_legend(ax, loc="upper right", ncol=1)
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -622,7 +664,9 @@ def plot_dashboard(
     team_names: dict | None = None,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
 ):
     """One-figure set-piece report card for a team: delivery map, end-zone
@@ -643,7 +687,7 @@ def plot_dashboard(
 
     pal = theme.get_palette(dark)
 
-    fig = plt.figure(figsize=(13, 9), facecolor=pal.surface)
+    fig = plt.figure(figsize=(13, 9.5), facecolor=pal.surface)
     gs = fig.add_gridspec(2, 2, height_ratios=[1.3, 1], hspace=0.35, wspace=0.25)
 
     deliveries = delivery_locations(events, set_piece_type)
@@ -678,11 +722,11 @@ def plot_dashboard(
         title="Success rate by set-piece type", dark=dark, ax=ax_rate,
     )
 
-    fig.suptitle(title or f"{label} — set-piece report", color=pal.ink_primary, fontsize=16, fontweight="bold", y=0.98)
-    if subtitle:
-        fig.text(0.5, 0.945, subtitle, ha="center", va="top", color=pal.ink_secondary, fontsize=11)
-    if footer:
-        pal.style_footer(fig, footer)
+    pal.draw_header(
+        fig, eyebrow=eyebrow, title=title or f"{label} — set-piece report",
+        subtitle=subtitle, author=author,
+    )
+    pal.draw_footer(fig, source=footer, author=author)
     return fig
 
 
@@ -701,7 +745,9 @@ def plot_set_piece_radar(
     team_names: dict | None = None,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -799,8 +845,7 @@ def plot_set_piece_radar(
         handles=handles, loc="upper right",
         facecolor=pal.surface, edgecolor="none", labelcolor=pal.ink_primary,
     )
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -820,7 +865,9 @@ def plot_set_piece_outcomes(
     outcomes: pd.DataFrame,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -868,8 +915,7 @@ def plot_set_piece_outcomes(
         )
 
     pal.style_legend(ax, loc="upper left", fontsize=8, ncol=1)
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -877,7 +923,9 @@ def plot_routine_clusters(
     clustered: pd.DataFrame,
     title: str | None = "Routine clusters",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -913,8 +961,7 @@ def plot_routine_clusters(
         )
 
     pal.style_legend(ax, fontsize=8)
-    pal.style_axis_text(ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -926,7 +973,9 @@ def plot_defensive_routine_bars(
     top_n: int = 8,
     title: str | None = None,
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -977,8 +1026,8 @@ def plot_defensive_routine_bars(
     if title is None:
         label = team_name or (f"{team_id[:8]}…" if team_id else "Team")
         title = f"{label} — conceded by {group_col.replace('_', ' ')}"
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
 
@@ -987,7 +1036,9 @@ def plot_aerial_duel_win_rate(
     team_names: dict | None = None,
     title: str | None = "Aerial duel win rate",
     subtitle: str | None = None,
+    eyebrow: str | None = None,
     footer: str | None = None,
+    author: str | None = None,
     dark: bool = True,
     ax=None,
 ):
@@ -1019,6 +1070,6 @@ def plot_aerial_duel_win_rate(
     ax.set_xlabel("win rate (%)")
     ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
     ax.set_axisbelow(True)
-    _style_chart_axis(pal, ax, title, subtitle)
-    _finish_figure(pal, fig, footer)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
