@@ -43,6 +43,14 @@ intersphinx_mapping = {
 # -- sphinx-gallery: renders examples_gallery/*.py into docs/source/gallery,
 # executing each script and capturing its matplotlib figures + printed
 # output, mplsoccer-style. ------------------------------------------------
+# Crisper gallery output -- matplotlib's default savefig dpi (100) reads
+# soft/slightly blurry for text-heavy charts (the WA header's serif title,
+# small tick labels) once a browser scales the image down from its natural
+# size; sphinx-gallery's scraper respects whatever rcParams are set when
+# each example script runs.
+import matplotlib
+matplotlib.rcParams["savefig.dpi"] = 200
+
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples_gallery",
     "gallery_dirs": "gallery",

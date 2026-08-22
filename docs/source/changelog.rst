@@ -1,6 +1,49 @@
 Changelog
 =========
 
+0.19.2
+------
+
+Visual quality pass on :mod:`wa_setpieces.viz`, prompted by feedback that
+the gallery didn't feel "befitting" the package's own WA branding --
+found several concrete, real problems by actually rendering and looking
+at the output, not just guessing at what "higher quality" might mean.
+
+- **Fixed a real bug**: a long header title collided with the WA lockup
+  on narrower figures (e.g. the polar sonar plot, 6in wide) -- confirmed
+  by rendering. :meth:`~wa_setpieces.viz.theme.Palette.draw_header` now
+  draws the lockup first, measures its actual left edge, and truncates
+  the title/subtitle with an ellipsis (measured, not guessed) so they
+  stop short of it instead of running through it.
+- **Fixed a real bug**: bar-chart y-axis labels (team/player IDs) were
+  truncated, missing their first character, on every horizontal bar
+  chart -- the default matplotlib left margin didn't account for label
+  width. New ``_reserve_ytick_margin`` measures the widest rendered
+  label and reserves exactly enough space.
+- **Fixed a design flaw**: the sequential heatmap ramp (zone counts, xT
+  grids) used a fixed light-to-dark palette designed for a white
+  background -- on the dark navy canvas its pale pastel low end looked
+  like a different, lighter-themed app pasted into the WA card. Ramps
+  are now mode-aware: the low end blends toward *this palette's own
+  surface color* (receding into the canvas) and only the high end (WA's
+  saturated categorical hue) is fixed across both modes.
+- **Added**: value labels (``ax.bar_label``) on every bar chart --
+  team comparison, xT-added bars, rating benchmark, defensive routine
+  bars, aerial duel win rate -- reading exact values off a bar no longer
+  requires eyeballing against gridlines.
+- **Changed**: delivery-map arrows are bolder (wider, larger heads) and
+  bar-chart gridlines lighter/more subtle, closer to how the reference
+  WA report charts actually look rather than matplotlib defaults.
+- **Changed**: gallery images render at 200 dpi in the docs build
+  (was matplotlib's default 100) -- crisper text and lines once a
+  browser displays the image at its natural size.
+- Hero image and all twenty gallery plots regenerated, in both light and
+  dark mode, and visually reviewed image by image before committing --
+  not just checked for a clean build.
+
+313 tests passing (was 310; two sequential-cmap tests rewritten for the
+new mode-aware ramp direction, one new test added), docs build clean.
+
 0.19.1
 ------
 

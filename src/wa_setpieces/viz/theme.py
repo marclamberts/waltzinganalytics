@@ -76,21 +76,55 @@ GOOD = "#1faa1f"
 CRITICAL = "#d03b3b"
 GOLD = "#eda100"  # a goal -- WA's deeper brand amber, distinct from categorical gold/amber
 
-# Sequential blue ramp (light -> dark), the default single hue for
-# magnitude (heatmap counts, densities), interpolated toward WA's own
-# dark-mode categorical blue (#5b8ac9). Mode-independent: this is the ramp
-# *within* a chart, not the chart's own background.
-_SEQUENTIAL_BLUE_STEPS = [
-    "#dce9f7", "#d1e1f3", "#c6d9ef", "#bcd1ec", "#b1c9e8",
-    "#a6c1e4", "#9cbae0", "#91b2dc", "#86aad8", "#7ba2d4",
-    "#709ad1", "#6692cd", "#5b8ac9",
-]
+# Sequential ramps for magnitude (heatmap counts, densities) -- mode-aware,
+# unlike the categorical/status colors above: a low value should read as
+# "barely there" against *this mode's own canvas*, a high value as the full
+# saturated hue. A fixed light->dark ramp (pale pastel at the low end) looks
+# right on white paper but reads as a disconnected, pasted-in light-mode
+# widget on the dark navy canvas -- confirmed by rendering a zone heatmap in
+# dark mode with the old fixed ramp: the pale blue cells looked like a
+# different app's output next to the WA-branded header above them. So the
+# low end blends toward *this palette's own surface color* instead of a
+# fixed pale hue, and only the high end (the saturated target hue) is fixed
+# across both modes.
+_SEQUENTIAL_BLUE_TARGET = "#5b8ac9"    # WA's own categorical blue, both modes' high end
+_SEQUENTIAL_GREEN_TARGET = "#1fa88c"   # WA's own team-identity teal, both modes' high end
 
-# Sequential teal ramp (light -> dark): the second magnitude hue, for when
-# a second sequential scale appears alongside the blue one (e.g. an xT grid
-# next to a zone-count heatmap in the same figure) -- interpolated toward
-# WA's own team-identity teal (#1fa88c).
-_SEQUENTIAL_GREEN_STEPS = ["#d6f0ea", "#b1e2d7", "#8dd3c4", "#68c5b2", "#44b69f", "#1fa88c"]
+
+def _mix(hex_a: str, hex_b: str, t: float) -> str:
+    a = tuple(int(hex_a.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
+    b = tuple(int(hex_b.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
+    rgb = tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+    return "#" + "".join(f"{max(0, min(255, round(c))):02x}" for c in rgb)
+
+
+def _ramp(low: str, high: str, n: int) -> list[str]:
+    return [_mix(low, high, i / (n - 1)) for i in range(n)]
+
+
+def _truncate_to_width(fig, renderer, text: str, prop, max_width_px: float) -> str:
+    """Truncate ``text`` with a trailing "…" so it renders no wider than
+    ``max_width_px`` under ``prop`` (a :class:`~matplotlib.font_manager.FontProperties`).
+    Binary search over candidate lengths, reusing one already-drawn
+    ``renderer`` to measure each candidate (``get_text_width_height_descent``
+    needs no further canvas redraw) -- this is what keeps a long title from
+    running into the WA lockup on a narrow figure instead of overlapping it.
+    """
+    w, _, _ = renderer.get_text_width_height_descent(text, prop, False)
+    if w <= max_width_px:
+        return text
+    lo, hi = 1, len(text)
+    best = "…"
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = text[:mid].rstrip() + "…"
+        w, _, _ = renderer.get_text_width_height_descent(candidate, prop, False)
+        if w <= max_width_px:
+            best = candidate
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return best
 
 
 @dataclass(frozen=True)
@@ -136,13 +170,20 @@ class Palette:
         return self._diverging_neutral
 
     def sequential_blue_cmap(self):
-        """Single-hue blue colormap, light->dark, for magnitude heatmaps."""
-        return LinearSegmentedColormap.from_list("wa_sequential_blue", _SEQUENTIAL_BLUE_STEPS)
+        """Single-hue blue colormap for magnitude heatmaps -- low values
+        blend toward this mode's own canvas color, high values are WA's
+        saturated categorical blue, so the ramp reads as part of the same
+        card in both dark and light mode rather than a fixed light-mode
+        pastel pasted onto a dark canvas."""
+        low = _mix(self.surface, _SEQUENTIAL_BLUE_TARGET, 0.22 if self.dark else 0.19)
+        return LinearSegmentedColormap.from_list("wa_sequential_blue", _ramp(low, _SEQUENTIAL_BLUE_TARGET, 13))
 
     def sequential_green_cmap(self):
-        """Single-hue teal/green colormap, light->dark -- pairs with the
-        blue ramp when two magnitude scales appear in the same figure."""
-        return LinearSegmentedColormap.from_list("wa_sequential_green", _SEQUENTIAL_GREEN_STEPS)
+        """Single-hue teal/green colormap, same low-blends-toward-canvas
+        logic as :meth:`sequential_blue_cmap` -- pairs with the blue ramp
+        when two magnitude scales appear in the same figure."""
+        low = _mix(self.surface, _SEQUENTIAL_GREEN_TARGET, 0.22 if self.dark else 0.19)
+        return LinearSegmentedColormap.from_list("wa_sequential_green", _ramp(low, _SEQUENTIAL_GREEN_TARGET, 13))
 
     def diverging_cmap(self):
         """Blue (positive) <-> gray (zero) <-> red (negative) diverging colormap."""
@@ -189,7 +230,7 @@ class Palette:
             color=self.accent, fontsize=fontsize, fontweight="bold",
         )
 
-    def draw_wa_lockup(self, fig, author: str | None = None, x_in: float = 0.28, y_in: float = 0.24) -> None:
+    def draw_wa_lockup(self, fig, author: str | None = None, x_in: float = 0.28, y_in: float = 0.24) -> float:
         """The package's own brand lockup -- a bold "WA" mark, a divider,
         and the "WALTZING ANALYTICS" wordmark (+ an optional byline line
         if ``author`` is given) -- top-right of the figure. This is WA's
@@ -204,6 +245,11 @@ class Palette:
         small point sizes is reliably wider than eyeballed estimates, and
         a guessed offset ends up drawing the divider through the text
         instead of beside it.
+
+        Returns:
+            The lockup's own leftmost x position, in figure-fraction
+            coordinates -- :meth:`draw_header` uses this to keep the title
+            from running into it on a narrow figure.
         """
         fig_w, fig_h = fig.get_size_inches()
         right_x = 1 - x_in / fig_w
@@ -251,11 +297,19 @@ class Palette:
             [(center_px - half_h_px) / fig.bbox.height, (center_px + half_h_px) / fig.bbox.height],
             transform=fig.transFigure, color=self.gridline, linewidth=1,
         ))
-        fig.text(
+        mark = fig.text(
             (divider_x_px - 10) / fig.bbox.width, center_px / fig.bbox.height, "WA",
             transform=fig.transFigure, ha="right", va="center",
             color=self.accent, fontsize=21, fontweight="bold", family="serif",
         )
+
+        # Third pass: the "WA" mark itself extends further left than the
+        # divider by its own rendered width -- measure it to get the
+        # lockup's *true* leftmost edge.
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        mark_left_px = mark.get_window_extent(renderer=renderer).x0
+        return mark_left_px / fig.bbox.width
 
     def draw_header(
         self, fig, eyebrow: str | None = None, title: str | None = None,
@@ -278,27 +332,44 @@ class Palette:
         (top-left of the now "restored" full-size axes) draw on top of
         each other in the saved PNG despite ``subplots_adjust`` having
         already run.
+
+        The lockup is drawn *first* and the title/subtitle truncated
+        (measured, not guessed -- see :func:`_truncate_to_width`) to stop
+        short of it, with an ellipsis -- confirmed by rendering a long
+        title on a narrow (6in) figure: without this, the title ran
+        straight through the lockup instead of stopping before it.
         """
+        from matplotlib.font_manager import FontProperties
+
         fig.set_layout_engine(None)
         fig_w, fig_h = fig.get_size_inches()
+        lockup_left = self.draw_wa_lockup(fig, author=author, x_in=left_x_in, y_in=0.24)
+
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        max_width_px = max((lockup_left - left_x_in / fig_w) * fig.bbox.width - 12, 20)
+
         y_in = 0.24
         if eyebrow:
             self.draw_eyebrow(fig, eyebrow, x_in=left_x_in, y_in=y_in)
             y_in += 0.30
         if title:
+            title_prop = FontProperties(family="serif", weight="bold", size=title_fontsize)
+            fitted = _truncate_to_width(fig, renderer, title, title_prop, max_width_px)
             fig.text(
-                left_x_in / fig_w, 1 - y_in / fig_h, title, transform=fig.transFigure,
+                left_x_in / fig_w, 1 - y_in / fig_h, fitted, transform=fig.transFigure,
                 ha="left", va="top", color=self.ink_primary, fontsize=title_fontsize,
                 fontweight="bold", family="serif",
             )
             y_in += title_fontsize / 72 * 1.35
         if subtitle:
+            subtitle_prop = FontProperties(size=10)
+            fitted_subtitle = _truncate_to_width(fig, renderer, subtitle, subtitle_prop, max_width_px)
             fig.text(
-                left_x_in / fig_w, 1 - y_in / fig_h, subtitle, transform=fig.transFigure,
+                left_x_in / fig_w, 1 - y_in / fig_h, fitted_subtitle, transform=fig.transFigure,
                 ha="left", va="top", color=self.ink_secondary, fontsize=10,
             )
             y_in += 0.26
-        self.draw_wa_lockup(fig, author=author, x_in=left_x_in, y_in=0.24)
         fig.subplots_adjust(top=max(0.5, 1 - (y_in + 0.15) / fig_h))
 
     def draw_footer(self, fig, source: str | None = None, author: str | None = None, fontsize: float = 8) -> None:

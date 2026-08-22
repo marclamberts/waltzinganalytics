@@ -79,6 +79,24 @@ def _style_chart_axis(pal: theme.Palette, ax) -> None:
     ax.yaxis.label.set_color(pal.ink_secondary)
 
 
+def _reserve_ytick_margin(fig, ax, min_in: float = 0.35, pad_in: float = 0.18) -> None:
+    """Reserve enough left margin for ``ax``'s y-tick labels, measured (not
+    guessed) from their actual rendered width -- a bar chart's default left
+    margin is a fixed fraction of the figure, which clips long labels (a
+    truncated ``contestantId`` like ``"…gwrezdts7c"`` losing its first
+    character) rather than growing to fit them. Skipped when there are no
+    visible y-tick labels to measure."""
+    labels = [t for t in ax.get_yticklabels() if t.get_text()]
+    if not labels:
+        return
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    widest_px = max(t.get_window_extent(renderer=renderer).width for t in labels)
+    fig_w_in, _ = fig.get_size_inches()
+    needed_in = max(widest_px / fig.dpi + pad_in, min_in)
+    fig.subplots_adjust(left=min(0.5, needed_in / fig_w_in))
+
+
 def _finish_figure(
     pal: theme.Palette, fig, ax,
     title: str | None, subtitle: str | None, footer: str | None,
@@ -93,6 +111,8 @@ def _finish_figure(
     """
     if fig is not None:
         fig.patch.set_facecolor(pal.surface)
+        fig.set_layout_engine(None)  # see Palette.draw_header's docstring
+        _reserve_ytick_margin(fig, ax)
         pal.draw_header(fig, eyebrow=eyebrow, title=title, subtitle=subtitle, author=author)
         pal.draw_footer(fig, source=footer, author=author)
     else:
@@ -141,12 +161,14 @@ def plot_delivery_map(
     if not fail.empty:
         pitch.arrows(
             fail["x"], fail["y"], fail["end_x"], fail["end_y"],
-            ax=ax, color=pal.critical, width=2, headwidth=6, alpha=0.9, label="Unsuccessful",
+            ax=ax, color=pal.critical, width=2.4, headwidth=6.5, headlength=6.5,
+            alpha=0.85, zorder=2, label="Unsuccessful",
         )
     if not success.empty:
         pitch.arrows(
             success["x"], success["y"], success["end_x"], success["end_y"],
-            ax=ax, color=pal.good, width=2, headwidth=6, alpha=0.95, label="Successful",
+            ax=ax, color=pal.good, width=2.8, headwidth=7, headlength=7,
+            alpha=0.95, zorder=3, label="Successful",
         )
 
     pal.style_legend(ax)
@@ -398,21 +420,23 @@ def plot_team_comparison(
     if ax is None:
         fig, ax = plt.subplots(figsize=(7, 0.9 * len(types) + 1.2))
 
+    fmt = "%.2f" if metric.endswith("_rate") else "%.0f"
     for i, team in enumerate(teams):
         team_rows = summary[summary["contestantId"] == team].set_index("set_piece_type")
         values = [team_rows[metric].get(t, 0) for t in types]
         offset = (i - (len(teams) - 1) / 2) * bar_height
         label = (team_names or {}).get(team, f"{team[:8]}…")
-        ax.barh(
+        bars = ax.barh(
             y + offset, values, height=bar_height * 0.92,
-            color=pal.team_colors[i], label=label,
+            color=pal.team_colors[i], label=label, zorder=3,
         )
+        ax.bar_label(bars, fmt=fmt, color=pal.ink_secondary, fontsize=8, padding=3)
 
     ax.set_yticks(y)
     ax.set_yticklabels([t.replace("_", " ") for t in types], color=pal.ink_primary)
     ax.set_xlabel(metric.replace("_", " "))
     ax.invert_yaxis()
-    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     # upper right: the longest bars in practice (throw-ins) sit at the
     # bottom of the chart, so this is the corner least likely to collide --
@@ -470,13 +494,14 @@ def plot_xt_added_bars(
     colors = [pal.diverging_positive if v >= 0 else pal.diverging_negative
               for v in valid[value_col]]
     y = np.arange(len(valid))
-    ax.barh(y, valid[value_col], color=colors)
+    bars = ax.barh(y, valid[value_col], color=colors, zorder=3)
+    ax.bar_label(bars, fmt="%.3f", color=pal.ink_secondary, fontsize=8, padding=3)
     ax.axvline(0, color=pal.baseline, linewidth=1)
     labels = valid[label_col].fillna(valid["eventId"].astype(str)) if label_col in valid else valid["eventId"]
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=pal.ink_primary, fontsize=9)
     ax.set_xlabel(value_col.replace("_", " "))
-    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     _style_chart_axis(pal, ax)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
@@ -533,14 +558,18 @@ def plot_rating_benchmark(
 
     colors = [pal.diverging_positive if r >= 50 else pal.diverging_negative for r in valid["rating"]]
     y = np.arange(len(valid))
-    ax.barh(y, valid["rating"] - 50, left=50, color=colors)
+    bars = ax.barh(y, valid["rating"] - 50, left=50, color=colors, zorder=3)
+    ax.bar_label(
+        bars, labels=[f"{r:.1f}" for r in valid["rating"]],
+        color=pal.ink_secondary, fontsize=8, padding=3,
+    )
     ax.axvline(50, color=pal.baseline, linewidth=1)
     labels = valid[label_col].map(lambda v: (names or {}).get(v, v))
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=pal.ink_primary, fontsize=9)
     ax.set_xlim(0, 100)
     ax.set_xlabel("rating")
-    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     _style_chart_axis(pal, ax)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
@@ -1017,11 +1046,13 @@ def plot_defensive_routine_bars(
         fig, ax = plt.subplots(figsize=(7, 0.45 * len(rows) + 1.5))
 
     y = np.arange(len(rows))
-    ax.barh(y, rows[metric], color=pal.categorical[0])
+    bars = ax.barh(y, rows[metric], color=pal.categorical[0], zorder=3)
+    fmt = "%.2f" if metric.endswith("_rate") else "%.0f"
+    ax.bar_label(bars, fmt=fmt, color=pal.ink_secondary, fontsize=8, padding=3)
     ax.set_yticks(y)
     ax.set_yticklabels([str(v).replace("_", " ") for v in rows[group_col]], color=pal.ink_primary)
     ax.set_xlabel(metric.replace("_", " "))
-    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     if title is None:
         label = team_name or (f"{team_id[:8]}…" if team_id else "Team")
@@ -1061,14 +1092,15 @@ def plot_aerial_duel_win_rate(
     y = np.arange(len(rows))
     win_pct = rows["win_rate"] * 100
     colors = [pal.diverging_positive if v >= 50 else pal.diverging_negative for v in win_pct]
-    ax.barh(y, win_pct, color=colors)
+    bars = ax.barh(y, win_pct, color=colors, zorder=3)
+    ax.bar_label(bars, fmt="%.0f%%", color=pal.ink_secondary, fontsize=8, padding=3)
     ax.axvline(50, color=pal.baseline, linewidth=1, linestyle="--")
     labels = [(team_names or {}).get(t, f"{t[:8]}…") for t in rows["contestantId"]]
     ax.set_yticks(y)
     ax.set_yticklabels(labels, color=pal.ink_primary)
     ax.set_xlim(0, 100)
     ax.set_xlabel("win rate (%)")
-    ax.grid(axis="x", color=pal.gridline, linewidth=0.8, zorder=0)
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     _style_chart_axis(pal, ax)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
