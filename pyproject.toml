@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wa-setpieces"
-version = "0.18.3"
+version = "0.18.4"
 description = "Set-piece metrics, benchmarked team/player ratings, added-value scoring and mplsoccer pitch visualizations (penalties, kick-offs, free kicks, corners, throw-ins, goal kicks) from Opta F24 and StatsBomb event data, including second phases, xT, zones and retention"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -1,6 +1,38 @@
 Changelog
 =========
 
+0.18.4
+------
+
+Docs rewrite and a house-style pass -- no library code changed, only
+documentation content/build and the chart palette.
+
+- **Docs restructure**: the old two-page ``quickstart``/``advanced`` wall
+  split into a proper mplsoccer-style user guide -- eight focused,
+  example-first pages under ``user_guide/`` (loading, metrics,
+  phases/outcomes, value/ratings, routines, defending/season, reports/
+  export, visualisation), plus a new ``categories.rst`` "By set piece"
+  reference organized by set-piece type (corner, free kick, throw-in,
+  penalty, goal kick, kick-off) rather than pipeline stage. ``api.rst``
+  regrouped into the same six sections instead of one flat module list.
+- **Docs theme**: switched from ``pydata-sphinx-theme`` (top navbar) to
+  ``sphinx-rtd-theme`` -- confirmed against mplsoccer's own built docs
+  that this is the theme they actually use, and it's the one with the
+  classic always-visible left navigation tree, rather than pydata's
+  contextual per-section sidebar.
+- **House style**: :mod:`wa_setpieces.viz.theme`'s dark and light chart
+  palettes are now Waltzing Analytics' own brand colors (dark navy/coral,
+  light paper/amber) instead of a generic blue/orange palette -- four of
+  each mode's eight categorical colors, the hairline, ink, muted tones,
+  and the team-identity pairing (now teal-then-blue, was orange-then-blue)
+  are WA's own documented values; the rest extend from WA's other brand
+  hues (confidence green/red, brand amber) to fill out eight categorical
+  slots. The docs site chrome (sidebar, links, admonitions) picked up the
+  same navy/coral treatment via ``custom.css``. Hero image and all twenty
+  gallery plots regenerated against the new palette.
+
+309 tests passing (was 307), docs build clean, zero Sphinx warnings.
+
 0.18.3
 ------
 
