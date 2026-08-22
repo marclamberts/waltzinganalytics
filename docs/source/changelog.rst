@@ -1,6 +1,28 @@
 Changelog
 =========
 
+0.18.5
+------
+
+Docs-only addition, following up on 0.18.4's restructure -- no library
+code changed.
+
+- **New page**: ``value_models.rst`` ("By value model") -- the same
+  pick-one-see-what-it-does reference :doc:`categories` gives set pieces,
+  but for the value-model layer: xT, added value, the experimental
+  ML-based shot value, and team/player/defensive rating -- what each one
+  measures, what it needs, and a runnable example, plus a short diagram
+  of how they chain together (xT -> added value -> ratings).
+- **``categories.rst``**: every set-piece section now has runnable code
+  boxes alongside the prose (export/metrics/value model/visualisation),
+  matching every other page in the docs -- previously prose-and-cross-refs
+  only.
+- Every code snippet in both pages was executed against the bundled
+  sample match to confirm it actually runs, including the ``ml`` extra's
+  shot-value path.
+
+309 tests passing (unchanged -- docs only), docs build clean.
+
 0.18.4
 ------
 
