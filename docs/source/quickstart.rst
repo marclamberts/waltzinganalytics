@@ -103,33 +103,12 @@ The same thing from the command line:
 Where next
 -----------
 
-.. grid:: 1 2 2 2
-   :gutter: 3
-   :class-container: intro-card-grid
-
-   .. grid-item-card:: By set piece
-      :link: categories
-      :link-type: doc
-
-      Already know which set piece you care about? Corner, free kick,
-      throw-in, penalty, goal kick or kick-off -- see exactly what's
-      available for it.
-
-   .. grid-item-card:: User guide
-      :link: user_guide/index
-      :link-type: doc
-
-      The full tour: metrics, the xT value model, ratings, routines,
-      defending, season form, reports and export.
-
-   .. grid-item-card:: Gallery
-      :link: gallery/index
-      :link-type: doc
-
-      Every plot this package makes, with the source code that made it.
-
-   .. grid-item-card:: Qualifier reference
-      :link: qualifiers
-      :link-type: doc
-
-      Which Opta qualifierId backs every column this package derives.
+- :doc:`categories` -- already know which set piece you care about?
+  Corner, free kick, throw-in, penalty, goal kick or kick-off: see
+  exactly what's available for it.
+- :doc:`user_guide/index` -- the full tour: metrics, the xT value model,
+  ratings, routines, defending, season form, reports and export.
+- :doc:`gallery/index` -- every plot this package makes, with the source
+  code that made it.
+- :doc:`qualifiers` -- which Opta qualifierId backs every column this
+  package derives.

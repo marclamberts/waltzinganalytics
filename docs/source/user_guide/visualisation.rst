@@ -47,16 +47,16 @@ One figure, both themes
 
 Every plotting function returns ``(fig, ax)`` (``plot_dashboard`` returns
 just ``fig``, being multi-panel) for further customization, and takes
-``dark: bool = True`` -- the whole figure switches between a validated
-dark (navy) and light (white) palette with that one argument. See the
-:ref:`gallery`'s light/dark example for the same chart in both modes side
-by side.
+``dark: bool = True`` -- the whole figure switches between the Waltzing
+Analytics dark (navy/coral) and light (paper/amber) house-style palette
+with that one argument. See the :ref:`gallery`'s light/dark example for
+the same chart in both modes side by side.
 
 Colors are assigned by the job they do, not picked for looks --
 :mod:`wa_setpieces.viz.theme` is the reference:
 
-- a validated categorical palette for team identity (team-vs-team charts
-  use a fixed orange-then-blue pairing in both modes)
+- a categorical palette for team identity (team-vs-team charts use a
+  fixed teal-then-blue pairing in both modes)
 - a status pair for success/fail
 - gold for goals
 - single-hue sequential ramps for magnitude

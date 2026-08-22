@@ -22,7 +22,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "myst_parser",
     "sphinx_gallery.gen_gallery",
-    "sphinx_design",
 ]
 
 templates_path = ["_templates"]
@@ -59,29 +58,24 @@ sphinx_gallery_conf = {
     "min_reported_time": 999999,  # don't print per-example run times
 }
 
-# -- Theme: pydata-sphinx-theme, same family mplsoccer's docs use ---------
-html_theme = "pydata_sphinx_theme"
+# -- Theme: sphinx_rtd_theme -- the classic always-visible left nav tree,
+# same theme mplsoccer's own docs use (confirmed against their built HTML:
+# the "wy-nav-side" class is this theme's signature, not pydata-sphinx-theme's
+# top-navbar layout this project used before). ----------------------------
+html_theme = "sphinx_rtd_theme"
 html_title = "wa-setpieces"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
 html_theme_options = {
-    "github_url": "https://github.com/marclamberts/waltzinganalytics",
-    "show_prev_next": False,
-    "navigation_with_keys": False,
-    "icon_links": [],
-    "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    "secondary_sidebar_items": ["page-toc"],
-    "footer_start": ["copyright"],
-    "footer_end": [],
-    "pygments_light_style": "tango",
-    "pygments_dark_style": "monokai",
-}
-
-html_context = {
-    "default_mode": "auto",
-}
-
-html_sidebars = {
-    "**": ["sidebar-nav-bs"],
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": True,
+    # Waltzing Analytics navy, not this theme's default teal -- see custom.css
+    # for the rest of the WA reskin (accent color, links, code blocks).
+    "style_nav_header_background": "#14202B",
 }

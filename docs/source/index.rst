@@ -35,36 +35,14 @@ reports, CSV/Excel export -- is one function call away. The
 :doc:`categories` is the fast path if you already know which set piece
 you care about.
 
-.. grid:: 1 2 2 2
-   :gutter: 3
-   :class-container: intro-card-grid
-
-   .. grid-item-card:: Quickstart
-      :link: quickstart
-      :link-type: doc
-
-      Load a match, get a summary table and a plot on screen in five
-      minutes.
-
-   .. grid-item-card:: By set piece
-      :link: categories
-      :link-type: doc
-
-      Corner, free kick, throw-in, penalty, goal kick, kick-off -- pick
-      yours, see what's available.
-
-   .. grid-item-card:: User guide
-      :link: user_guide/index
-      :link-type: doc
-
-      Every piece of the pipeline, topic by topic, with runnable
-      examples.
-
-   .. grid-item-card:: Gallery
-      :link: gallery/index
-      :link-type: doc
-
-      Every plot this package makes, with the source that made it.
+- :doc:`quickstart` -- load a match, get a summary table and a plot on
+  screen in five minutes.
+- :doc:`categories` -- corner, free kick, throw-in, penalty, goal kick,
+  kick-off: pick yours, see what's available.
+- :doc:`user_guide/index` -- every piece of the pipeline, topic by topic,
+  with runnable examples.
+- :doc:`gallery/index` -- every plot this package makes, with the source
+  that made it.
 
 Why this package
 -----------------
@@ -90,7 +68,7 @@ Install
 See :doc:`installation` for the full set of optional extras.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents
    :hidden:
 

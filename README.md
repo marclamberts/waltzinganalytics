@@ -538,14 +538,14 @@ plot_rating_benchmark(team_rating(corner_report(season_events, model=model)))
 
 Every plotting function returns `(fig, ax)` (`plot_dashboard` returns just
 `fig`, being multi-panel) for further customization, and takes `dark: bool
-= True` -- the whole figure switches between a validated dark (navy) and
-light (white) palette with that one argument, see
-`wa_setpieces.viz.theme.get_palette`. Colors are assigned by the job they do —
-a validated categorical palette for team identity (team-vs-team charts use
-a fixed orange-then-blue pairing in both modes), a status pair for
-success/fail, gold for goals, single-hue sequential ramps for magnitude,
-and a diverging pair for signed quantities like xT added — not picked for
-looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
+= True` -- the whole figure switches between the Waltzing Analytics dark
+(navy/coral) and light (paper/amber) house-style palette with that one
+argument, see `wa_setpieces.viz.theme.get_palette`. Colors are assigned by
+the job they do — a categorical palette for team identity (team-vs-team
+charts use a fixed teal-then-blue pairing in both modes), a status pair
+for success/fail, gold for goals, single-hue sequential ramps for
+magnitude, and a diverging pair for signed quantities like xT added — not
+picked for looks; see `wa_setpieces/viz/theme.py`. `subtitle` (a muted line under the
 title) and `footer` (a small credit/source line, bottom-right) are
 optional on every plot. See the
 [gallery](https://waltzinganalytics.readthedocs.io/en/latest/gallery/index.html)
@@ -635,7 +635,7 @@ into PyPI):
 
 ## Docs
 
-Docs are built with Sphinx (`pydata-sphinx-theme` + `sphinx-gallery`, the
+Docs are built with Sphinx (`sphinx-rtd-theme` + `sphinx-gallery`, the
 same stack mplsoccer's docs use) and hosted on Read the Docs
 (`.readthedocs.yaml` at the repo root). The gallery under `examples_gallery/`
 is executed at build time, so its plots and DataFrame outputs are always

@@ -3,15 +3,17 @@ Light and dark mode
 ======================
 
 Every plotting function takes ``dark: bool = True`` -- the whole figure
-(pitch, chart chrome, team colors) switches between the validated dark and
-light palettes in :mod:`wa_setpieces.viz.theme` with that one argument. Both
-palettes pass the same colorblind-safety and contrast checks against their
-own chart surface (navy for dark, white for light).
+(pitch, chart chrome, team colors) switches between the Waltzing
+Analytics dark and light house-style palettes in
+:mod:`wa_setpieces.viz.theme` with that one argument: navy canvas with a
+coral accent for dark, paper canvas with an amber accent for light --
+see the module docstring for exactly which colors are WA's own brand
+values versus derived to fill out an 8-color categorical set.
 
 The two-team charts (:func:`~wa_setpieces.viz.plot_team_comparison` and
-friends) use a fixed orange-then-blue ``team_colors`` convention -- the
+friends) use a fixed teal-then-blue ``team_colors`` convention -- the
 first team passed (or the first row in the summary/report, if
-``team_order`` isn't given) is always orange, the second always blue,
+``team_order`` isn't given) is always teal, the second always blue,
 consistently across a whole report. ``subtitle`` and ``footer`` are
 optional: a muted line under the title, and a small credit/source line in
 the bottom-right corner of the figure -- never set by default, since a
@@ -48,5 +50,5 @@ fig, ax = plot_delivery_map(
 )
 
 # %%
-# Team comparisons use a fixed orange/blue pairing in both modes:
+# Team comparisons use a fixed teal/blue pairing in both modes:
 fig, ax = plot_team_comparison(summary, metric="attempts", title="Attempts by set-piece type", dark=False)

@@ -37,9 +37,8 @@ viz = [
 ]
 docs = [
     "sphinx>=7.0",
-    "pydata-sphinx-theme>=0.15",
+    "sphinx-rtd-theme>=2.0",
     "sphinx-gallery>=0.15",
-    "sphinx-design>=0.5",
     "myst-parser",
     "matplotlib>=3.6",
     "mplsoccer>=1.2",

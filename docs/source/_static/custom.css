@@ -1,14 +1,112 @@
+/* Waltzing Analytics house style, applied to sphinx_rtd_theme's chrome --
+   dark navy sidebar, coral accent, cream/muted ink. The page's own
+   content area stays light (paper) since sphinx_rtd_theme's reading pane
+   is not a themeable dark/light toggle -- the actual chart visuals carry
+   the package's own dark/light mode via wa_setpieces.viz.theme instead;
+   see the gallery. */
+
 :root {
-  --pst-color-primary: 42, 143, 87;
-  --pst-color-secondary: 201, 92, 66;
+  --wa-navy: #14202b;
+  --wa-navy-raised: #1b2c3a;
+  --wa-cream: #f2efe6;
+  --wa-coral: #e8794c;
+  --wa-coral-dark: #cf5f34;
+  --wa-muted: #86847e;
+  --wa-muted-2: #a8a6a0;
+  --wa-hairline: #384653;
 }
 
-html[data-theme="dark"] {
-  --pst-color-primary: 92, 189, 134;
+/* Sidebar: search box + logo header */
+.wy-side-nav-search {
+  background-color: var(--wa-navy);
 }
 
-.bd-main .bd-content {
-  max-width: 62rem;
+.wy-side-nav-search input[type="text"] {
+  border-radius: 4px;
+  border-color: var(--wa-hairline);
+}
+
+.wy-side-nav-search > a,
+.wy-side-nav-search .wy-dropdown > a {
+  color: var(--wa-cream);
+  font-weight: 700;
+}
+
+/* Sidebar: nav tree itself */
+.wy-nav-side {
+  background-color: var(--wa-navy-raised);
+}
+
+.wy-menu-vertical a {
+  color: var(--wa-muted-2);
+}
+
+.wy-menu-vertical a:hover {
+  background-color: var(--wa-navy);
+  color: var(--wa-cream);
+}
+
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
+  color: var(--wa-coral);
+  font-weight: 700;
+}
+
+.wy-menu-vertical li.current {
+  background-color: var(--wa-navy);
+}
+
+.wy-menu-vertical li.current a {
+  color: var(--wa-cream);
+  border-color: var(--wa-hairline);
+}
+
+.wy-menu-vertical li.toctree-l1.current > a,
+.wy-menu-vertical li.toctree-l2.current > a {
+  border-left: 3px solid var(--wa-coral);
+}
+
+.wy-menu-vertical li.on a,
+.wy-menu-vertical li.current > a {
+  color: var(--wa-cream);
+}
+
+/* Mobile top bar */
+.wy-nav-top {
+  background-color: var(--wa-navy);
+}
+
+/* Links in the content area */
+.rst-content a,
+.wy-nav-content a {
+  color: var(--wa-coral-dark);
+}
+
+.rst-content a:hover,
+.wy-nav-content a:hover {
+  color: var(--wa-coral);
+}
+
+/* Admonitions (note/important) -- coral accent instead of the default blue/orange */
+.rst-content .note .admonition-title,
+.rst-content .important .admonition-title {
+  background-color: var(--wa-coral-dark);
+}
+
+.rst-content .note,
+.rst-content .important {
+  background-color: rgba(232, 121, 76, 0.06);
+}
+
+/* "Read the Docs" version/edit footer + prev/next buttons */
+.btn-neutral,
+.rst-footer-buttons .btn {
+  background-color: var(--wa-navy) !important;
+  color: var(--wa-cream) !important;
+}
+
+.btn-neutral:hover {
+  background-color: var(--wa-coral-dark) !important;
 }
 
 /* Gallery thumbnails: pitch plots read better with a touch of breathing room */
@@ -19,7 +117,7 @@ html[data-theme="dark"] {
 
 .sphx-glr-thumbcontainer:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px rgba(20, 32, 43, 0.2);
 }
 
 code, .highlight {

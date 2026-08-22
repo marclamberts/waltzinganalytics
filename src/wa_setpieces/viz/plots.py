@@ -337,7 +337,7 @@ def plot_team_comparison(
         team_names: optional ``{contestantId: display name}`` to label bars;
             defaults to a truncated ``contestantId``.
         team_order: optional ``[contestantId, ...]`` fixing which team gets
-            the first (orange) team-color slot -- otherwise it falls out of
+            the first (teal) team-color slot -- otherwise it falls out of
             row order in ``summary``, which isn't meaningful. Pass this
             whenever "our team" should consistently be the same color
             across a set of charts (see :func:`plot_dashboard`).
@@ -568,7 +568,7 @@ def plot_match_timeline(
     periods (period 2 starts at ~45, not 0 -- verified against
     ``tests/data/sample_match.json``, where period 1 spans timeMin 0-51 and
     period 2 spans 45-96), so it's used as-is with no per-period offset.
-    Colored by team (orange then blue, the same two-team convention as
+    Colored by team (teal then blue, the same two-team convention as
     :func:`plot_team_comparison`) -- the set-piece *type* is already
     encoded by row, so it doesn't need its own color too.
     """
