@@ -4,7 +4,9 @@ Routines, long throws and penalties
 Everything so far describes *what happened*. This page describes *how
 the restart was taken* -- a rule-based taxonomy, a data-driven
 alternative, and two type-specific layers (throw-ins, penalties) that
-don't fit the general shape.
+don't fit the general shape. Already know which of these you want, and
+just need the how-to? :doc:`../by_routine` covers the same ground
+organized routine-by-routine instead of narratively.
 
 Routine taxonomy
 --------------------

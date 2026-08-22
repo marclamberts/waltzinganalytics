@@ -109,6 +109,9 @@ Where next
 - :doc:`value_models` -- already know which value model you care about?
   xT, added value, shot value, team/player/defensive rating: see what
   each one measures and how to compute it.
+- :doc:`by_metric`, :doc:`by_phase`, :doc:`by_routine`, :doc:`by_report`
+  -- the same pick-one-see-how-it-works reference for metrics/zones,
+  phases/outcomes, routines, and reporting/export.
 - :doc:`user_guide/index` -- the full tour: metrics, the xT value model,
   ratings, routines, defending, season form, reports and export.
 - :doc:`gallery/index` -- every plot this package makes, with the source

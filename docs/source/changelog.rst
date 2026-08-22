@@ -1,6 +1,29 @@
 Changelog
 =========
 
+0.18.6
+------
+
+Docs-only addition, completing the reference-page pattern 0.18.5 started
+for value models -- no library code changed.
+
+- **Four new pages**: ``by_metric.rst``, ``by_phase.rst``,
+  ``by_routine.rst``, ``by_report.rst`` -- the same pick-one-see-how-it-works
+  reference :doc:`categories`/:doc:`value_models` give set pieces and value
+  models, now for the remaining four ``user_guide`` topics (metrics/
+  deliveries/zones, second phases/retention/outcomes, routines/long
+  throws/penalties, reports/export/CLI). Every entry follows the same
+  What it returns/detects/describes/produces, Requirements, Compute it,
+  Where it's used template, cross-linked back to its narrative guide page
+  and forward to whatever consumes it.
+- Every code snippet in all four pages -- including every CLI subcommand
+  in ``by_report.rst`` -- was executed against the bundled sample match
+  to confirm it actually runs.
+- Homepage and quickstart "where next" sections now list all six
+  reference pages together.
+
+309 tests passing (unchanged -- docs only), docs build clean.
+
 0.18.5
 ------
 

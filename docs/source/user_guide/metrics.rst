@@ -3,7 +3,9 @@ Metrics, deliveries and zones
 
 The base layer: counts, delivery locations, and where on the pitch
 things happened. Everything in :doc:`value_and_ratings` and
-:doc:`routines` builds on top of what's here.
+:doc:`routines` builds on top of what's here. Already know which of
+these you want, and just need the how-to? :doc:`../by_metric` covers
+the same ground organized metric-by-metric instead of narratively.
 
 Team and player counts
 -------------------------

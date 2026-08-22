@@ -32,19 +32,30 @@ past that -- second phases, retention, an xT value model, benchmarked
 reports, CSV/Excel export -- is one function call away. The
 :doc:`quickstart` walks through your first match end to end; the
 :doc:`user_guide/index` is the full tour, organized topic by topic; and
-:doc:`categories`/:doc:`value_models` are the fast paths if you already
-know which set piece or which value model you care about.
+the six reference pages below are the fast path if you already know
+what you're looking for.
 
 - :doc:`quickstart` -- load a match, get a summary table and a plot on
   screen in five minutes.
-- :doc:`categories` -- corner, free kick, throw-in, penalty, goal kick,
-  kick-off: pick yours, see what's available.
-- :doc:`value_models` -- xT, added value, shot value, ratings: pick one,
-  see what it measures and how to compute it.
 - :doc:`user_guide/index` -- every piece of the pipeline, topic by topic,
   with runnable examples.
 - :doc:`gallery/index` -- every plot this package makes, with the source
   that made it.
+
+Already know what you're looking for? Pick one:
+
+- :doc:`categories` -- corner, free kick, throw-in, penalty, goal kick,
+  kick-off: pick yours, see what's available.
+- :doc:`value_models` -- xT, added value, shot value, ratings: pick one,
+  see what it measures and how to compute it.
+- :doc:`by_metric` -- counts, delivery locations, shot/goal linking,
+  zones: pick one, see how to pull it.
+- :doc:`by_phase` -- second phases, retention, outcomes, aerial duels:
+  pick one, see what it detects.
+- :doc:`by_routine` -- routine taxonomy, data-driven clusters, long
+  throws, penalty placement: pick one, see how to compute it.
+- :doc:`by_report` -- HTML reports, CSV/Excel export, the command line:
+  pick one, see how to produce it.
 
 Why this package
 -----------------
@@ -78,6 +89,10 @@ See :doc:`installation` for the full set of optional extras.
    quickstart
    categories
    value_models
+   by_metric
+   by_phase
+   by_routine
+   by_report
    user_guide/index
    gallery/index
    qualifiers

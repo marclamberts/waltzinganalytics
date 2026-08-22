@@ -6,6 +6,9 @@ danger continue* after the first contact, *did the team keep the ball*,
 and *what, exactly, happened* to each delivery. All three are **derived
 heuristics** layered on top of the F24 feed, not fields the provider
 gives you -- read each section's caveats before relying on the numbers.
+Already know which of these you want, and just need the how-to?
+:doc:`../by_phase` covers the same ground organized model-by-model
+instead of narratively.
 
 Second phases
 ----------------

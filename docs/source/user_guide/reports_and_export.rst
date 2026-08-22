@@ -6,7 +6,9 @@ point -- into a CSV for someone else's pipeline, an Excel file for a
 coach, or a self-contained HTML report someone can open without pandas
 installed. This page covers all three, plus the command-line interface
 that wraps most of this guide for people who'd rather not write Python
-at all.
+at all. Already know which of these you want, and just need the
+how-to? :doc:`../by_report` covers the same ground organized
+output-by-output instead of narratively.
 
 Self-contained HTML reports
 -------------------------------
