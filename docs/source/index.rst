@@ -32,13 +32,15 @@ past that -- second phases, retention, an xT value model, benchmarked
 reports, CSV/Excel export -- is one function call away. The
 :doc:`quickstart` walks through your first match end to end; the
 :doc:`user_guide/index` is the full tour, organized topic by topic; and
-:doc:`categories` is the fast path if you already know which set piece
-you care about.
+:doc:`categories`/:doc:`value_models` are the fast paths if you already
+know which set piece or which value model you care about.
 
 - :doc:`quickstart` -- load a match, get a summary table and a plot on
   screen in five minutes.
 - :doc:`categories` -- corner, free kick, throw-in, penalty, goal kick,
   kick-off: pick yours, see what's available.
+- :doc:`value_models` -- xT, added value, shot value, ratings: pick one,
+  see what it measures and how to compute it.
 - :doc:`user_guide/index` -- every piece of the pipeline, topic by topic,
   with runnable examples.
 - :doc:`gallery/index` -- every plot this package makes, with the source
@@ -75,6 +77,7 @@ See :doc:`installation` for the full set of optional extras.
    installation
    quickstart
    categories
+   value_models
    user_guide/index
    gallery/index
    qualifiers

@@ -106,6 +106,9 @@ Where next
 - :doc:`categories` -- already know which set piece you care about?
   Corner, free kick, throw-in, penalty, goal kick or kick-off: see
   exactly what's available for it.
+- :doc:`value_models` -- already know which value model you care about?
+  xT, added value, shot value, team/player/defensive rating: see what
+  each one measures and how to compute it.
 - :doc:`user_guide/index` -- the full tour: metrics, the xT value model,
   ratings, routines, defending, season form, reports and export.
 - :doc:`gallery/index` -- every plot this package makes, with the source

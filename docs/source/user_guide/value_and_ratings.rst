@@ -6,7 +6,11 @@ a single value number per delivery that blends xT with shot quality
 (added value), and a benchmarked 0-100 score per team or player
 (rating). All three are only meaningful for **corner and free kick** --
 the two phase-based, shot-threat set pieces -- see :doc:`../categories`'
-coverage matrix for what the other four types get instead.
+coverage matrix for what the other four types get instead. Already know
+which of these you want, and just need the how-to? :doc:`../value_models`
+covers the same ground organized model-by-model instead of narratively,
+plus the two ratings this page doesn't (defensive rating, and the
+experimental ML-based shot value).
 
 Expected Threat (xT)
 ------------------------
