@@ -39,7 +39,7 @@ other type is measured against below.
    :func:`~wa_setpieces.save_table`/:func:`~wa_setpieces.save_tables` take
    any single table or the whole
    :class:`~wa_setpieces.core.workflow.SetPieceWorkflow`. See
-   :doc:`user_guide/reports_and_export`.
+   :doc:`by_report`.
 
    .. code-block:: bash
 
@@ -54,7 +54,7 @@ other type is measured against below.
    (still in possession ~8s later), :func:`~wa_setpieces.core.attribution.first_contact_detail`
    and :func:`~wa_setpieces.core.outcomes.aerial_duel_summary` (who wins
    the first header), plus the full :doc:`routine taxonomy
-   <user_guide/routines>` (inswinger/outswinger, near/far/central target,
+   <by_routine>` (inswinger/outswinger, near/far/central target,
    rule-based *and* k-means routine clusters).
 
    .. code-block:: python
@@ -119,7 +119,7 @@ curated HTML report and the sonar plot.
    phases, retention, first contacts, aerial duels, full routine
    taxonomy and clusters. Free-kick-specific origin zone (direct/wide/deep)
    comes from the same routine feature extraction as corner's
-   near/far/central target -- see :doc:`user_guide/routines`.
+   near/far/central target -- see :doc:`by_routine`.
 
    .. code-block:: python
 
@@ -177,7 +177,7 @@ top of the shared pipeline.
    long-throw volume and threat created) and
    :func:`~wa_setpieces.core.routines.long_throw_second_phases` (flick-on/knockdown
    detection restricted to throws past a distance threshold, default
-   25m). See :doc:`user_guide/routines`. No second-phase
+   25m). See :doc:`by_routine`. No second-phase
    detection or aerial-duel summary on the general (non-long) throw-in
    set -- those are corner/free-kick-only.
 
@@ -237,7 +237,7 @@ doesn't apply and isn't run.
    :func:`~wa_setpieces.core.penalties.penalty_placement_detail` (goal-mouth
    zone: which of the six placement zones each penalty targeted) and
    :func:`~wa_setpieces.core.penalties.penalty_taker_summary` (per-player
-   conversion rate). See :doc:`user_guide/routines`.
+   conversion rate). See :doc:`by_routine`.
    ``deliveries``, ``second_phases``, ``retention`` and ``first_contacts``
    are all ``None`` -- there's no pass to extract coordinates from and no
    restart-to-retention window to measure.

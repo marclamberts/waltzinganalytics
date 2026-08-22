@@ -5,8 +5,7 @@ By report and export
 
 The same pick-one-see-what-it-does reference :doc:`categories` gives set
 pieces, for getting a result out of Python -- a portable HTML report, a
-CSV/Excel file, or straight off the command line. The narrative version
-of this material is :doc:`user_guide/reports_and_export`.
+CSV/Excel file, or straight off the command line.
 
 Self-contained HTML reports
 --------------------------------
@@ -42,7 +41,7 @@ Self-contained HTML reports
    ``corner_report_html`` is corner's curated report in :doc:`categories`
    -- the only type with a bespoke layout; every other type falls back to
    a generic table dump. ``opponent_scouting_report_html`` is the
-   conceding-side mirror, see :doc:`user_guide/defending_and_season`.
+   conceding-side, defensive mirror of the same idea.
 
 CSV and Excel export
 -------------------------
@@ -97,6 +96,4 @@ Command line
 
 **Where it's used**
    Every "Export to CSV/Excel" ``wa-setpieces workflow`` command in
-   :doc:`categories` is this same CLI -- see
-   :doc:`user_guide/reports_and_export` for what every subcommand and
-   flag does.
+   :doc:`categories` is this same CLI.

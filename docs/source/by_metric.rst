@@ -6,8 +6,7 @@ By metric
 The same pick-one-see-what-it-does reference :doc:`categories` gives set
 pieces and :doc:`value_models` gives value models, for the base metrics
 layer -- counts, delivery locations, shot/goal linking, the all-in-one
-summary, and pitch zones. The narrative version of this same material is
-:doc:`user_guide/metrics`.
+summary, and pitch zones.
 
 Team and player counts
 ---------------------------
@@ -15,9 +14,10 @@ Team and player counts
 **What it returns**
    Attempts, successful attempts, and a success rate per
    ``(team, set_piece_type)`` or ``(player, set_piece_type)``. "Success"
-   follows Opta's own ``outcome`` flag on the restart event -- see
-   :doc:`qualifiers`'s "A note on success" for how that differs from
-   ``delivery_outcome`` below.
+   follows Opta's own ``outcome`` flag on the restart event as reported
+   by the provider -- this package doesn't re-derive success from
+   subsequent possession. Don't confuse this with ``delivery_outcome``
+   (see :doc:`by_phase`), a separately classified result column.
 
 **Requirements**
    Just an events frame -- works on any set-piece type, no model needed.
@@ -88,8 +88,7 @@ Linking to shots and goals
    F24's ``eventId`` is only unique *within one team's own event stream* --
    both teams number their events 1, 2, 3, ... independently. This
    function scopes its lookup to a team first; an unscoped
-   ``events[events["eventId"] == x]`` on the raw feed is not safe. See
-   :doc:`user_guide/metrics`.
+   ``events[events["eventId"] == x]`` on the raw feed is not safe.
 
 **Where it's used**
    :func:`~wa_setpieces.core.value.set_piece_added_value` (:doc:`value_models`)

@@ -6,8 +6,7 @@ By routine
 The same pick-one-see-what-it-does reference :doc:`categories` gives set
 pieces, for the layer that describes *how* a restart was taken -- a
 rule-based taxonomy, a data-driven alternative, and two type-specific
-layers (throw-ins, penalties) that don't fit the general shape. The
-narrative version of this material is :doc:`user_guide/routines`.
+layers (throw-ins, penalties) that don't fit the general shape.
 
 Routine taxonomy
 ---------------------

@@ -30,20 +30,13 @@ shots and goals for every set-piece type, per team, in one table. Everything
 past that -- second phases, retention, an xT value model, benchmarked
 0-100 ratings, routine taxonomies, defensive scouting, season form, HTML
 reports, CSV/Excel export -- is one function call away. The
-:doc:`quickstart` walks through your first match end to end; the
-:doc:`user_guide/index` is the full tour, organized topic by topic; and
-the six reference pages below are the fast path if you already know
-what you're looking for.
+:doc:`quickstart` walks through your first match end to end; past that,
+pick a reference page below.
 
 - :doc:`quickstart` -- load a match, get a summary table and a plot on
   screen in five minutes.
-- :doc:`user_guide/index` -- every piece of the pipeline, topic by topic,
-  with runnable examples.
 - :doc:`gallery/index` -- every plot this package makes, with the source
   that made it.
-
-Already know what you're looking for? Pick one:
-
 - :doc:`categories` -- corner, free kick, throw-in, penalty, goal kick,
   kick-off: pick yours, see what's available.
 - :doc:`value_models` -- xT, added value, shot value, ratings: pick one,
@@ -65,10 +58,9 @@ things on every project: which qualifier actually means "in-swinger" and
 not something else entirely, whether a defensive clearance travelled far
 enough to count as "cleared," how to fit an xT model without a season's
 worth of matches lying around. ``wa_setpieces`` does that derivation once,
-with its reasoning written down next to the code -- see the
-:doc:`qualifiers` page for exactly which Opta qualifier backs every
-column, and each guide page's callouts for what's a verified fact about
-the feed versus a tunable heuristic.
+with its reasoning written down next to the code -- see each reference
+page's callouts for what's a verified fact about the feed versus a
+tunable heuristic.
 
 Install
 -------
@@ -93,8 +85,5 @@ See :doc:`installation` for the full set of optional extras.
    by_phase
    by_routine
    by_report
-   user_guide/index
    gallery/index
-   qualifiers
-   api
    changelog

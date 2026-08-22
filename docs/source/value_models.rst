@@ -43,8 +43,8 @@ Expected Threat (xT)
 
 **Requirements**
    As many matches as you can fit on -- a single match is nowhere near
-   enough data for a trustworthy grid (see :doc:`user_guide/value_and_ratings`).
-   No optional extras needed; pure ``pandas``/``numpy``.
+   enough data for a trustworthy grid. No optional extras needed; pure
+   ``pandas``/``numpy``.
 
 **Compute it**
 
@@ -94,7 +94,7 @@ Added value
 
 The shot a delivery "produced" is resolved via Opta's own assist-chain
 qualifier (:func:`~wa_setpieces.link_set_piece_shots`), not a positional
-guess -- see :doc:`user_guide/metrics`'s "Linking to shots and goals".
+guess -- see :doc:`by_metric`'s "Linking to shots and goals" entry.
 
 **Where it's used**
    Feeds directly into ``team_rating``'s ``avg_added_value`` component and
@@ -224,5 +224,5 @@ Defensive rating
    defensive_rating(defensive_set_piece_summary(match.events))
 
 **Where it's used**
-   Standalone -- the opponent-scouting side of :doc:`user_guide/defending_and_season`,
-   not blended into the attacking ``team_rating`` above.
+   Standalone -- the opponent-scouting side of a defensive workflow, not
+   blended into the attacking ``team_rating`` above.

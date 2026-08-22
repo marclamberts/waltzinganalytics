@@ -22,8 +22,7 @@ column per qualifierId, named ``q_<id>``.
 
 On StatsBomb data instead? :func:`~wa_setpieces.load_statsbomb_events`
 converts a StatsBomb open-data export into the same events frame, so
-every example below works unchanged on either source -- see
-:doc:`user_guide/loading`.
+every example below works unchanged on either source.
 
 Summarize every set piece
 --------------------------
@@ -92,7 +91,7 @@ set-piece type and hands back every table in a single
 
    Fitting :class:`~wa_setpieces.XTModel` on one match, as above, is
    illustrative only -- it's nowhere near enough data for a trustworthy
-   grid. Fit across a season instead; see :doc:`user_guide/value_and_ratings`.
+   grid. Fit across a season instead; see :doc:`value_models`.
 
 The same thing from the command line:
 
@@ -112,9 +111,5 @@ Where next
 - :doc:`by_metric`, :doc:`by_phase`, :doc:`by_routine`, :doc:`by_report`
   -- the same pick-one-see-how-it-works reference for metrics/zones,
   phases/outcomes, routines, and reporting/export.
-- :doc:`user_guide/index` -- the full tour: metrics, the xT value model,
-  ratings, routines, defending, season form, reports and export.
 - :doc:`gallery/index` -- every plot this package makes, with the source
   code that made it.
-- :doc:`qualifiers` -- which Opta qualifierId backs every column this
-  package derives.

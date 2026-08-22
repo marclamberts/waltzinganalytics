@@ -7,8 +7,7 @@ The same pick-one-see-what-it-does reference :doc:`categories` gives set
 pieces, for the three questions the raw qualifiers can't answer directly:
 *did the danger continue*, *did the team keep the ball*, and *what
 exactly happened*. All three are **derived heuristics**, not fields the
-provider gives you -- see each entry's caveats. The narrative version of
-this material is :doc:`user_guide/phases_and_outcomes`.
+provider gives you -- see each entry's caveats.
 
 Second phases
 -----------------
@@ -98,7 +97,7 @@ Outcomes
    raw pass/shot ``outcome`` flag :doc:`by_metric`'s team/player counts
    use -- both were named ``category``/``outcome_category`` in earlier
    versions and were unified precisely because the overlap was
-   confusing. See :doc:`qualifiers`.
+   confusing.
 
 **Where it's used**
    :func:`~wa_setpieces.viz.plots.plot_set_piece_outcomes` in the

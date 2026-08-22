@@ -16,9 +16,6 @@ except ImportError:
 version = release
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "myst_parser",
     "sphinx_gallery.gen_gallery",
@@ -32,11 +29,12 @@ source_suffix = {
     ".md": "markdown",
 }
 
-autodoc_member_order = "bysource"
-autodoc_typehints = "description"
-napoleon_google_docstring = True
-napoleon_numpy_docstring = False
-
+# No sphinx.ext.autodoc/napoleon/viewcode -- this site has no API reference
+# page (removed; the six "By ..." reference pages plus each function's own
+# docstring in the source are the documentation now). :func:/:class:/:mod:
+# roles throughout the docs still parse fine without autodoc loaded (they're
+# core Sphinx Python-domain roles) -- they just render as plain code text
+# instead of a hyperlink, since there's nothing left for them to link to.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pandas": ("https://pandas.pydata.org/docs", None),

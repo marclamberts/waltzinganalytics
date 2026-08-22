@@ -1,6 +1,28 @@
 Changelog
 =========
 
+0.18.7
+------
+
+Docs-only removal -- no library code changed.
+
+- **Removed**: the narrative ``user_guide/`` pages (nine files), the
+  Opta qualifier reference (``qualifiers.rst``) and the API reference
+  (``api.rst``, and with it ``sphinx.ext.autodoc``/``napoleon``/``viewcode``
+  from the Sphinx build -- nothing left to generate). The six "pick one,
+  see how it works" reference pages (:doc:`categories`, :doc:`value_models`,
+  ``by_metric``, ``by_phase``, ``by_routine``, ``by_report``) are now the
+  whole of the docs past install/quickstart/gallery -- every cross-reference
+  that pointed into a removed page was retargeted at its replacement, or
+  dropped where no direct replacement exists.
+- ``:func:``/``:class:``/``:mod:`` roles throughout the docs (there are
+  many) still parse fine without ``autodoc`` loaded -- they're core Sphinx
+  Python-domain roles -- they just render as plain code text now instead
+  of a hyperlink, since there's no API reference page left to link to.
+
+309 tests passing (unchanged -- docs only), docs build clean, zero
+Sphinx warnings.
+
 0.18.6
 ------
 

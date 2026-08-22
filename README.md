@@ -195,10 +195,11 @@ first_contact_summary(match.events, "corner")
 ```
 
 All of the above are **derived heuristics**, not raw Opta fields — see the
-[user guide](https://waltzinganalytics.readthedocs.io/en/latest/user_guide/index.html)
-for the exact assumptions and tunable thresholds behind each one. That guide
-also documents a real bug this uncovered and fixed: F24's `eventId` is only
-unique *within one team's own event stream, per match* — every
+[docs](https://waltzinganalytics.readthedocs.io) for the exact assumptions
+and tunable thresholds behind each one — in particular
+[By phase and outcome](https://waltzinganalytics.readthedocs.io/en/latest/by_phase.html),
+which also documents a real bug this uncovered and fixed: F24's `eventId`
+is only unique *within one team's own event stream, per match* — every
 delivery/shot lookup in this package is scoped accordingly (including
 across matches, where relevant).
 
