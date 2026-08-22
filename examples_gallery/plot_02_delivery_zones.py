@@ -1,19 +1,18 @@
 """
-Where deliveries end up: zone heatmaps
-=========================================
+Where deliveries end up: zone scatter and heatmaps
+======================================================
 
 :mod:`wa_setpieces.core.zones` splits the pitch into thirds, wide/half-space/
-central channels, or a configurable zone grid. Here we grid where corner
+central channels, or a configurable zone grid. Here we look at where corner
 and free-kick deliveries *land* (their end location), which is far more
-informative than where they start (always the corner arc / free-kick spot).
+informative than where they start (always the corner arc / free-kick spot)
+-- first as individual points, then as a binned grid.
 """
 
 from pathlib import Path
 
-import pandas as pd
-
 from wa_setpieces import delivery_locations, load_events
-from wa_setpieces.viz.plots import plot_zone_heatmap
+from wa_setpieces.viz.plots import plot_zone_heatmap, plot_zone_scatter
 from wa_setpieces.core.zones import add_channels
 
 try:
@@ -25,21 +24,31 @@ DATA = _here.parent / "tests" / "data" / "sample_match.json"
 match = load_events(DATA)
 
 # %%
-# Corner end-locations, gridded into a 6x3 zone heatmap:
+# Every corner's end-location as its own point, colored by outcome and
+# shaded by density underneath -- no binning choice deciding how coarse the
+# picture is, and success/failure is visible per point, not just an
+# aggregate count:
 corners = delivery_locations(match.events, "corner")
-fig, ax = plot_zone_heatmap(
-    corners, x_col="end_x", y_col="end_y", title="Corner delivery end zones"
+fig, ax = plot_zone_scatter(
+    corners, x_col="end_x", y_col="end_y", title="Corner delivery landing spots",
 )
 
 # %%
-# Free kicks tend to be played from deeper -- compare the end-zone spread:
+# The same idea for free kicks:
 free_kicks = delivery_locations(match.events, "free_kick")
-fig, ax = plot_zone_heatmap(
-    free_kicks, x_col="end_x", y_col="end_y", title="Free-kick delivery end zones", cmap="Blues"
+fig, ax = plot_zone_scatter(
+    free_kicks, x_col="end_x", y_col="end_y", title="Free-kick delivery landing spots",
 )
 
 # %%
-# Zones aren't just for pitch heatmaps -- ``add_channels`` works on any
+# Reach for the binned grid instead when exact per-zone counts are the
+# point, not the shape of the pattern:
+fig, ax = plot_zone_heatmap(
+    corners, x_col="end_x", y_col="end_y", title="Corner delivery end zones",
+)
+
+# %%
+# Zones aren't just for pitch plots -- ``add_channels`` works on any
 # DataFrame with x/y columns, e.g. to see which width channel throw-ins are
 # taken from:
 throw_ins = delivery_locations(match.events, "throw_in")

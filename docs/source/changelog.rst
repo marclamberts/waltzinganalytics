@@ -1,6 +1,40 @@
 Changelog
 =========
 
+0.21.0
+------
+
+Three new chart types, not just a redesign of the existing ones -- each
+answers a question none of the current plots could, replacing the
+corresponding basic chart as the featured example in the gallery.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_zone_scatter` -- every
+  event as its own point, colored by outcome, density-shaded by default.
+  The individual-event alternative to :func:`~wa_setpieces.viz.plots.plot_zone_heatmap`'s
+  binned grid: a grid answers "how many landed in this rectangle," this
+  answers "where exactly, and did it work" -- no bin-size choice
+  implicitly deciding how coarse the picture is. Now the featured example
+  in the gallery's zone page; the grid is still there for exact counts.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow` --
+  cumulative set-piece added value per team, over match time, as a step
+  chart. A genuinely new analytical angle this package didn't have at
+  all: *when* threat was created, not just the final total. Built from
+  :func:`~wa_setpieces.core.value.set_piece_added_value` merged back to
+  each delivery's ``timeMin`` (scoped to ``(eventId, contestantId)``
+  together, since ``eventId`` alone collides across teams).
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_volume_quality_scatter`
+  -- a labeled quadrant scatter (volume vs. quality, median reference
+  lines) for any :func:`~wa_setpieces.set_piece_summary`-shaped table.
+  Answers a question no single bar-chart metric can: does the
+  type/team with the most attempts also convert them, or is high volume
+  masking low quality.
+- Three gallery examples updated to feature the new charts as the lead
+  visual (``plot_02_delivery_zones.py``, ``plot_06_team_comparison.py``,
+  ``plot_09_match_timeline.py``), each verified by rendering and looking
+  at the actual output, not just checking it builds.
+
+313 tests passing (unchanged), docs build clean.
+
 0.20.0
 ------
 

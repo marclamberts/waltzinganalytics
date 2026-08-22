@@ -88,14 +88,18 @@ other type is measured against below.
    distance, polar) and the curated
    :func:`~wa_setpieces.corner_report_html` self-contained HTML report
    -- the only type with a bespoke report; every other type falls back to
-   a generic table dump. See the :ref:`gallery`.
+   a generic table dump. :func:`~wa_setpieces.viz.plots.plot_zone_scatter`
+   (individual landing spots, density-shaded) and
+   :func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow` (cumulative
+   added value over the match) apply here too -- see the :ref:`gallery`.
 
    .. code-block:: python
 
-      from wa_setpieces.viz.plots import plot_delivery_map, plot_corner_sonar
+      from wa_setpieces.viz.plots import plot_delivery_map, plot_corner_sonar, plot_zone_scatter
 
       plot_delivery_map(corners, title="Corner deliveries")
       plot_corner_sonar(corners, title="Corner sonar")
+      plot_zone_scatter(corners, x_col="end_x", y_col="end_y", title="Corner landing spots")
 
    .. code-block:: bash
 
@@ -464,3 +468,11 @@ or needs the optional ``model``/``ml`` extra).
 Every type gets ``team_rating`` regardless of what feeds it -- corner/free
 kick blend in added value, the rest score off success rate and retention
 rate alone (see :doc:`value_models`).
+
+Two more visualisations apply generically to any pass-based type, not
+just corner: :func:`~wa_setpieces.viz.plots.plot_zone_scatter` (any
+``x_col``/``y_col`` pair, so it works on free kicks, throw-ins and goal
+kicks the same way it does on corners), and, for volume-vs-quality
+comparisons across types, :func:`~wa_setpieces.viz.plots.plot_volume_quality_scatter`
+on any :func:`~wa_setpieces.set_piece_summary`/
+:func:`~wa_setpieces.team_set_piece_counts` table. See the :ref:`gallery`.

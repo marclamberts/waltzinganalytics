@@ -50,6 +50,21 @@ land underneath the arrows (:meth:`mplsoccer.Pitch.kdeplot`, via
 seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
+
+Three functions answer questions the "plot the raw numbers" functions
+above can't:
+
+- :func:`plot_zone_scatter` -- every event as its own point (density-shaded
+  by default), the individual-event alternative to :func:`plot_zone_heatmap`'s
+  binned grid, for when the *shape* of a pattern matters more than exact
+  per-zone counts.
+- :func:`plot_set_piece_value_flow` -- cumulative added value per team
+  over match time, a step chart showing *when* threat was created, not
+  just the final total.
+- :func:`plot_volume_quality_scatter` -- a labeled quadrant scatter,
+  volume against quality, for when the question is whether doing
+  something *often* also means doing it *well* -- a question no single
+  bar chart metric answers on its own.
 """
 
 from __future__ import annotations
@@ -295,6 +310,89 @@ def plot_zone_heatmap(
     return fig, ax
 
 
+def plot_zone_scatter(
+    events: pd.DataFrame,
+    x_col: str = "x",
+    y_col: str = "y",
+    outcome_col: str = "outcome",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    vertical: bool = False,
+    density: bool = True,
+    show_stats: bool = True,
+    ax=None,
+    pitch_kwargs: dict | None = None,
+):
+    """Every event as its own point, colored by outcome, optionally shaded
+    by kernel density underneath -- the individual-event alternative to
+    :func:`plot_zone_heatmap`'s binned grid.
+
+    A grid answers "how many landed in this rectangle"; this answers
+    "where exactly, and did it work" -- no binning choice (``x_bins``/
+    ``y_bins``) implicitly deciding how coarse the picture is, and outcome
+    is visible per point instead of only as an aggregate count. Reach for
+    the grid when you want exact per-zone counts to read off; reach for
+    this when the *shape* of where things land, and whether they worked,
+    is the point.
+
+    Args:
+        outcome_col: column read as success (``== 1``) vs. not, same
+            convention as :func:`plot_delivery_map`. Any events frame
+            works, not just deliveries -- pass end coordinates
+            (``x_col="end_x", y_col="end_y"``) to plot landing spots.
+        density: shade a kernel-density estimate underneath the points
+            (on by default here, unlike :func:`plot_delivery_map` --
+            landing-spot density is meaningful even from a single match's
+            worth of points, since there's no directional arrow implying
+            more precision than the data has).
+        show_stats: auto-computed count and success-rate stat strip,
+            computed from ``events`` itself.
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
+
+    x = pd.to_numeric(events[x_col], errors="coerce")
+    y = pd.to_numeric(events[y_col], errors="coerce")
+    valid = x.notna() & y.notna()
+    valid_events = events[valid]
+    x, y = x[valid], y[valid]
+
+    if density and len(valid_events) >= 5:
+        pitch.kdeplot(
+            x, y, ax=ax, cmap=pal.sequential_blue_cmap(),
+            fill=True, levels=8, thresh=0.05, alpha=0.5, zorder=1,
+        )
+
+    success = valid_events[outcome_col] == 1
+    if (~success).any():
+        pitch.scatter(
+            x[~success], y[~success], ax=ax, color=pal.critical, s=90, alpha=0.85,
+            edgecolors=pal.ink_primary, linewidths=0.6, zorder=3, label="Unsuccessful",
+        )
+    if success.any():
+        pitch.scatter(
+            x[success], y[success], ax=ax, color=pal.good, s=90, alpha=0.9,
+            edgecolors=pal.ink_primary, linewidths=0.6, zorder=4, label="Successful",
+        )
+
+    pal.style_legend(ax)
+    header_stats = None
+    if show_stats and len(valid_events):
+        header_stats = [
+            (str(len(valid_events)), "events"),
+            (f"{success.mean() * 100:.0f}%", "success rate"),
+        ]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
 def plot_xt_grid(
     model,
     title: str | None = "Expected Threat (xT) grid",
@@ -516,6 +614,79 @@ def plot_team_comparison(
     # verified against the sample match, where lower right clipped into the
     # throw-in bars.
     pal.style_legend(ax, loc="upper right")
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_volume_quality_scatter(
+    data: pd.DataFrame,
+    x_col: str = "attempts",
+    y_col: str = "success_rate",
+    label_col: str = "set_piece_type",
+    labels: dict | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Quadrant scatter: one labeled point per row, ``x_col`` (volume) against
+    ``y_col`` (quality) -- median reference lines split the plane into four
+    quadrants (e.g. top-right is "does it a lot, and it works").
+
+    A bar chart answers one metric at a time; this answers the question a
+    bar chart can't -- does *volume* actually buy *quality*, or is the
+    type/team with the most attempts also the least effective one.
+
+    Args:
+        data: any table with ``label_col``, ``x_col`` and ``y_col`` --
+            :func:`~wa_setpieces.set_piece_summary`/
+            :func:`~wa_setpieces.team_set_piece_counts` filtered to one
+            team (points = set-piece types) or one type (points = teams)
+            both work unchanged.
+        label_col: which column identifies each point, and colors it --
+            one categorical color per distinct value, in
+            :data:`~wa_setpieces.viz.theme.CATEGORICAL` order.
+        labels: optional ``{label_col value: display text}``.
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7.5, 6))
+
+    rows = data.dropna(subset=[x_col, y_col])
+    x_med, y_med = rows[x_col].median(), rows[y_col].median()
+
+    for i, (_, row) in enumerate(rows.iterrows()):
+        color = pal.categorical[i % len(pal.categorical)]
+        ax.scatter(
+            row[x_col], row[y_col], s=180, color=color, edgecolors=pal.ink_primary,
+            linewidths=0.8, zorder=3,
+        )
+        label_value = row[label_col]
+        display = (labels or {}).get(label_value, str(label_value).replace("_", " "))
+        ax.annotate(
+            display, (row[x_col], row[y_col]), xytext=(8, 6), textcoords="offset points",
+            color=pal.ink_primary, fontsize=9, fontweight="bold", zorder=4,
+        )
+
+    ax.axvline(x_med, color=pal.baseline, linewidth=1, linestyle="--", zorder=1)
+    ax.axhline(y_med, color=pal.baseline, linewidth=1, linestyle="--", zorder=1)
+    ax.set_xlabel(x_col.replace("_", " "))
+    ax.set_ylabel(y_col.replace("_", " "))
+    ax.grid(color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    x_pad = max((rows[x_col].max() - rows[x_col].min()) * 0.15, 0.5)
+    ax.set_xlim(rows[x_col].min() - x_pad, rows[x_col].max() + x_pad)
     _style_chart_axis(pal, ax)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
@@ -763,6 +934,97 @@ def plot_match_timeline(
     pal.style_legend(ax, loc="upper right", ncol=1)
     _style_chart_axis(pal, ax)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_set_piece_value_flow(
+    events: pd.DataFrame,
+    model,
+    set_piece_types: tuple[str, ...] = ("corner", "free_kick"),
+    team_names: dict | None = None,
+    team_order: list | None = None,
+    title: str | None = "Set-piece added value over the match",
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    show_stats: bool = True,
+    ax=None,
+):
+    """Cumulative set-piece added value, one step-line per team, over
+    match time -- shows *when* threat was created, not just how much of
+    it, the way a single end-of-match total can't.
+
+    Only ``"corner"`` and ``"free_kick"`` have a wired-in value model
+    (:func:`~wa_setpieces.core.value.set_piece_added_value`), so those
+    are the two types combined by default -- narrow or widen
+    ``set_piece_types`` to change that. Each delivery's ``timeMin`` is
+    looked up from ``events`` scoped to ``(eventId, contestantId)``
+    together, not ``eventId`` alone -- F24's ``eventId`` is only unique
+    *within one team's own stream*, so an unscoped lookup would collide
+    (see :doc:`../by_metric`'s "Linking to shots and goals" entry).
+
+    Args:
+        model: a fitted :class:`~wa_setpieces.XTModel`.
+        team_order: optional ``[contestantId, ...]`` fixing which team
+            gets the first (teal) line color, same convention as
+            :func:`plot_team_comparison`.
+        show_stats: auto-computed final cumulative value per team as the
+            headline stat strip.
+
+    Returns:
+        ``(fig, ax)``.
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.value import set_piece_added_value
+
+    pal = theme.get_palette(dark)
+
+    frames = [set_piece_added_value(events, t, model) for t in set_piece_types]
+    combined = (
+        pd.concat(frames, ignore_index=True) if frames
+        else pd.DataFrame(columns=["eventId", "contestantId", "added_value"])
+    )
+    time_lookup = events[["eventId", "contestantId", "timeMin"]].drop_duplicates(
+        subset=["eventId", "contestantId"]
+    )
+    combined = combined.merge(time_lookup, on=["eventId", "contestantId"], how="left")
+
+    teams = team_order if team_order is not None else list(combined["contestantId"].drop_duplicates())
+    if len(teams) > 2:
+        raise ValueError(
+            f"plot_set_piece_value_flow supports at most 2 teams, got {len(teams)}; "
+            "filter `events` first."
+        )
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+    final_values = []
+    for i, team in enumerate(teams):
+        rows = combined[combined["contestantId"] == team].sort_values("timeMin")
+        t = [0, *rows["timeMin"].tolist()]
+        cum = [0.0, *rows["added_value"].cumsum().tolist()]
+        label = (team_names or {}).get(team, f"{team[:8]}…")
+        ax.step(t, cum, where="post", color=pal.team_colors[i], linewidth=2.5, label=label, zorder=3)
+        ax.fill_between(t, cum, step="post", color=pal.team_colors[i], alpha=0.12, zorder=2)
+        final_values.append((label, cum[-1]))
+
+    ax.axhline(0, color=pal.baseline, linewidth=1)
+    ax.set_xlabel("Match minute")
+    ax.set_ylabel("Cumulative added value")
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
+    ax.set_axisbelow(True)
+    pal.style_legend(ax, loc="upper left")
+    _style_chart_axis(pal, ax)
+
+    header_stats = None
+    if show_stats and final_values:
+        header_stats = [(f"{value:+.2f}", label) for label, value in final_values]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
     return fig, ax
 
 
