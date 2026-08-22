@@ -1,6 +1,42 @@
 Changelog
 =========
 
+0.20.0
+------
+
+The gallery looked polished but shallow after 0.19.2's quality pass --
+every chart plotted the data and left the reader to work out the
+takeaway. This adds the layer that was actually missing: charts that
+state their own headline number, and one chart (the delivery map) that
+can show the *shape* of a pattern, not just individual deliveries.
+
+- **Added**: an auto-computed headline stat strip -- bold value, muted
+  label, e.g. "9 deliveries / 22% success rate" -- under the subtitle on
+  :func:`~wa_setpieces.viz.plot_delivery_map`,
+  :func:`~wa_setpieces.viz.plot_zone_heatmap` (count and the busiest
+  zone's share of it), :func:`~wa_setpieces.viz.plot_corner_sonar`, and
+  :func:`~wa_setpieces.viz.plot_dashboard` (attempts/success rate/goals
+  for the report's own team). New ``show_stats: bool = True`` parameter
+  on each -- on by default; every value is computed straight from the
+  data being plotted, never passed in, so it can't drift out of sync
+  with the chart. New :meth:`~wa_setpieces.viz.theme.Palette.draw_stat_strip`
+  is the shared, reusable building block.
+- **Added**: ``density: bool = False`` on
+  :func:`~wa_setpieces.viz.plot_delivery_map` -- a kernel-density shade
+  of where deliveries land, underneath the arrows
+  (:meth:`mplsoccer.Pitch.kdeplot`, via seaborn -- already a transitive
+  dependency of mplsoccer, no new dependency added). Off by default: a
+  smooth density surface implies a continuous pattern a single match's
+  handful of deliveries can't actually support -- meaningful once turned
+  on for a season's worth.
+- Hero image and all gallery plots regenerated; a new example
+  (``plot_21_vertical_pitch.py`` from 0.19.3, already covering
+  orientation) sits alongside the existing set -- no new gallery script
+  needed for this change, since the enhancement applies to functions
+  already demonstrated throughout the gallery.
+
+313 tests passing (unchanged), docs build clean.
+
 0.19.3
 ------
 

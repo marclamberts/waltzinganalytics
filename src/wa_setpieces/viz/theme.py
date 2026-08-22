@@ -311,9 +311,57 @@ class Palette:
         mark_left_px = mark.get_window_extent(renderer=renderer).x0
         return mark_left_px / fig.bbox.width
 
+    def draw_stat_strip(
+        self, fig, stats: list[tuple[str, str]], x_in: float, y_in: float,
+        gap_in: float = 0.34, value_fontsize: float = 14,
+    ) -> float:
+        """A left-to-right row of bold-value/muted-label KPI tiles -- e.g.
+        ``[("64%", "success rate"), ("14", "attempts"), ("+0.31", "xT added")]``
+        -- the "headline stat" callout the WA report references use (a
+        chart that states its own takeaway, not just plots the data and
+        leaves the reader to compute it). Each tile's width is measured
+        (not guessed) so tiles never overlap regardless of how long a
+        value or label happens to be.
+
+        Returns:
+            The ``y_in`` position just below the strip, in inches from
+            the figure top, so a caller can stack more header content
+            beneath it.
+        """
+        fig_w, fig_h = fig.get_size_inches()
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+
+        x_px = x_in * fig.dpi
+        max_label_h_px = 0.0
+        for value, label in stats:
+            value_text = fig.text(
+                x_px / fig.bbox.width, 1 - y_in / fig_h, value, transform=fig.transFigure,
+                ha="left", va="top", color=self.accent, fontsize=value_fontsize, fontweight="bold",
+            )
+            fig.canvas.draw()
+            renderer = fig.canvas.get_renderer()
+            value_bbox = value_text.get_window_extent(renderer=renderer)
+
+            label_y_in = y_in + (value_bbox.height / fig.dpi) + 0.02
+            label_text = fig.text(
+                x_px / fig.bbox.width, 1 - label_y_in / fig_h, label, transform=fig.transFigure,
+                ha="left", va="top", color=self.ink_muted, fontsize=8,
+            )
+            fig.canvas.draw()
+            renderer = fig.canvas.get_renderer()
+            label_bbox = label_text.get_window_extent(renderer=renderer)
+            max_label_h_px = max(max_label_h_px, label_bbox.height)
+
+            tile_width_px = max(value_bbox.width, label_bbox.width)
+            x_px += tile_width_px + gap_in * fig.dpi
+
+        return y_in + (value_bbox.height + max_label_h_px) / fig.dpi + 0.05 + 0.22
+
     def draw_header(
         self, fig, eyebrow: str | None = None, title: str | None = None,
         subtitle: str | None = None, author: str | None = None,
+        stats: list[tuple[str, str]] | None = None,
         title_fontsize: float = 15, left_x_in: float = 0.28,
     ) -> None:
         """The full header band: eyebrow + serif title + subtitle at the
@@ -370,6 +418,8 @@ class Palette:
                 ha="left", va="top", color=self.ink_secondary, fontsize=10,
             )
             y_in += 0.26
+        if stats:
+            y_in = self.draw_stat_strip(fig, stats, x_in=left_x_in, y_in=y_in + 0.06)
         fig.subplots_adjust(top=max(0.5, 1 - (y_in + 0.15) / fig_h))
 
     def draw_footer(self, fig, source: str | None = None, author: str | None = None, fontsize: float = 8) -> None:

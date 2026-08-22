@@ -38,6 +38,18 @@ whichever figure canvas it's given; this module additionally picks a
 taller default canvas for ``vertical=True`` so there's less unused
 horizontal space than a landscape canvas would leave around a portrait
 pitch.
+
+Several functions also take ``show_stats: bool = True`` -- an
+auto-computed headline stat strip (count, success rate, ...) under the
+subtitle, so a chart states its own takeaway instead of leaving the
+reader to work it out from the plot. These are computed from the data
+actually being plotted, never passed in, so they can't drift out of
+sync with what's drawn. :func:`plot_delivery_map` also takes
+``density: bool = False`` -- a kernel-density shade of where deliveries
+land underneath the arrows (:meth:`mplsoccer.Pitch.kdeplot`, via
+seaborn, already a dependency of mplsoccer itself); off by default
+since a smooth density surface overstates what a single match's handful
+of deliveries can actually support -- turn it on for a season's worth.
 """
 
 from __future__ import annotations
@@ -115,19 +127,23 @@ def _finish_figure(
     pal: theme.Palette, fig, ax,
     title: str | None, subtitle: str | None, footer: str | None,
     eyebrow: str | None = None, author: str | None = None,
+    stats: list[tuple[str, str]] | None = None,
 ) -> None:
     """Wrap up a plot: the full WA card header/footer (eyebrow, serif
-    title, subtitle, WA lockup, footer) if this function created and owns
-    the whole figure -- or the older, simpler axes-level title/footer if
-    the caller passed in their own ``ax``, since then we don't know the
-    rest of that figure's layout and can't safely reserve margin for a
-    header band without possibly colliding with whatever else is on it.
+    title, subtitle, headline stat strip, WA lockup, footer) if this
+    function created and owns the whole figure -- or the older, simpler
+    axes-level title/footer if the caller passed in their own ``ax``,
+    since then we don't know the rest of that figure's layout and can't
+    safely reserve margin for a header band without possibly colliding
+    with whatever else is on it. ``stats`` (a chart's own auto-computed
+    headline numbers) is silently dropped in that fallback case for the
+    same reason.
     """
     if fig is not None:
         fig.patch.set_facecolor(pal.surface)
         fig.set_layout_engine(None)  # see Palette.draw_header's docstring
         _reserve_ytick_margin(fig, ax)
-        pal.draw_header(fig, eyebrow=eyebrow, title=title, subtitle=subtitle, author=author)
+        pal.draw_header(fig, eyebrow=eyebrow, title=title, subtitle=subtitle, author=author, stats=stats)
         pal.draw_footer(fig, source=footer, author=author)
     else:
         pal.style_axis_text(ax, title, subtitle)
@@ -144,6 +160,8 @@ def plot_delivery_map(
     author: str | None = None,
     dark: bool = True,
     vertical: bool = False,
+    density: bool = False,
+    show_stats: bool = True,
     ax=None,
     pitch_kwargs: dict | None = None,
 ):
@@ -159,6 +177,18 @@ def plot_delivery_map(
         vertical: draw on a vertical (goal-at-top) pitch via
             :class:`mplsoccer.VerticalPitch` instead of the default
             horizontal (goal-at-right) :class:`mplsoccer.Pitch`.
+        density: shade a kernel-density estimate of where deliveries land
+            underneath the arrows (:meth:`mplsoccer.Pitch.kdeplot`, which
+            needs ``seaborn`` -- already pulled in by mplsoccer itself).
+            Off by default: a KDE surface implies a smooth, continuous
+            pattern that a handful of deliveries from one match can't
+            actually support -- turn this on for a season's worth of
+            deliveries, where the shape means something.
+        show_stats: show an auto-computed headline stat strip (delivery
+            count and success rate) under the subtitle -- the chart
+            states its own takeaway instead of leaving the reader to
+            count arrows and colors by eye. Computed from ``deliveries``
+            itself, not passed in.
         subtitle: optional muted line under the title (e.g. a date/venue).
         eyebrow: optional small category label above the title (e.g.
             ``"Corner"``), WA-house-style.
@@ -176,6 +206,13 @@ def plot_delivery_map(
     success = deliveries[deliveries["outcome"] == 1]
     fail = deliveries[deliveries["outcome"] != 1]
 
+    if density and len(deliveries.dropna(subset=["end_x", "end_y"])) >= 5:
+        valid_ends = deliveries.dropna(subset=["end_x", "end_y"])
+        pitch.kdeplot(
+            valid_ends["end_x"], valid_ends["end_y"], ax=ax, cmap=pal.sequential_blue_cmap(),
+            fill=True, levels=8, thresh=0.05, alpha=0.55, zorder=1,
+        )
+
     if not fail.empty:
         pitch.arrows(
             fail["x"], fail["y"], fail["end_x"], fail["end_y"],
@@ -190,7 +227,11 @@ def plot_delivery_map(
         )
 
     pal.style_legend(ax)
-    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    stats = None
+    if show_stats and len(deliveries):
+        success_rate = len(success) / len(deliveries)
+        stats = [(str(len(deliveries)), "deliveries"), (f"{success_rate * 100:.0f}%", "success rate")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=stats)
     return fig, ax
 
 
@@ -207,6 +248,7 @@ def plot_zone_heatmap(
     author: str | None = None,
     dark: bool = True,
     vertical: bool = False,
+    show_stats: bool = True,
     cmap=None,
     ax=None,
     pitch_kwargs: dict | None = None,
@@ -218,7 +260,10 @@ def plot_zone_heatmap(
     set-piece type happens most often. Defaults to the single-hue
     sequential blue ramp (counts are a magnitude, not a category).
     ``vertical=True`` draws on a goal-at-top :class:`mplsoccer.VerticalPitch`
-    instead of the default horizontal one.
+    instead of the default horizontal one. ``show_stats=True`` (default)
+    adds an auto-computed headline stat strip -- the total count and what
+    share of it landed in the single busiest zone, e.g. "62% in one zone"
+    as a direct, immediate answer to "how concentrated is this."
     """
     import matplotlib.patheffects as path_effects
 
@@ -230,10 +275,10 @@ def plot_zone_heatmap(
     y = pd.to_numeric(events[y_col], errors="coerce")
     valid = x.notna() & y.notna()
 
-    stats = pitch.bin_statistic(x[valid], y[valid], statistic="count", bins=(x_bins, y_bins))
-    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
+    binned = pitch.bin_statistic(x[valid], y[valid], statistic="count", bins=(x_bins, y_bins))
+    pitch.heatmap(binned, ax=ax, cmap=cmap, edgecolor=pal.surface)
     labels = pitch.label_heatmap(
-        stats, ax=ax, str_format="{:.0f}", color=pal.ink_primary, fontsize=11,
+        binned, ax=ax, str_format="{:.0f}", color=pal.ink_primary, fontsize=11,
         ha="center", va="center",
     )
     stroke_color = "black" if dark else "white"
@@ -241,7 +286,12 @@ def plot_zone_heatmap(
         label.set_path_effects(
             [path_effects.Stroke(linewidth=2.5, foreground=stroke_color), path_effects.Normal()]
         )
-    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    header_stats = None
+    total = int(binned["statistic"].sum())
+    if show_stats and total:
+        peak_share = binned["statistic"].max() / total
+        header_stats = [(str(total), "total"), (f"{peak_share * 100:.0f}%", "in busiest zone")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
     return fig, ax
 
 
@@ -607,6 +657,7 @@ def plot_corner_sonar(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    show_stats: bool = True,
     ax=None,
 ):
     """Polar "sonar" plot of corner (or free-kick) delivery angle and distance.
@@ -614,7 +665,9 @@ def plot_corner_sonar(
     Each delivery is one point: angle is the direction from the restart spot
     to where the ball ended up, radius is how far it travelled. Colored by
     outcome (status, not team) exactly like :func:`plot_delivery_map`, so
-    the two read consistently together.
+    the two read consistently together. ``show_stats=True`` (default) adds
+    an auto-computed count and success-rate stat strip, same as
+    :func:`plot_delivery_map`.
 
     Requires a polar ``ax`` if you pass one in
     (``plt.subplots(subplot_kw={"projection": "polar"})``).
@@ -640,7 +693,11 @@ def plot_corner_sonar(
     ax.tick_params(colors=pal.ink_secondary)
     ax.spines["polar"].set_color(pal.gridline)
     ax.grid(color=pal.gridline)
-    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    header_stats = None
+    if show_stats and len(d):
+        success_rate = (d["outcome"] == 1).mean()
+        header_stats = [(str(len(d)), "deliveries"), (f"{success_rate * 100:.0f}%", "success rate")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
     return fig, ax
 
 
@@ -782,9 +839,21 @@ def plot_dashboard(
         title="Success rate by set-piece type", dark=dark, ax=ax_rate,
     )
 
+    header_stats = None
+    team_row = summary[
+        (summary["contestantId"] == team_id) & (summary["set_piece_type"] == set_piece_type)
+    ]
+    if not team_row.empty:
+        row = team_row.iloc[0]
+        header_stats = [
+            (str(int(row["attempts"])), "attempts"),
+            (f"{row['success_rate'] * 100:.0f}%", "success rate"),
+            (str(int(row["goals"])), "goals"),
+        ]
+
     pal.draw_header(
         fig, eyebrow=eyebrow, title=title or f"{label} — set-piece report",
-        subtitle=subtitle, author=author,
+        subtitle=subtitle, author=author, stats=header_stats,
     )
     pal.draw_footer(fig, source=footer, author=author)
     return fig
