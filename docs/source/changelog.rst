@@ -1,6 +1,26 @@
 Changelog
 =========
 
+0.22.0
+------
+
+Rebuilt the whole gallery from scratch: every example script deleted and
+rewritten, renumbered 1-21 as a single ordered curriculum (basics, then
+non-pitch views, then value/rating/report chains, then the ML and
+data-driven extras) instead of the ad-hoc ordering it had accumulated.
+No plotting-function changes -- this is a content/structure rebuild only.
+
+- The three newest chart types stay front and center where they were
+  already integrated: :func:`~wa_setpieces.viz.plots.plot_zone_scatter`
+  leads the zone page, :func:`~wa_setpieces.viz.plots.plot_volume_quality_scatter`
+  leads the team-comparison page, and
+  :func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow` leads the
+  timeline page.
+- Every script re-verified end to end: a full Sphinx-Gallery build
+  executed all 21 out of 21 files with zero warnings (``-W
+  --keep-going``), 313 tests still pass, and several rendered PNGs were
+  opened and looked at directly, not just checked for a clean exit code.
+
 0.21.0
 ------
 
