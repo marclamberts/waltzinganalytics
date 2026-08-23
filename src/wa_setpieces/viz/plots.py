@@ -51,7 +51,7 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Nine functions answer questions the "plot the raw numbers" functions
+Twelve functions answer questions the "plot the raw numbers" functions
 above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
@@ -87,6 +87,18 @@ above can't:
 - :func:`plot_success_waffle` -- a single ratio (e.g. success rate) as a
   filled-square icon array, for when a headline number deserves more
   visual weight than a stat-strip figure.
+- :func:`plot_type_outcome_mosaic` -- a Marimekko-style mosaic where
+  segment *width* is volume (attempts) and segment *height* is quality
+  (success rate), for when both need to be visible in the same chart
+  rather than split across two.
+- :func:`plot_team_parallel_coordinates` -- the same two-team profile
+  comparison as :func:`plot_set_piece_radar`, on straight parallel axes
+  instead of a circle, so every metric gets equal visual weight rather
+  than however much a polar layout happens to exaggerate or compress it.
+- :func:`plot_team_dumbbell` -- two teams' values per category as
+  connected dot pairs, for when the *gap* between two series is the
+  thing worth seeing directly rather than two bar lengths to compare by
+  eye.
 """
 
 from __future__ import annotations
@@ -2121,4 +2133,259 @@ def plot_success_waffle(
 
     header_stats = [(str(n_success), "successful"), (str(n_total), "attempts")]
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
+def plot_type_outcome_mosaic(
+    summary: pd.DataFrame,
+    team_id: str | None = None,
+    team_name: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Marimekko-style mosaic: set-piece type along the x-axis with each
+    segment's *width* proportional to attempts, and within each segment a
+    stacked block whose *height* splits successful from unsuccessful.
+
+    Volume and quality in the same chart, which
+    :func:`plot_team_comparison`'s bars and
+    :func:`plot_volume_quality_scatter`'s points each only show one half
+    of on their own: a type that's both a big wide slab (a lot of
+    attempts) and mostly red (low success) is the one worth fixing first,
+    and it's the single most visually obvious thing in the chart.
+
+    Args:
+        summary: output of :func:`~wa_setpieces.set_piece_summary` (or
+            :func:`~wa_setpieces.team_set_piece_counts`) -- needs
+            ``attempts`` and ``successful``.
+        team_id: filter to one team; required if ``summary`` covers more
+            than one.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows = summary if team_id is None else summary[summary["contestantId"] == team_id]
+    if rows["contestantId"].nunique() > 1:
+        raise ValueError(
+            "summary covers more than one team -- pass team_id to pick which one to plot."
+        )
+    rows = rows.loc[rows["attempts"] > 0].sort_values("attempts", ascending=False).reset_index(drop=True)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5.4))
+
+    total_attempts = rows["attempts"].sum()
+    # A segment narrower than this can't fit a rotated label under it
+    # without colliding with its neighbors, and can't fit a percentage
+    # inside it either -- both are skipped for segments this thin rather
+    # than left to overlap (this is exactly what happened to the sample
+    # match's 1-2 attempt "corner"/"kick off" segments during
+    # verification: their labels ran into each other).
+    min_label_width = 0.05
+    x = 0.0
+    for _, row in rows.iterrows():
+        width = row["attempts"] / total_attempts if total_attempts else 0.0
+        rate = row["successful"] / row["attempts"] if row["attempts"] else 0.0
+        ax.add_patch(plt.Rectangle((x, 0), width, rate, facecolor=pal.good, edgecolor=pal.surface, linewidth=1.5, zorder=3))
+        ax.add_patch(plt.Rectangle((x, rate), width, 1 - rate, facecolor=pal.critical, edgecolor=pal.surface, linewidth=1.5, zorder=3))
+        cx = x + width / 2
+        label = f"{row['set_piece_type'].replace('_', ' ')} (n={int(row['attempts'])})"
+        rotation = 0 if width >= min_label_width * 2.2 else 45
+        ha = "center" if rotation == 0 else "right"
+        ax.text(cx, -0.05, label, ha=ha, va="top", color=pal.ink_primary, fontsize=8.5,
+                 fontweight="bold", rotation=rotation, rotation_mode="anchor")
+        if width >= min_label_width:
+            if rate > 0.12:
+                ax.text(cx, rate / 2, f"{rate * 100:.0f}%", ha="center", va="center", color=pal.surface, fontsize=9, fontweight="bold")
+            if 1 - rate > 0.12:
+                ax.text(cx, rate + (1 - rate) / 2, f"{(1 - rate) * 100:.0f}%", ha="center", va="center", color=pal.surface, fontsize=9, fontweight="bold")
+        x += width
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.24, 1.14)
+    ax.axis("off")
+    ax.set_facecolor(pal.surface)
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, facecolor=pal.good, label="Successful"),
+        plt.Rectangle((0, 0), 1, 1, facecolor=pal.critical, label="Unsuccessful"),
+    ]
+    # Above the mosaic body (y > 1), not "upper right" inside it -- any
+    # in-bounds corner can land on top of a real segment depending on
+    # how many types there are and how their success rates split.
+    pal.style_legend(ax, handles=handles, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2)
+    if title is None:
+        title = "Set pieces by type and outcome"
+    if subtitle is None:
+        label = team_name or (f"{team_id[:8]}…" if team_id else None)
+        subtitle = f"Team {label}" if label else None
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_team_parallel_coordinates(
+    report: pd.DataFrame,
+    metrics: list[str] | None = None,
+    team_names: dict | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Parallel-coordinates profile comparison for exactly two teams --
+    the same normalized-metric idea as :func:`plot_set_piece_radar`, on
+    straight vertical axes instead of a circle.
+
+    A radar's polar layout visually exaggerates whichever metric lands
+    on an outer ring and compresses whichever lands near the center,
+    purely from axis placement, not the data. Parallel axes give every
+    metric equal visual weight, and turn "which team leads on which
+    metric" into a left-to-right read of where the lines cross, instead
+    of comparing two overlapping polygon shapes.
+
+    Args:
+        report: output of :func:`~wa_setpieces.corner_report` /
+            ``free_kick_report`` (or any table with a ``contestantId``
+            column plus numeric metric columns) -- needs exactly 2 rows.
+        metrics: which columns to plot as axes; defaults to
+            ``success_rate``, ``second_phase_rate``, ``retention_rate``,
+            ``avg_added_value``, filtered to whichever are present with
+            no missing values across both rows.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    if len(report) != 2:
+        raise ValueError(f"plot_team_parallel_coordinates needs exactly 2 rows, got {len(report)}.")
+
+    default_metrics = ["success_rate", "second_phase_rate", "retention_rate", "avg_added_value"]
+    candidates = metrics if metrics is not None else default_metrics
+    metrics = [m for m in candidates if m in report.columns and report[m].notna().all()]
+    if len(metrics) < 2:
+        raise ValueError(
+            "Need at least 2 usable metrics (present in `report`, no missing "
+            "values in either row) to plot."
+        )
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+    x = np.arange(len(metrics))
+    mins = report[metrics].min()
+    spans = (report[metrics].max() - mins).replace(0, 1)
+
+    for i in range(len(report)):
+        row = report.iloc[i]
+        norm = [(row[m] - mins[m]) / spans[m] for m in metrics]
+        label = (
+            (team_names or {}).get(row["contestantId"], f"{row['contestantId'][:8]}…")
+            if "contestantId" in report.columns else f"Row {i}"
+        )
+        ax.plot(x, norm, "o-", color=pal.team_colors[i], linewidth=2.5, markersize=9, zorder=3, label=label)
+        dy, va = (10, "bottom") if i == 0 else (-10, "top")
+        for xi, m, nv in zip(x, metrics, norm):
+            ax.annotate(
+                f"{row[m]:.3f}", (xi, nv), xytext=(0, dy), textcoords="offset points",
+                ha="center", va=va, color=pal.ink_primary, fontsize=8, fontweight="bold", zorder=4,
+            )
+
+    for xi in x:
+        ax.axvline(xi, color=pal.gridline, linewidth=0.8, zorder=1)
+    ax.set_xticks(x)
+    ax.set_xticklabels([m.replace("_", " ") for m in metrics], color=pal.ink_primary, fontsize=9)
+    ax.set_yticks([])
+    ax.set_xlim(-0.3, len(metrics) - 0.7)
+    ax.set_ylim(-0.2, 1.25)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_facecolor(pal.surface)
+    pal.style_legend(ax, loc="upper center", bbox_to_anchor=(0.5, 1.18), ncol=2)
+    if title is None:
+        title = "Team profile comparison"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_team_dumbbell(
+    summary: pd.DataFrame,
+    metric: str = "attempts",
+    team_names: dict | None = None,
+    team_order: list | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Dumbbell (Cleveland dot) chart: two teams' values per category as
+    a connected pair of dots on a shared axis, one row per category.
+
+    A cleaner read than :func:`plot_team_comparison`'s grouped bars for
+    exactly two series: the connecting line makes the *gap* between
+    teams the thing your eye measures directly, instead of comparing two
+    bar lengths against a shared baseline.
+
+    Args:
+        summary: output of :func:`~wa_setpieces.set_piece_summary` (or
+            :func:`~wa_setpieces.team_set_piece_counts`).
+        team_order: as in :func:`plot_team_comparison` -- fixes which
+            team gets the first (teal) color slot, otherwise it falls
+            out of row order in ``summary``.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    teams = team_order if team_order is not None else list(summary["contestantId"].drop_duplicates())
+    if len(teams) > 2:
+        raise ValueError(
+            f"plot_team_dumbbell supports at most 2 teams, got {len(teams)}; filter `summary` first."
+        )
+
+    types = list(dict.fromkeys(summary["set_piece_type"]))
+    pivot = summary.pivot_table(index="set_piece_type", columns="contestantId", values=metric, aggfunc="sum").reindex(types)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 0.6 * len(types) + 1.5))
+
+    y = np.arange(len(types))
+    present_teams = [t for t in teams if t in pivot.columns]
+    for yi, typ in zip(y, types):
+        xs = [pivot.loc[typ, t] for t in present_teams]
+        if len(xs) == 2:
+            ax.plot(xs, [yi, yi], color=pal.gridline, linewidth=2, zorder=2)
+    for i, t in enumerate(present_teams):
+        label = (team_names or {}).get(t, f"{t[:8]}…")
+        ax.scatter(pivot[t].reindex(types), y, s=150, color=pal.team_colors[i], edgecolors=pal.ink_primary, linewidths=1, zorder=3, label=label)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels([t.replace("_", " ") for t in types], color=pal.ink_primary)
+    ax.set_xlabel(metric.replace("_", " "))
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    # Padded above the topmost category, not left to an auto "best"
+    # corner -- "best" doesn't know a scatter+line pair from empty space
+    # until it's already drawn there, and did land squarely on top of a
+    # real row during verification. A dedicated empty band above all the
+    # actual rows (rather than anchoring the legend above the axes
+    # bounding box, which fights the header's own top-margin reservation
+    # and collided with the title instead) guarantees clear space
+    # regardless of figure height.
+    ax.set_ylim(y.min() - 0.7, y.max() + 1.15)
+    ax.set_axisbelow(True)
+    pal.style_legend(ax, loc="upper left")
+    _style_chart_axis(pal, ax)
+    if title is None:
+        title = f"{metric.replace('_', ' ').title()} by set-piece type"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax

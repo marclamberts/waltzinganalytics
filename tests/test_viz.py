@@ -554,3 +554,53 @@ def test_plot_success_waffle_fills_correct_number_of_squares():
 def test_plot_success_waffle_handles_zero_total():
     fig, ax = viz.plot_success_waffle(0, 0, grid=(5, 4))
     assert fig is not None
+
+
+def test_plot_type_outcome_mosaic_returns_fig_and_ax(events):
+    summary = set_piece_summary(events)
+    team_id = summary["contestantId"].iloc[0]
+    fig, ax = viz.plot_type_outcome_mosaic(summary, team_id=team_id)
+    assert fig is not None
+    n_types = (summary.loc[summary["contestantId"] == team_id, "attempts"] > 0).sum()
+    assert len(ax.patches) == n_types * 2
+
+
+def test_plot_type_outcome_mosaic_rejects_multiple_teams(events):
+    summary = set_piece_summary(events)
+    with pytest.raises(ValueError, match="more than one team"):
+        viz.plot_type_outcome_mosaic(summary)
+
+
+def test_plot_team_parallel_coordinates_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    report = corner_report(events, model=model)
+    fig, ax = viz.plot_team_parallel_coordinates(report)
+    assert fig is not None
+    assert len(ax.lines) >= 2  # one line per team plus gridlines
+
+
+def test_plot_team_parallel_coordinates_rejects_wrong_row_count(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    report = corner_report(events, model=model)
+    with pytest.raises(ValueError, match="exactly 2 rows"):
+        viz.plot_team_parallel_coordinates(report.iloc[:1])
+
+
+def test_plot_team_dumbbell_returns_fig_and_ax(events):
+    summary = set_piece_summary(events)
+    fig, ax = viz.plot_team_dumbbell(summary, metric="attempts")
+    assert fig is not None
+    n_types = summary["set_piece_type"].nunique()
+    assert len(ax.get_yticklabels()) == n_types
+
+
+def test_plot_team_dumbbell_rejects_more_than_two_teams(events):
+    summary = pd.DataFrame(
+        {
+            "contestantId": ["team1", "team2", "team3"],
+            "set_piece_type": ["corner", "corner", "corner"],
+            "attempts": [5, 6, 7],
+        }
+    )
+    with pytest.raises(ValueError, match="at most 2 teams"):
+        viz.plot_team_dumbbell(summary)

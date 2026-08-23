@@ -1,6 +1,47 @@
 Changelog
 =========
 
+0.26.0
+------
+
+Three more new chart forms -- mosaic, parallel coordinates, dumbbell --
+none of which existed anywhere in the module before. All three had a
+real legend-placement bug caught and fixed during verification, not
+just visual polish.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_type_outcome_mosaic` --
+  a Marimekko-style mosaic, segment width = volume (attempts), segment
+  height = quality (success rate), so both are visible in one chart
+  instead of split across :func:`plot_team_comparison`'s bars and
+  :func:`plot_volume_quality_scatter`'s points. Caught two real bugs in
+  verification: the legend landed directly on top of a data segment
+  (fixed by anchoring it above the mosaic body instead of an in-bounds
+  corner), and the sample match's two smallest segments (1-2 attempts)
+  had their type-name labels run into each other (fixed with a
+  minimum-width threshold below which a label rotates 45° and a
+  percentage inside the segment is skipped rather than overlapping).
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_team_parallel_coordinates`
+  -- the same two-team profile comparison as
+  :func:`~wa_setpieces.viz.plots.plot_set_piece_radar`, on straight
+  parallel axes instead of a circle, so every metric carries equal
+  visual weight instead of however much a polar layout happens to
+  exaggerate or compress it.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_team_dumbbell` -- two
+  teams' values per category as connected dot pairs, for when the *gap*
+  between two series is the thing worth seeing directly. Caught a real
+  bug: an auto ``loc="best"`` legend placement landed on top of the
+  widest-value row; fixed not by anchoring the legend outside the axes
+  (tried first -- it fought the header's own top-margin reservation and
+  collided with the title on a short figure instead) but by padding the
+  y-axis to create dedicated empty space above the topmost category,
+  which stays clear regardless of figure height.
+- Three new gallery examples (``plot_28``-``plot_30``); module docstring
+  updated.
+- 6 new tests (333 total). Docs build clean (30/30 gallery scripts,
+  zero warnings); every chart rendered and inspected directly, and all
+  three legend bugs above were caught that way, not by the code merely
+  running without error.
+
 0.25.0
 ------
 
