@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.31.4
+------
+
+- Added a work-in-progress notice to the top of the docs homepage
+  (:doc:`index`) and the README: this package is under active
+  development with heavy updates expected in the near future, and a
+  contact address (marc@waltzinganalytics.com) for feedback or trouble.
+  No functional changes. Docs build clean.
+
 0.31.3
 ------
 

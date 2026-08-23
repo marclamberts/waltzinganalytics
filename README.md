@@ -1,5 +1,10 @@
 # wa-setpieces
 
+> **Work in progress.** This package is under active development, and
+> updates will keep coming heavily in the near future. Feedback, bug
+> reports, or trouble getting something to work? Reach out at
+> marc@waltzinganalytics.com.
+
 Set-piece analytics for football (soccer) matches from **Opta / Stats
 Perform**, **StatsBomb**, or **IMPECT** event data — one loading call,
 `load_matches(source, provider=...)`, for any of the three, a single

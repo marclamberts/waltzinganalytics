@@ -1,6 +1,12 @@
 wa-setpieces
 ===============
 
+.. note::
+
+   This package is a **work in progress** -- updates will keep coming
+   heavily in the near future. Feedback, bug reports, or trouble getting
+   something to work? Reach out at marc@waltzinganalytics.com.
+
 **Set-piece analytics for football, in pandas.** Point it at an Opta,
 StatsBomb or IMPECT match export -- one file, or a whole folder of them
 for a season -- and get every corner, free kick, throw-in, penalty, goal
