@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.31.4
-------
+1.0.0
+-----
 
 - Added a work-in-progress notice to the top of the docs homepage
   (:doc:`index`) and the README: this package is under active
