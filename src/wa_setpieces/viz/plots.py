@@ -51,7 +51,7 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Five functions answer questions the "plot the raw numbers" functions
+Nine functions answer questions the "plot the raw numbers" functions
 above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
@@ -74,6 +74,19 @@ above can't:
   question is how *spread out* a group's ratings are (one cluster, or a
   long tail) rather than each player's individual rank, which
   :func:`plot_rating_benchmark`'s bars already answer.
+- :func:`plot_value_waterfall` -- one team's total set-piece added value,
+  decomposed by restart type as a waterfall (floating bars stepping to a
+  final total), for *which* type the value came from -- a different
+  question than :func:`plot_set_piece_value_flow`'s *when*.
+- :func:`plot_value_distribution` -- a violin plot of per-delivery added
+  value, one per set-piece type, for the *spread* of outcomes a bar
+  chart's average can't show.
+- :func:`plot_type_radial_bar` -- a wind-rose bar chart of one metric
+  across set-piece types, arranged around a circle instead of along an
+  axis, so it reads as a team's restart *shape* rather than a ranking.
+- :func:`plot_success_waffle` -- a single ratio (e.g. success rate) as a
+  filled-square icon array, for when a headline number deserves more
+  visual weight than a stat-strip figure.
 """
 
 from __future__ import annotations
@@ -1721,4 +1734,301 @@ def plot_rating_beeswarm(
     for spine in ("top", "left", "right"):
         ax.spines[spine].set_visible(False)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_value_waterfall(
+    events: pd.DataFrame,
+    team_id: str,
+    model,
+    set_piece_types: tuple[str, ...] = ("corner", "free_kick"),
+    team_name: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Waterfall decomposition of one team's total set-piece added value,
+    by set-piece type -- corner, free kick, ... stepping to a final
+    "Total" bar.
+
+    Each type's own bar floats from wherever the running total already
+    was (green if it added value, red if it cost value -- a type this
+    team is actively bad at can show up as a genuine negative
+    contribution, not just "less positive"), and the final bar shows
+    where all of them land. A different question than
+    :func:`plot_set_piece_value_flow`'s *when* value accumulated over
+    the match: this shows *which restart type* it came from.
+
+    Args:
+        team_id: which team's deliveries to decompose.
+        set_piece_types: which types to break out as their own step --
+            only ``"corner"`` and ``"free_kick"`` have a value model (see
+            :mod:`wa_setpieces.core.value`).
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.value import set_piece_added_value as _added_value
+
+    pal = theme.get_palette(dark)
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 4.8))
+
+    values = []
+    for t in set_piece_types:
+        detail = _added_value(events, t, model)
+        team_detail = detail[detail["contestantId"] == team_id]
+        values.append(float(team_detail["added_value"].sum()))
+    grand_total = sum(values)
+
+    labels = [t.replace("_", " ") for t in set_piece_types] + ["Total"]
+    bottoms, heights = [], []
+    running = 0.0
+    for v in values:
+        bottoms.append(min(running, running + v))
+        heights.append(abs(v))
+        running += v
+    bottoms.append(min(0.0, grand_total))
+    heights.append(abs(grand_total))
+
+    colors = [pal.good if v >= 0 else pal.critical for v in values] + [pal.accent]
+    x = np.arange(len(labels))
+    ax.bar(x, heights, bottom=bottoms, color=colors, width=0.6, zorder=3)
+
+    running = 0.0
+    for i, v in enumerate(values):
+        ax.plot([i + 0.3, i + 1 - 0.3], [running + v, running + v], color=pal.gridline, linewidth=1, zorder=2)
+        running += v
+
+    for i, v in enumerate([*values, grand_total]):
+        top = bottoms[i] + heights[i]
+        ax.text(i, top + abs(grand_total or 1) * 0.03, f"{v:+.3f}" if i < len(values) else f"{v:.3f}",
+                 ha="center", va="bottom", color=pal.ink_primary, fontsize=9, fontweight="bold")
+
+    ax.axhline(0, color=pal.baseline, linewidth=1)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, color=pal.ink_primary)
+    ax.set_ylabel("added value")
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    _style_chart_axis(pal, ax)
+    if subtitle is None:
+        subtitle = f"Team {team_name or (team_id[:8] + '…')}"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_value_distribution(
+    events: pd.DataFrame,
+    model,
+    set_piece_types: tuple[str, ...] = ("corner", "free_kick"),
+    value_col: str = "added_value",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Violin plot of per-delivery added value, one violin per set-piece
+    type.
+
+    Shows the *spread* a bar-chart average can't: a wide violin is a
+    type that's either brilliant or costly depending on the delivery, a
+    tight one is consistently middling. Built on matplotlib's
+    ``violinplot``, restyled to the WA palette (categorical fill per
+    type, a plain median line rather than the default box overlay).
+
+    Args:
+        set_piece_types: types to include, each needs >= 2 deliveries
+            with a non-null ``value_col`` to form a violin -- types with
+            fewer are silently skipped (a violin needs a real
+            distribution to estimate, not one or two points).
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.value import set_piece_added_value as _added_value
+
+    pal = theme.get_palette(dark)
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 4.8))
+
+    data, labels = [], []
+    for t in set_piece_types:
+        detail = _added_value(events, t, model)
+        vals = detail[value_col].dropna().to_numpy()
+        if len(vals) < 2:
+            continue
+        data.append(vals)
+        labels.append(t.replace("_", " "))
+    if not data:
+        raise ValueError(
+            "None of the given set_piece_types has enough deliveries "
+            "(>= 2) to plot a distribution."
+        )
+
+    parts = ax.violinplot(data, showmeans=False, showmedians=True, widths=0.7)
+    for i, body in enumerate(parts["bodies"]):
+        color = pal.categorical[i % len(pal.categorical)]
+        body.set_facecolor(color)
+        body.set_edgecolor(color)
+        body.set_alpha(0.55)
+    for key in ("cbars", "cmins", "cmaxes", "cmedians"):
+        if key in parts:
+            parts[key].set_color(pal.ink_primary)
+            parts[key].set_linewidth(1.2)
+
+    ax.axhline(0, color=pal.baseline, linewidth=1, linestyle="--", zorder=1)
+    ax.set_xticks(np.arange(1, len(labels) + 1))
+    ax.set_xticklabels(labels, color=pal.ink_primary)
+    ax.set_ylabel(value_col.replace("_", " "))
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_type_radial_bar(
+    summary: pd.DataFrame,
+    team_id: str | None = None,
+    metric: str = "attempts",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Radial ("wind-rose") bar chart of one metric across set-piece
+    types -- one bar per type, arranged clockwise from the top instead of
+    along a shared axis.
+
+    A different read than :func:`plot_team_comparison`'s horizontal
+    bars: every type gets equal visual weight around the circle
+    regardless of label length or value, and it reads as a *shape* -- a
+    team's restart profile -- rather than a ranking.
+
+    Args:
+        summary: output of :func:`~wa_setpieces.set_piece_summary` (or
+            :func:`~wa_setpieces.team_set_piece_counts`).
+        team_id: filter to one team; ``None`` sums ``metric`` across both
+            (only sensible for an additive metric like ``attempts``,
+            ``shots``, or ``goals`` -- not ``success_rate``, which can't
+            be meaningfully summed across teams).
+
+    Requires a polar ``ax`` if you pass one in
+    (``plt.subplots(subplot_kw={"projection": "polar"})``).
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows = summary if team_id is None else summary[summary["contestantId"] == team_id]
+    if team_id is None:
+        rows = rows.groupby("set_piece_type", as_index=False)[metric].sum()
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6.5, 6.5), subplot_kw={"projection": "polar"})
+
+    types = list(rows["set_piece_type"])
+    values = [float(v) for v in rows[metric]]
+    n = len(types)
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    colors = [pal.categorical[i % len(pal.categorical)] for i in range(n)]
+    ax.bar(angles, values, width=2 * np.pi / n * 0.85, color=colors, edgecolor=pal.surface, linewidth=1.5, zorder=3)
+
+    import matplotlib.patheffects as pe
+
+    is_pct = metric.endswith("_rate")
+    max_value = max(values) if values else 0.0
+    for angle, value in zip(angles, values):
+        label = f"{value * 100:.0f}%" if is_pct else f"{value:.0f}"
+        # A minimum radius (not just "halfway up the bar") keeps labels
+        # for small wedges from collapsing on top of each other near the
+        # pole, where equal angular spacing between categories still
+        # maps to almost no physical distance. A dark stroke behind
+        # light text keeps it legible whether it lands inside a colored
+        # bar or out over the plain background.
+        label_r = max(value / 2, max_value * 0.14)
+        ax.text(
+            angle, label_r, label, ha="center", va="center",
+            color=pal.ink_primary, fontsize=10, fontweight="bold", zorder=4,
+            path_effects=[pe.withStroke(linewidth=2.5, foreground=pal.surface)],
+        )
+
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    ax.set_xticks(angles)
+    ax.set_xticklabels([t.replace("_", " ") for t in types], color=pal.ink_primary, fontsize=9)
+    ax.set_facecolor(pal.surface)
+    ax.tick_params(colors=pal.ink_secondary)
+    ax.spines["polar"].set_color(pal.gridline)
+    ax.grid(color=pal.gridline)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_success_waffle(
+    n_success: int,
+    n_total: int,
+    grid: tuple[int, int] = (10, 10),
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Waffle (icon-array) chart: ``n_success`` out of ``n_total`` filled
+    squares in a ``grid`` (default 10x10, one square per percentage
+    point).
+
+    A part-to-whole chart for a single headline ratio -- e.g. corner
+    success rate -- that reads as a proportion at a glance the way a
+    percentage number or a thin progress bar doesn't; the visual weight
+    of "78 out of 100 squares filled" lands differently than "78%" does
+    in a stat strip.
+
+    Args:
+        n_success: numerator (e.g. successful deliveries).
+        n_total: denominator (e.g. total deliveries).
+        grid: ``(rows, cols)`` -- default 10x10 so each square is
+            exactly one percentage point; a coarser grid (e.g. ``(5, 4)``
+            for small counts) reads better when ``n_total`` is small.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows, cols = grid
+    n_cells = rows * cols
+    filled = round(n_success / n_total * n_cells) if n_total else 0
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 6))
+
+    for i in range(n_cells):
+        r, c = divmod(i, cols)
+        color = pal.good if i < filled else pal.gridline
+        ax.add_patch(plt.Rectangle((c, rows - 1 - r), 0.85, 0.85, facecolor=color, edgecolor="none", zorder=3))
+
+    ax.set_xlim(-0.5, cols + 0.5)
+    ax.set_ylim(-0.5, rows + 1.5)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_facecolor(pal.surface)
+    pct = n_success / n_total * 100 if n_total else 0.0
+    ax.text(cols / 2, rows + 0.6, f"{pct:.0f}%", ha="center", va="bottom", color=pal.good, fontsize=26, fontweight="bold", zorder=4)
+
+    header_stats = [(str(n_success), "successful"), (str(n_total), "attempts")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
     return fig, ax

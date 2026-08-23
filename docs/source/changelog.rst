@@ -1,6 +1,42 @@
 Changelog
 =========
 
+0.24.0
+------
+
+Four more new chart forms -- waterfall, violin, radial bar, waffle --
+continuing straight on from 0.23.0's Sankey and beeswarm. None of these
+existed anywhere in the module before.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_value_waterfall` -- one
+  team's total set-piece added value, decomposed by restart type as a
+  floating-bar waterfall stepping to a final total. Caught and fixed a
+  real bug during verification: the final "Total" bar always drew
+  upward from zero regardless of sign, so a net-negative total (the
+  sample team's actual case) rendered as a misleadingly tall bar
+  pointing the wrong way -- fixed to span ``[min(0, total), max(0,
+  total)]``.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_value_distribution` --
+  a violin per set-piece type of per-delivery added value, for the
+  *spread* a bar chart's average hides.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_type_radial_bar` -- a
+  wind-rose bar chart of one metric across set-piece types. Caught and
+  fixed a label-collision bug during verification: value labels placed
+  just beyond each bar's tip collided with the category-name ring for
+  whichever bar happened to be tallest; fixed by placing labels inside
+  each wedge (at least 14% of the max value out from the pole, so short
+  wedges don't cluster at the center either) with a dark stroke outline
+  so they stay legible over both colored bars and the plain background.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_success_waffle` -- a
+  single ratio as a filled-square icon array, for a headline number
+  that deserves more visual weight than a stat-strip figure.
+- Four new gallery examples (``plot_24``-``plot_27``); module docstring
+  updated.
+- 8 new tests (327 total, up from 319). Docs build clean (27/27 gallery
+  scripts executed, zero warnings); every chart rendered and inspected
+  directly, and both bugs above were caught by looking at the actual
+  output, not by the code merely running without error.
+
 0.23.0
 ------
 

@@ -479,3 +479,78 @@ def test_beeswarm_offsets_spreads_identical_values():
     offsets = viz._beeswarm_offsets(pd.Series([50.0, 50.0, 50.0, 50.0]).to_numpy(), bin_width=2.5, spacing=0.22)
     assert len(set(offsets)) == 4
     assert offsets[0] == 0.0
+
+
+def test_plot_value_waterfall_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    team_id = set_piece_summary(events)["contestantId"].iloc[0]
+    fig, ax = viz.plot_value_waterfall(events, team_id, model)
+    assert fig is not None
+    assert len(ax.patches) == 3  # corner, free_kick, Total
+
+
+def test_plot_value_waterfall_total_bar_matches_sum_of_parts(events):
+    from wa_setpieces.core.value import set_piece_added_value
+
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    team_id = set_piece_summary(events)["contestantId"].iloc[0]
+    fig, ax = viz.plot_value_waterfall(events, team_id, model)
+    expected_total = sum(
+        set_piece_added_value(events, t, model).loc[
+            lambda d: d["contestantId"] == team_id, "added_value"
+        ].sum()
+        for t in ("corner", "free_kick")
+    )
+    total_bar = ax.patches[-1]
+    top = total_bar.get_y() + total_bar.get_height()
+    bottom = total_bar.get_y()
+    # The total bar spans [0, total] (or [total, 0] if negative) --
+    # whichever edge isn't 0 should match the true grand total.
+    assert pytest.approx(expected_total, abs=1e-9) in (top, bottom)
+
+
+def test_plot_value_distribution_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    fig, ax = viz.plot_value_distribution(events, model)
+    assert fig is not None
+    assert len(ax.get_xticklabels()) == 2  # corner, free_kick
+
+
+def test_plot_value_distribution_raises_when_no_type_has_enough_data(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    empty_events = events.iloc[0:0]
+    with pytest.raises(ValueError, match="enough deliveries"):
+        viz.plot_value_distribution(empty_events, model)
+
+
+def test_plot_type_radial_bar_returns_fig_and_ax(events):
+    summary = set_piece_summary(events)
+    team_id = summary["contestantId"].iloc[0]
+    fig, ax = viz.plot_type_radial_bar(summary, team_id=team_id, metric="attempts")
+    assert fig is not None
+    team_types = summary.loc[summary["contestantId"] == team_id, "set_piece_type"].nunique()
+    assert len(ax.patches) == team_types
+
+
+def test_plot_type_radial_bar_combines_teams_when_team_id_is_none(events):
+    summary = set_piece_summary(events)
+    fig, ax = viz.plot_type_radial_bar(summary, team_id=None, metric="attempts")
+    assert fig is not None
+    assert len(ax.patches) == summary["set_piece_type"].nunique()
+
+
+def test_plot_success_waffle_fills_correct_number_of_squares():
+    import matplotlib.colors as mcolors
+
+    from wa_setpieces.viz import theme
+
+    fig, ax = viz.plot_success_waffle(25, 100, grid=(10, 10))
+    pal = theme.get_palette(True)
+    good_rgb = mcolors.to_rgb(pal.good)
+    filled = sum(1 for p in ax.patches if p.get_facecolor()[:3] == good_rgb)
+    assert filled == 25
+
+
+def test_plot_success_waffle_handles_zero_total():
+    fig, ax = viz.plot_success_waffle(0, 0, grid=(5, 4))
+    assert fig is not None
