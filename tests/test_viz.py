@@ -604,3 +604,35 @@ def test_plot_team_dumbbell_rejects_more_than_two_teams(events):
     )
     with pytest.raises(ValueError, match="at most 2 teams"):
         viz.plot_team_dumbbell(summary)
+
+
+def test_plot_zone_bubble_returns_fig_and_ax(events):
+    corners = delivery_locations(events, "corner")
+    fig, ax = viz.plot_zone_bubble(corners, x_col="end_x", y_col="end_y")
+    assert fig is not None
+    assert len(ax.collections) >= 1
+
+
+def test_plot_kpi_bullet_returns_fig_and_ax():
+    fig, ax = viz.plot_kpi_bullet(0.75, target=0.7, label="Free-kick success rate")
+    assert fig is not None
+    assert len(ax.patches) == 4  # 3 bands + actual-value bar
+
+
+def test_plot_kpi_bullet_default_max_value_covers_target_and_value():
+    fig, ax = viz.plot_kpi_bullet(0.9, target=1.2)
+    assert ax.get_xlim()[1] >= 1.2
+
+
+def test_plot_value_ridgeline_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    fig, ax = viz.plot_value_ridgeline(events, model)
+    assert fig is not None
+    assert len(ax.collections) >= 1  # one fill_between per ridge
+
+
+def test_plot_value_ridgeline_raises_when_no_type_has_enough_data(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    empty_events = events.iloc[0:0]
+    with pytest.raises(ValueError, match="enough deliveries"):
+        viz.plot_value_ridgeline(empty_events, model)

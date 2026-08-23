@@ -1,6 +1,37 @@
 Changelog
 =========
 
+0.27.0
+------
+
+Three more new chart forms -- zone bubbles, a KPI bullet chart, and a
+ridgeline -- none of which existed anywhere in the module before.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_zone_bubble` -- zone
+  counts as size-encoded bubbles on the pitch, a more intuitive (if less
+  precise for close counts) encoding of "how many" than
+  :func:`plot_zone_heatmap`'s color ramp. Each bubble carries its own
+  count label so the trade-off costs nothing.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_kpi_bullet` -- a
+  compact single-ratio bullet chart against qualitative poor/fair/good
+  bands and an optional target tick, built for a dashboard strip of
+  several stacked together. Caught and fixed a real spacing bug in
+  verification: at the tight default figure height, the row label sat
+  close enough to the header band that it read as part of the title
+  rather than the chart body -- fixed with a taller default figure and
+  a tighter y-range.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_value_ridgeline` -- a
+  joyplot of per-delivery added value (:func:`scipy.stats.gaussian_kde`,
+  already a transitive dependency via mplsoccer), one smooth density
+  curve per set-piece type, for a shape a violin's mirrored outline
+  shows less clearly. Each type needs >= 3 non-identical values or it's
+  silently skipped.
+- Three new gallery examples (``plot_31``-``plot_33``); module docstring
+  updated.
+- 5 new tests (338 total). Docs build clean (33/33 gallery scripts,
+  zero warnings); every chart rendered and inspected directly, and the
+  bullet-chart spacing bug above was caught that way.
+
 0.26.0
 ------
 

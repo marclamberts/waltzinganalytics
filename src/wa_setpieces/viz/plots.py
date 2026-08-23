@@ -51,7 +51,7 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Twelve functions answer questions the "plot the raw numbers" functions
+Fifteen functions answer questions the "plot the raw numbers" functions
 above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
@@ -99,6 +99,16 @@ above can't:
   connected dot pairs, for when the *gap* between two series is the
   thing worth seeing directly rather than two bar lengths to compare by
   eye.
+- :func:`plot_zone_bubble` -- zone counts as size-encoded bubbles on the
+  pitch, a more intuitive (if less precise) encoding of "how many" than
+  :func:`plot_zone_heatmap`'s color ramp.
+- :func:`plot_kpi_bullet` -- a compact single-ratio bullet chart against
+  qualitative bands and an optional target, built for a dashboard strip
+  of several stacked together rather than one chart's worth of visual
+  weight.
+- :func:`plot_value_ridgeline` -- a joyplot of per-delivery added value,
+  one smooth density curve per set-piece type, for a shape (multi-modal?
+  skewed?) a violin's mirrored outline shows less clearly.
 """
 
 from __future__ import annotations
@@ -2387,5 +2397,235 @@ def plot_team_dumbbell(
     _style_chart_axis(pal, ax)
     if title is None:
         title = f"{metric.replace('_', ' ').title()} by set-piece type"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_zone_bubble(
+    events: pd.DataFrame,
+    x_col: str = "x",
+    y_col: str = "y",
+    x_bins: int = 6,
+    y_bins: int = 3,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    vertical: bool = False,
+    show_stats: bool = True,
+    ax=None,
+    pitch_kwargs: dict | None = None,
+):
+    """Zone counts as size-encoded bubbles on the pitch, instead of
+    :func:`plot_zone_heatmap`'s color-encoded grid.
+
+    Size is a more intuitive encoding than color for "how many" -- a
+    reader compares two bubbles' areas without consulting a color-ramp
+    legend at all -- though it trades away precision for zones with
+    close counts, where eyeballing relative circle size is harder than
+    reading a heatmap's exact color-to-value mapping. Each bubble is
+    also labeled with its own count, so the trade-off costs nothing here.
+
+    Args:
+        events: any DataFrame with numeric ``x_col``/``y_col`` (e.g.
+            :func:`~wa_setpieces.delivery_locations` output).
+        x_bins, y_bins: zone grid resolution, as in
+            :func:`~wa_setpieces.core.zones.zone_counts`.
+    """
+    import re
+
+    from ..core.zones import zone_counts
+
+    pal = theme.get_palette(dark)
+    pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
+
+    counts = zone_counts(events, x_col=x_col, y_col=y_col, x_bins=x_bins, y_bins=y_bins)
+    xs, ys, sizes = [], [], []
+    for _, row in counts.iterrows():
+        match = re.match(r"R(\d+)C(\d+)", row["zone"])
+        r, c = int(match.group(1)), int(match.group(2))
+        xs.append((c + 0.5) / x_bins * 100)
+        ys.append((r + 0.5) / y_bins * 100)
+        sizes.append(int(row["count"]))
+
+    max_count = max(sizes) if sizes else 1
+    scaled = [200 + (s / max_count) * 1800 for s in sizes]
+    pitch.scatter(
+        xs, ys, ax=ax, s=scaled, color=pal.accent, alpha=0.6, edgecolors=pal.ink_primary,
+        linewidths=1, zorder=3,
+    )
+    for x, y, s in zip(xs, ys, sizes):
+        pitch.annotate(
+            str(s), (x, y), ax=ax, ha="center", va="center", color=pal.surface,
+            fontsize=8, fontweight="bold", zorder=4,
+        )
+
+    header_stats = None
+    if show_stats and sizes:
+        header_stats = [(str(sum(sizes)), "events"), (str(len(sizes)), "zones used")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
+def plot_kpi_bullet(
+    value: float,
+    target: float | None = None,
+    bands: tuple[float, float] | None = None,
+    max_value: float | None = None,
+    label: str = "",
+    value_fmt: str = "{:.0%}",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Compact bullet/KPI chart: one ratio as a thin horizontal bar
+    against three qualitative background bands (poor/fair/good), with an
+    optional target tick.
+
+    Built for a dashboard strip -- several of these stacked read as a
+    scorecard -- rather than one chart's worth of visual weight, which
+    is what :func:`plot_success_waffle` gives the same kind of single
+    ratio instead.
+
+    Args:
+        value: the actual value to plot.
+        target: optional benchmark value, drawn as a vertical tick
+            (colored green if ``value`` clears it, red if not).
+        bands: ``(low, high)`` boundaries splitting ``0..max_value`` into
+            poor / fair / good background regions; defaults to even
+            thirds of ``max_value``.
+        max_value: axis maximum; defaults to
+            ``max(value, target or 0, 1.0) * 1.05``.
+        label: row label, drawn above the bar.
+        value_fmt: format string for the value annotation, e.g.
+            ``"{:.2f}"`` for a non-percentage metric.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    max_value = max_value if max_value is not None else max(value, target or 0, 1.0) * 1.05
+    low, high = bands if bands is not None else (max_value / 3, max_value * 2 / 3)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 2.3))
+
+    band_colors = [
+        theme._mix(pal.surface, pal.critical, 0.3),
+        theme._mix(pal.surface, pal.gold, 0.3),
+        theme._mix(pal.surface, pal.good, 0.3),
+    ]
+    for (b0, b1), color in zip([(0, low), (low, high), (high, max_value)], band_colors):
+        ax.barh(0, b1 - b0, left=b0, height=0.7, color=color, zorder=1)
+    ax.barh(0, value, height=0.28, color=pal.ink_primary, zorder=3)
+    if target is not None:
+        tick_color = pal.good if value >= target else pal.critical
+        ax.plot([target, target], [-0.35, 0.35], color=tick_color, linewidth=3, zorder=4)
+
+    if label:
+        ax.text(0, 0.48, label, ha="left", va="bottom", color=pal.ink_primary, fontsize=11, fontweight="bold")
+    ax.annotate(
+        value_fmt.format(value), (value, 0), xytext=(8, 0), textcoords="offset points",
+        ha="left", va="center", color=pal.ink_primary, fontsize=10, fontweight="bold", zorder=5,
+    )
+    ax.set_xlim(0, max_value)
+    ax.set_ylim(-0.5, 0.7)
+    ax.set_yticks([])
+    ax.tick_params(colors=pal.ink_secondary)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_facecolor(pal.surface)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_value_ridgeline(
+    events: pd.DataFrame,
+    model,
+    set_piece_types: tuple[str, ...] = ("corner", "free_kick"),
+    value_col: str = "added_value",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Ridgeline (joyplot) of per-delivery added value: one smooth
+    density curve per set-piece type, stacked with each type's own row.
+
+    A smoother read of the *shape* of a distribution than
+    :func:`plot_value_distribution`'s violins -- multi-modal (two
+    distinct clusters of outcomes) versus a single peak is easier to
+    spot in a KDE curve than in a violin's mirrored outline. Needs more
+    data to be trustworthy than a violin does, though: each type needs
+    at least 3 deliveries with non-identical values, or it's silently
+    skipped (a density estimate from 2 points is not a real shape).
+
+    Args:
+        set_piece_types: types to include, in top-to-bottom row order.
+    """
+    import matplotlib.pyplot as plt
+    from scipy.stats import gaussian_kde
+
+    from ..core.value import set_piece_added_value as _added_value
+
+    pal = theme.get_palette(dark)
+
+    series = []
+    for t in set_piece_types:
+        detail = _added_value(events, t, model)
+        vals = detail[value_col].dropna().to_numpy()
+        if len(vals) < 3 or np.ptp(vals) == 0:
+            continue
+        series.append((t, vals))
+    if not series:
+        raise ValueError(
+            "None of the given set_piece_types has enough deliveries (>= 3, "
+            "non-constant) to estimate a density."
+        )
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 0.9 * len(series) + 2.2))
+
+    all_vals = np.concatenate([v for _, v in series])
+    pad = (all_vals.max() - all_vals.min()) * 0.1 or 1.0
+    grid = np.linspace(all_vals.min() - pad, all_vals.max() + pad, 200)
+
+    n = len(series)
+    for i, (t, vals) in enumerate(series):
+        y0 = (n - 1 - i) * 1.0
+        density = gaussian_kde(vals)(grid)
+        density = density / density.max() * 0.85
+        color = pal.categorical[i % len(pal.categorical)]
+        ax.fill_between(grid, y0, y0 + density, color=color, alpha=0.65, zorder=3 + i)
+        ax.plot(grid, y0 + density, color=color, linewidth=1.5, zorder=3 + i)
+        ax.axhline(y0, color=pal.gridline, linewidth=0.8, zorder=1)
+        ax.text(
+            grid[0], y0 + 0.08, f"{t.replace('_', ' ')} (n={len(vals)})", ha="left", va="bottom",
+            color=pal.ink_primary, fontsize=9.5, fontweight="bold", zorder=4,
+        )
+
+    ax.axvline(0, color=pal.baseline, linewidth=1, linestyle="--", zorder=2)
+    ax.set_xlim(grid[0], grid[-1])
+    ax.set_ylim(0, n * 1.0 + 0.15)
+    ax.set_yticks([])
+    ax.set_xlabel(value_col.replace("_", " "))
+    ax.xaxis.label.set_color(pal.ink_secondary)
+    ax.tick_params(colors=pal.ink_secondary)
+    for spine in ("top", "left", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.spines["bottom"].set_color(pal.gridline)
+    ax.set_facecolor(pal.surface)
+    if title is None:
+        title = "Added value distribution shape"
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
