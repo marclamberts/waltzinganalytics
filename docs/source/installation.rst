@@ -5,7 +5,8 @@ Installation
 
    pip install wa-setpieces
 
-Not yet published to PyPI? Install from source instead:
+Want the latest unreleased changes, or to contribute? Install from
+source instead:
 
 .. code-block:: bash
 

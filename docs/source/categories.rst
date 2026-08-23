@@ -242,7 +242,8 @@ doesn't apply and isn't run.
 **Metrics to pull**
    Summary/counts, plus two penalty-only tables:
    :func:`~wa_setpieces.core.penalties.penalty_placement_detail` (goal-mouth
-   zone: which of the six placement zones each penalty targeted) and
+   zone: which of the nine placement zones, a 3x3 grid, each penalty
+   targeted) and
    :func:`~wa_setpieces.core.penalties.penalty_taker_summary` (per-player
    conversion rate). See :doc:`by_routine`.
    ``deliveries``, ``second_phases``, ``retention`` and ``first_contacts``

@@ -1,6 +1,43 @@
 Changelog
 =========
 
+0.29.1
+------
+
+Docs content review -- read every narrative page (``index``,
+``installation``, ``quickstart``, ``categories``, ``value_models``,
+``by_metric``, ``by_phase``, ``by_routine``, ``by_report``) end to end
+and checked all four admonition boxes render correctly (they do). Found
+and fixed three real inaccuracies, not just polish:
+
+- **Fixed**: :doc:`quickstart`'s sample ``set_piece_summary()`` output
+  table was stale and incomplete -- it showed a ``shots`` column of 1
+  for two rows where the real output (re-run against the same sample
+  match) is 0 throughout, and only showed one team's 5 rows out of the
+  10 the function actually returns. Replaced with the current, complete
+  output.
+- **Fixed**: :doc:`categories`' penalty section claimed "six placement
+  zones" -- :func:`~wa_setpieces.core.placement.goal_placement`'s own
+  docstring and code both say a 3x3 grid (nine zones); confirmed against
+  the source before fixing the doc, not the other way around.
+- **Fixed**: :doc:`installation`'s "Not yet published to PyPI? Install
+  from source instead" framing was stale -- the package has been on
+  PyPI for many versions -- reworded to state the actual reason to
+  install from source (unreleased changes, contributing).
+- Two accuracy improvements, not corrections: :doc:`by_phase`'s
+  Outcomes section now also points to
+  :func:`~wa_setpieces.viz.plots.plot_outcome_flow` (built on exactly
+  the data that section documents, previously unmentioned there); and
+  :doc:`value_models`'s Added Value section now lists the five
+  value-focused charts built on it
+  (:func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow`,
+  ``plot_value_waterfall``, ``plot_value_distribution``,
+  ``plot_value_ridgeline``, ``plot_value_boxplot``) instead of none of
+  them.
+- Docs build clean (zero warnings, ``-W --keep-going``), 350 tests
+  still passing (unchanged -- doc content only, no code behavior
+  touched).
+
 0.29.0
 ------
 

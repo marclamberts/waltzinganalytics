@@ -100,8 +100,11 @@ Outcomes
    confusing.
 
 **Where it's used**
-   :func:`~wa_setpieces.viz.plots.plot_set_piece_outcomes` in the
-   :ref:`gallery`; the aerial-duel entry below.
+   :func:`~wa_setpieces.viz.plots.plot_set_piece_outcomes` (a shot-map
+   scatter, colored by category) and
+   :func:`~wa_setpieces.viz.plots.plot_outcome_flow` (the same
+   categories as a Sankey-style funnel down to goal/no goal), both in
+   the :ref:`gallery`; the aerial-duel entry below.
 
 Aerial duels
 ----------------

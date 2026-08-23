@@ -40,11 +40,16 @@ types at once.
 .. code-block:: text
 
                contestantId set_piece_type  attempts  successful  success_rate  shots  goals
-   cxb4hqite921i...      corner         2           1         0.500      1      0
+   cxb4hqite921i...      corner         2           1         0.500      0      0
    cxb4hqite921i...   free_kick        12           9         0.750      0      0
    cxb4hqite921i...   goal_kick         8           5         0.625      0      0
    cxb4hqite921i...    kick_off         1           1         1.000      0      0
-   cxb4hqite921i...    throw_in        20          16         0.800      1      0
+   cxb4hqite921i...    throw_in        20          16         0.800      0      0
+   f2yd0yzt0om6q...      corner         7           1         0.143      0      0
+   f2yd0yzt0om6q...   free_kick        13           9         0.692      0      0
+   f2yd0yzt0om6q...   goal_kick         4           3         0.750      0      0
+   f2yd0yzt0om6q...    kick_off         3           3         1.000      0      0
+   f2yd0yzt0om6q...    throw_in        30          27         0.900      0      0
 
 Plot the deliveries
 --------------------

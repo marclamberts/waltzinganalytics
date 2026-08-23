@@ -98,7 +98,15 @@ guess -- see :doc:`by_metric`'s "Linking to shots and goals" entry.
 
 **Where it's used**
    Feeds directly into ``team_rating``'s ``avg_added_value`` component and
-   ``player_rating``'s delivery-score half, for corner/free kick.
+   ``player_rating``'s delivery-score half, for corner/free kick. Also
+   the basis for most of this package's value-focused charts in the
+   :ref:`gallery`: :func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow`
+   (cumulative, over match time), :func:`~wa_setpieces.viz.plots.plot_value_waterfall`
+   (decomposed by restart type), and three ways of showing the same
+   per-delivery spread -- :func:`~wa_setpieces.viz.plots.plot_value_distribution`
+   (violins), :func:`~wa_setpieces.viz.plots.plot_value_ridgeline` (KDE
+   curves) and :func:`~wa_setpieces.viz.plots.plot_value_boxplot`
+   (quartiles and outliers).
 
 Shot value (experimental, ML-based)
 ----------------------------------------
