@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-_PROVIDER_EXTENSIONS = {"opta": ".json", "statsbomb": ".json", "impect": ".csv"}
+_PROVIDERS = ("opta", "statsbomb", "impect")
 
 
 @dataclass(frozen=True)
@@ -185,9 +185,17 @@ def load_events_multi(
 
 
 _TYPES = ("match", "season")
+_SEASON_EXTENSIONS = (".json", ".csv")
 
 
-def _resolve_provider_files(source: str | Path, extension: str, type_key: str) -> list[Path]:
+def _resolve_provider_files(source: str | Path, type_key: str) -> list[Path]:
+    """Which file(s) to read for ``type_key`` -- independent of
+    ``provider``: any provider's data can arrive as ``.json`` or
+    ``.csv``, so this never gates on one fixed extension per provider.
+    Whether a given file actually parses under the chosen provider is
+    for the provider's own loader to decide (and, for ``type="season"``,
+    for :func:`load_matches` to skip with a warning if it doesn't --
+    see its docstring)."""
     path = Path(source)
     if type_key == "season":
         if path.is_file():
@@ -197,9 +205,13 @@ def _resolve_provider_files(source: str | Path, extension: str, type_key: str) -
             )
         if not path.is_dir():
             raise FileNotFoundError(str(path))
-        files = sorted(path.glob(f"*{extension}"))
+        files = sorted(
+            p for ext in _SEASON_EXTENSIONS for p in path.glob(f"*{ext}")
+        )
         if not files:
-            raise FileNotFoundError(f"no {extension} files found in directory {path}")
+            raise FileNotFoundError(
+                f"no {'/'.join(_SEASON_EXTENSIONS)} files found in directory {path}"
+            )
         return files
     # type == "match"
     if path.is_dir():
@@ -235,19 +247,22 @@ def load_matches(source: str | Path, provider: str = "opta", type: str = "match"
     read for the declared ``type`` and dispatches to the right one.
 
     Args:
-        source: for ``type="match"``, a single match file. For
+        source: for ``type="match"``, a single match file -- any
+            provider can be ``.json`` or ``.csv``; the extension is never
+            what decides how it's parsed, ``provider`` is. For
             ``type="season"``, a directory containing several -- scanned
-            non-recursively for ``*.json`` (``provider="opta"``/
-            ``"statsbomb"``) or ``*.csv`` (``provider="impect"``), sorted
-            by filename. Passing a directory with ``type="match"`` (or a
-            file with ``type="season"``) raises ``ValueError`` rather
-            than silently doing the other thing.
+            non-recursively for every ``*.json`` and ``*.csv`` file in
+            it together (same reasoning: not gated to one extension per
+            provider), sorted by filename. Passing a directory with
+            ``type="match"`` (or a file with ``type="season"``) raises
+            ``ValueError`` rather than silently doing the other thing.
         provider: ``"opta"`` (default), ``"statsbomb"`` or ``"impect"``,
-            case-insensitive.
+            case-insensitive. Determines how a file's *content* is
+            parsed, independent of its extension.
         type: ``"match"`` (default) for a single file, ``"season"`` for a
             directory of them, case-insensitive. IMPECT is the one
             partial exception worth knowing about: a single
-            ``type="match"`` IMPECT CSV commonly covers many matches
+            ``type="match"`` IMPECT export commonly covers many matches
             *already* (its own ``match_id`` column), unlike Opta/
             StatsBomb's true one-file-one-match convention -- see
             :mod:`wa_setpieces.providers.impect`'s module docstring.
@@ -259,12 +274,13 @@ def load_matches(source: str | Path, provider: str = "opta", type: str = "match"
         ``"impect"``, ``matchId`` comes from the export's own ``match_id``
         column instead.
 
-    A ``type="season"`` folder scan matches every file with the right
-    extension, but a real export directory can also contain non-event
-    sidecar files of the same type (a StatsBomb ``matches.json``/
-    ``competitions.json`` sitting next to the per-match event files,
-    say). A file that doesn't parse as a valid match export for the
-    chosen provider is skipped with a :class:`UserWarning` naming it and
+    A ``type="season"`` folder scan matches every ``.json``/``.csv`` file
+    regardless of provider, but a real export directory can also contain
+    non-event sidecar files of the same extension (a StatsBomb
+    ``matches.json``/``competitions.json`` sitting next to the per-match
+    event files, say) or files for a different provider entirely. A file
+    that doesn't parse as a valid match export for the chosen
+    ``provider`` is skipped with a :class:`UserWarning` naming it and
     why, rather than either silently corrupting the combined frame or
     aborting the whole folder over one bad file.
 
@@ -276,18 +292,16 @@ def load_matches(source: str | Path, provider: str = "opta", type: str = "match"
             than silently merging; or *every* file for this provider
             failed to parse.
         FileNotFoundError: ``source`` doesn't exist, or (for
-            ``type="season"``) is a directory with no matching files for
-            this provider.
+            ``type="season"``) is a directory with no ``.json``/``.csv``
+            files in it at all.
     """
     provider_key = provider.lower()
-    if provider_key not in _PROVIDER_EXTENSIONS:
-        raise ValueError(
-            f"provider must be one of {sorted(_PROVIDER_EXTENSIONS)}, got {provider!r}"
-        )
+    if provider_key not in _PROVIDERS:
+        raise ValueError(f"provider must be one of {_PROVIDERS}, got {provider!r}")
     type_key = type.lower()
     if type_key not in _TYPES:
         raise ValueError(f"type must be one of {_TYPES}, got {type!r}")
-    files = _resolve_provider_files(source, _PROVIDER_EXTENSIONS[provider_key], type_key)
+    files = _resolve_provider_files(source, type_key)
 
     frames: list[pd.DataFrame] = []
     match_id_sources: dict[str, Path] = {}

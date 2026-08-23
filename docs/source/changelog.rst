@@ -1,6 +1,34 @@
 Changelog
 =========
 
+0.31.1
+------
+
+Follow-up to 0.31.0, prompted directly by user feedback on the new
+``type=`` parameter: "all load matches can be any of them, all seasons
+can be any of them, and they all can be csv or json."
+
+- **Changed**: :func:`~wa_setpieces.load_matches` no longer gates a
+  ``type="season"`` folder scan to one fixed extension per provider
+  (``*.json`` for Opta/StatsBomb, ``*.csv`` for IMPECT). It now scans
+  for **every** ``*.json`` and ``*.csv`` file together, regardless of
+  ``provider`` -- the file extension never decides which files are even
+  considered; ``provider`` alone decides whether a given file's
+  *content* parses. A folder can mix extensions freely; anything that
+  doesn't parse under the chosen provider is skipped with the same
+  :class:`UserWarning` mechanism 0.31.0 already added for
+  ``matches.json``-style sidecar files, not filtered out silently by
+  extension up front.
+- ``type="match"`` was already extension-agnostic (a single ``source``
+  file was always handed straight to the provider's loader, whatever
+  its extension) -- this release makes ``type="season"`` consistent
+  with that, rather than changing ``type="match"`` itself.
+- Docstrings and the :doc:`installation` page updated to describe the
+  provider/extension relationship accurately.
+- 1 new test (378 total): a mixed-extension season folder where the
+  wrong-provider file gets skipped, not excluded from the scan up
+  front. Docs build clean.
+
 0.31.0
 ------
 

@@ -117,6 +117,23 @@ def test_load_matches_folder_combines_every_file(tmp_path):
     assert len(events) == 2 * len(load_events(DATA).events)
 
 
+def test_load_matches_season_scan_is_not_gated_to_one_extension_per_provider(tmp_path):
+    # A season folder scan looks for *.json and *.csv together regardless
+    # of provider -- the extension never decides which files are even
+    # considered, only whether the chosen provider's loader can parse
+    # one's content. A stray .csv sitting in an otherwise-Opta folder is
+    # picked up by the scan and then skipped (with a warning) because it
+    # doesn't parse as Opta JSON, not because it was filtered out by
+    # extension up front.
+    shutil.copy(DATA, tmp_path / "match_a.json")
+    (tmp_path / "unrelated.csv").write_text("not,opta,data\n1,2,3\n", encoding="utf-8")
+
+    with pytest.warns(UserWarning, match="skipped"):
+        events = load_matches(tmp_path, provider="opta", type="season")
+
+    assert set(events["matchId"].unique()) == {"match_a"}
+
+
 def test_load_matches_folder_with_no_matching_files_raises(tmp_path):
     (tmp_path / "not_a_match.txt").write_text("nothing here")
     with pytest.raises(FileNotFoundError):

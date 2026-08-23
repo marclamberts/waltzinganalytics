@@ -63,8 +63,13 @@ folder), so nothing else about the call changes shape between them:
   docstring for exactly what's mapped and what isn't.
 
 ``type="season"`` accepts a folder instead of a single file -- every
-``*.json`` (Opta/StatsBomb) or ``*.csv`` (IMPECT) in it is loaded and
-combined into one season-shaped events frame, ready for
-:class:`~wa_setpieces.core.season.SeasonDataset`. Passing a directory
-with ``type="match"`` (or a single file with ``type="season"``) raises
+``*.json`` and ``*.csv`` in it is loaded and combined into one
+season-shaped events frame, ready for
+:class:`~wa_setpieces.core.season.SeasonDataset`. The file extension
+never gates which provider a file is tried against -- ``provider``
+alone decides that -- so a folder can mix extensions freely; a file
+that doesn't parse under the chosen ``provider`` (wrong shape, or a
+non-event sidecar file like StatsBomb's own ``matches.json``) is
+skipped with a warning rather than aborting the whole folder. Passing a
+directory with ``type="match"`` (or a single file with ``type="season"``) raises
 ``ValueError`` rather than silently doing the other thing.
