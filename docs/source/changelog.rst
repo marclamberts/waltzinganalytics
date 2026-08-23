@@ -1,6 +1,39 @@
 Changelog
 =========
 
+0.29.0
+------
+
+Three more new chart forms -- a delivery combination network, a
+histogram, and a box plot -- none of which existed anywhere in the
+module before.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_delivery_combination_network`
+  -- a node-link graph of which player takes deliveries and which
+  teammate usually wins the first contact, built from
+  :func:`~wa_setpieces.core.phases.classify_phase`'s own
+  ``first_contact_*`` fields (scoped to contacts the delivering team
+  itself won). The first node-link graph in this module -- every other
+  multi-entity chart here compares a fixed small set of teams or
+  categories, not an open set of players connected by
+  who-delivers-to-whom. Nodes sit evenly around a circle; edge width is
+  pairing frequency, node size is total involvement.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_metric_histogram` -- a
+  classic binned histogram of any continuous metric, with no smoothing
+  assumption baked in the way :func:`plot_value_distribution`'s violins
+  and :func:`plot_value_ridgeline`'s KDE curves both have.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_value_boxplot` --
+  exact quartiles, median and outliers per set-piece type, for when the
+  specific numbers matter more than the overall distribution shape.
+- Three new gallery examples (``plot_37``-``plot_39``); module docstring
+  updated.
+- 5 new tests (350 total). Docs build clean (39/39 gallery scripts,
+  zero warnings); every chart rendered and inspected directly, including
+  verifying the combination network's circular node layout actually
+  traces a true circle (node size and label length made it look
+  irregular at a glance, so this was checked against the computed
+  positions directly, not just eyeballed).
+
 0.28.0
 ------
 

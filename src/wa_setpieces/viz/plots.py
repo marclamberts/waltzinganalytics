@@ -51,8 +51,8 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Eighteen functions answer questions the "plot the raw numbers" functions
-above can't:
+Twenty-one functions answer questions the "plot the raw numbers"
+functions above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
   by default), the individual-event alternative to :func:`plot_zone_heatmap`'s
@@ -122,6 +122,18 @@ above can't:
   the first half versus the second, as a two-point connected line, so
   the *direction of change* is a slope your eye reads directly rather
   than two numbers to compare mentally.
+- :func:`plot_delivery_combination_network` -- a node-link graph of
+  which player takes deliveries and which teammate usually wins the
+  first contact -- the only chart here for an open set of players
+  connected by who-delivers-to-whom, rather than a fixed small set of
+  teams or categories.
+- :func:`plot_metric_histogram` -- a classic binned histogram of any
+  continuous metric, with no smoothing assumption baked in the way
+  :func:`plot_value_distribution`'s violins and
+  :func:`plot_value_ridgeline`'s KDE curves both have.
+- :func:`plot_value_boxplot` -- exact quartiles, median and outliers
+  per set-piece type, for when the specific numbers matter more than
+  the overall distribution shape.
 """
 
 from __future__ import annotations
@@ -2855,5 +2867,239 @@ def plot_half_comparison_slope(
     ax.set_facecolor(pal.surface)
     if title is None:
         title = f"{metric.replace('_', ' ').title()} by half"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_delivery_combination_network(
+    events: pd.DataFrame,
+    set_piece_type: str,
+    team_id: str,
+    min_weight: int = 1,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Node-link network of delivery combinations: which player usually
+    takes a corner/free-kick, and which teammate usually wins the first
+    contact.
+
+    Built from :func:`~wa_setpieces.core.phases.classify_phase`'s own
+    ``first_contact_*`` fields, scoped to first contacts won by the
+    delivering team itself -- a defender winning it first isn't a
+    "combination". Nodes (players) sit evenly around a circle; edge
+    width is how often that taker-to-receiver pairing happened, node
+    size is how often that player was involved at all, as either end.
+
+    The first node-link graph in this module -- every other
+    multi-entity chart here (radar, parallel coordinates, dumbbell)
+    compares a fixed small set of teams or categories, not an open set
+    of players connected by who-delivers-to-whom.
+
+    Args:
+        set_piece_type: ``"corner"`` or ``"free_kick"``.
+        team_id: which team's combinations to plot.
+        min_weight: drop pairings that happened fewer than this many
+            times -- ``1`` (the default) keeps everything, useful for a
+            single match; raise it for a season's worth of data where a
+            one-off pairing is noise, not a pattern.
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.filters import extract_corners, extract_free_kicks
+    from ..core.phases import classify_phase
+
+    pal = theme.get_palette(dark)
+    extractor = {"corner": extract_corners, "free_kick": extract_free_kicks}[set_piece_type]
+    deliveries = extractor(events)
+    deliveries = deliveries[deliveries["contestantId"] == team_id]
+
+    edges: dict[tuple[str, str], int] = {}
+    node_count: dict[str, int] = {}
+    for _, delivery_row in deliveries.iterrows():
+        result = classify_phase(events, delivery_row)
+        taker = delivery_row.get("playerName")
+        if result.first_contact_event_id is None or result.first_contact_team != team_id:
+            continue
+        contact_row = events[
+            (events["contestantId"] == team_id) & (events["eventId"] == result.first_contact_event_id)
+        ]
+        if contact_row.empty:
+            continue
+        receiver = contact_row.iloc[0].get("playerName")
+        if not taker or not receiver or taker == receiver:
+            continue
+        edges[(taker, receiver)] = edges.get((taker, receiver), 0) + 1
+        node_count[taker] = node_count.get(taker, 0) + 1
+        node_count[receiver] = node_count.get(receiver, 0) + 1
+
+    edges = {pair: w for pair, w in edges.items() if w >= min_weight}
+    if not edges:
+        raise ValueError(
+            "No repeated delivery combinations found -- try lowering min_weight "
+            "or a different set_piece_type."
+        )
+    node_count = {p: c for p, c in node_count.items() if any(p in pair for pair in edges)}
+
+    players = list(node_count.keys())
+    n = len(players)
+    angles = {p: 2 * np.pi * i / n for i, p in enumerate(players)}
+    pos = {p: (np.cos(a), np.sin(a)) for p, a in angles.items()}
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7.5, 7.5))
+
+    max_edge = max(edges.values())
+    for (taker, receiver), w in edges.items():
+        x0, y0 = pos[taker]
+        x1, y1 = pos[receiver]
+        ax.plot(
+            [x0, x1], [y0, y1], color=pal.accent, alpha=0.35 + 0.55 * (w / max_edge),
+            linewidth=1 + 5 * (w / max_edge), zorder=2, solid_capstyle="round",
+        )
+
+    max_node = max(node_count.values())
+    for p, (x, y) in pos.items():
+        size = 260 + 900 * (node_count[p] / max_node)
+        ax.scatter(x, y, s=size, color=pal.team_colors[0], edgecolors=pal.ink_primary, linewidths=1.2, zorder=3)
+        lx, ly = x * 1.22, y * 1.22
+        ax.annotate(
+            p, (x, y), xytext=(lx, ly), ha="center", va="center", color=pal.ink_primary,
+            fontsize=9, fontweight="bold", zorder=4,
+        )
+
+    ax.set_xlim(-1.6, 1.6)
+    ax.set_ylim(-1.6, 1.6)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_facecolor(pal.surface)
+    if title is None:
+        title = f"{set_piece_type.replace('_', ' ').title()} combination network"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_metric_histogram(
+    values,
+    bins: int = 12,
+    value_label: str = "value",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    show_stats: bool = True,
+    ax=None,
+):
+    """Classic binned histogram of any continuous metric -- delivery
+    distance, added value, time to first contact, whatever's handed in.
+
+    The simplest possible answer to "what's the distribution of this
+    number," included because every other distribution chart in this
+    module (:func:`plot_value_distribution`'s violins,
+    :func:`plot_value_ridgeline`'s KDE curves) is a smoothed estimate --
+    sometimes the raw bin counts, with no smoothing assumption baked in,
+    are what's actually wanted.
+
+    Args:
+        values: any 1-D sequence of numbers (a Series, array, or list).
+        value_label: axis label and stat-strip caption for what
+            ``values`` represents.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    vals = pd.Series(values).dropna().to_numpy(dtype=float)
+    if len(vals) == 0:
+        raise ValueError("No non-null values to plot.")
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 4.5))
+
+    ax.hist(vals, bins=bins, color=pal.categorical[0], edgecolor=pal.surface, linewidth=1, zorder=3)
+    mean_val = float(np.mean(vals))
+    ax.axvline(mean_val, color=pal.gold, linewidth=1.5, linestyle="--", zorder=4, label=f"mean = {mean_val:.3g}")
+    ax.set_xlabel(value_label)
+    ax.set_ylabel("count")
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    pal.style_legend(ax, loc="upper right")
+    _style_chart_axis(pal, ax)
+    header_stats = None
+    if show_stats:
+        header_stats = [(str(len(vals)), "events"), (f"{mean_val:.3g}", f"mean {value_label}")]
+    if title is None:
+        title = f"Distribution of {value_label}"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
+def plot_value_boxplot(
+    events: pd.DataFrame,
+    model,
+    set_piece_types: tuple[str, ...] = ("corner", "free_kick"),
+    value_col: str = "added_value",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Box plot of per-delivery added value, one box per set-piece type.
+
+    Exact quartiles, median, and outlier points -- where
+    :func:`plot_value_distribution`'s violins show the smoothed *shape*
+    of the same data and :func:`plot_value_ridgeline`'s KDE curves show
+    it again a third way. Reach for this one when the specific numbers
+    (median, IQR, which points are outliers) matter more than the
+    overall shape.
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.value import set_piece_added_value as _added_value
+
+    pal = theme.get_palette(dark)
+    data, labels = [], []
+    for t in set_piece_types:
+        detail = _added_value(events, t, model)
+        vals = detail[value_col].dropna().to_numpy()
+        if len(vals) == 0:
+            continue
+        data.append(vals)
+        labels.append(t.replace("_", " "))
+    if not data:
+        raise ValueError("None of the given set_piece_types has any deliveries to plot.")
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 4.5))
+
+    bp = ax.boxplot(
+        data, patch_artist=True, medianprops=dict(color=pal.surface, linewidth=2),
+        whiskerprops=dict(color=pal.ink_secondary), capprops=dict(color=pal.ink_secondary),
+        flierprops=dict(markerfacecolor=pal.critical, markeredgecolor=pal.critical, markersize=5, marker="o"),
+    )
+    for i, box in enumerate(bp["boxes"]):
+        box.set_facecolor(pal.categorical[i % len(pal.categorical)])
+        box.set_edgecolor(pal.ink_primary)
+        box.set_alpha(0.85)
+
+    ax.set_xticklabels(labels, color=pal.ink_primary)
+    ax.axhline(0, color=pal.baseline, linewidth=1, linestyle="--", zorder=1)
+    ax.set_ylabel(value_col.replace("_", " "))
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    _style_chart_axis(pal, ax)
+    if title is None:
+        title = "Added value by set-piece type"
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax

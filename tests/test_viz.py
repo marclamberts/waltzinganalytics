@@ -689,3 +689,34 @@ def test_plot_half_comparison_slope_flat_line_is_neutral_colored(events):
 def test_plot_half_comparison_slope_rejects_multiple_teams(events):
     with pytest.raises(ValueError, match="more than one team"):
         viz.plot_half_comparison_slope(events)
+
+
+def test_plot_delivery_combination_network_returns_fig_and_ax(events):
+    team_id = set_piece_summary(events)["contestantId"].iloc[0]
+    fig, ax = viz.plot_delivery_combination_network(events, "free_kick", team_id)
+    assert fig is not None
+    assert len(ax.collections) >= 1  # node scatter
+
+
+def test_plot_delivery_combination_network_raises_when_no_combinations():
+    empty_events = pd.DataFrame(columns=["contestantId", "eventId", "playerName", "typeId", "periodId", "timeMin", "timeSec"])
+    with pytest.raises(ValueError, match="No repeated delivery combinations"):
+        viz.plot_delivery_combination_network(empty_events, "free_kick", "team1")
+
+
+def test_plot_metric_histogram_returns_fig_and_ax():
+    fig, ax = viz.plot_metric_histogram([1, 2, 2, 3, 3, 3, 4, 4, 5], value_label="test metric")
+    assert fig is not None
+    assert len(ax.patches) > 0
+
+
+def test_plot_metric_histogram_raises_on_all_null():
+    with pytest.raises(ValueError, match="No non-null values"):
+        viz.plot_metric_histogram([None, None])
+
+
+def test_plot_value_boxplot_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    fig, ax = viz.plot_value_boxplot(events, model)
+    assert fig is not None
+    assert len(ax.get_xticklabels()) == 2  # corner, free_kick
