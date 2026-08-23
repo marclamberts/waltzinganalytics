@@ -28,12 +28,12 @@ Second phases
 
    from wa_setpieces import second_phases, second_phase_summary
 
-   second_phases(match.events, "corner")          # one row per corner, classified
-   second_phase_summary(match.events, "corner")   # per-team roll-up
+   second_phases(events, "corner")          # one row per corner, classified
+   second_phase_summary(events, "corner")   # per-team roll-up
 
    # thresholds are tunable:
    from wa_setpieces.core.phases import second_phases as _second_phases
-   _second_phases(match.events, "corner", clear_safe_x=40, max_gap_seconds=6, max_total_seconds=15)
+   _second_phases(events, "corner", clear_safe_x=40, max_gap_seconds=6, max_total_seconds=15)
 
 **Where it's used**
    :func:`~wa_setpieces.core.value.set_piece_added_value` (:doc:`value_models`)
@@ -59,9 +59,9 @@ Retention
 
    from wa_setpieces import retention_detail, retention_rate
 
-   retention_detail(match.events, "corner")               # per-delivery: outcome vs. retained
-   retention_rate(match.events, "throw_in")                # per-team retention rate
-   retention_rate(match.events, "corner", window_seconds=5)
+   retention_detail(events, "corner")               # per-delivery: outcome vs. retained
+   retention_rate(events, "throw_in")                # per-team retention rate
+   retention_rate(events, "corner", window_seconds=5)
 
 **Where it's used**
    ``set_piece_report``'s ``retention_rate`` column, which
@@ -88,8 +88,8 @@ Outcomes
 
    from wa_setpieces import delivery_outcomes, outcome_summary
 
-   delivery_outcomes(match.events, "corner")  # one row per delivery
-   outcome_summary(match.events, "corner")    # per-team counts of each category
+   delivery_outcomes(events, "corner")  # one row per delivery
+   outcome_summary(events, "corner")    # per-team counts of each category
 
 .. note::
 
@@ -124,7 +124,7 @@ Aerial duels
 
    from wa_setpieces import aerial_duel_summary
 
-   team_summary, player_summary = aerial_duel_summary(match.events, "corner")
+   team_summary, player_summary = aerial_duel_summary(events, "corner")
    # team_summary: duels_involved, duels_won, win_rate, per team
    # player_summary: duels_won per player with at least one *identified* win
    # (a loss identifies the winning team but not the winning player --

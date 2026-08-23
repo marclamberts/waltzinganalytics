@@ -1,6 +1,35 @@
 Changelog
 =========
 
+0.30.2
+------
+
+Second follow-up to 0.30.0: 0.30.1 fixed the gallery, README and
+index/quickstart; this sweep found the rest -- the six pick-one
+reference pages (:doc:`categories`, :doc:`value_models`, :doc:`by_metric`,
+:doc:`by_phase`, :doc:`by_routine`, :doc:`by_report`), which all still
+showed ``events`` implicitly loaded via the old ``match.events`` pattern
+in their code samples.
+
+- All six reference pages now consistently assume ``events =
+  load_matches(...)``, matching :doc:`quickstart`.
+- Two runnable example scripts also swept: ``examples/analyse_opta.py``
+  and its paired ``examples/analyse_opta.ipynb`` now use
+  :func:`~wa_setpieces.load_matches` (neither used the ``matchDetails``
+  block, so there was no reason to keep the lower-level function) --
+  the notebook was actually re-executed, not just text-edited, so its
+  saved outputs (including the now-present ``matchId`` column in the
+  events preview) reflect what the new code really produces, not a
+  stale cell result.
+- ``examples/quickstart.py`` and ``examples/full_walkthrough.ipynb``
+  were deliberately left on :func:`~wa_setpieces.load_events` -- both
+  genuinely read ``match.match_details`` (kickoff status, final score),
+  which :func:`~wa_setpieces.load_matches` doesn't provide, so
+  :func:`~wa_setpieces.load_events` is the correct call there, not a
+  leftover.
+- Docs build clean (zero warnings), 370 tests unchanged -- text and
+  example code only, no library behavior changed.
+
 0.30.1
 ------
 

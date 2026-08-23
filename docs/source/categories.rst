@@ -22,8 +22,8 @@ the bottom for the field-by-field breakdown.
 
    from wa_setpieces import run_workflow, XTModel
 
-   model = XTModel.fit(match.events)  # only unlocks value/rating for corner + free kick
-   result = run_workflow(match.events, "corner", model=model)  # swap "corner" for any type below
+   model = XTModel.fit(events)  # only unlocks value/rating for corner + free kick
+   result = run_workflow(events, "corner", model=model)  # swap "corner" for any type below
 
 .. code-block:: bash
 
@@ -61,9 +61,9 @@ other type is measured against below.
 
       from wa_setpieces import delivery_locations, second_phases, retention_rate
 
-      corners = delivery_locations(match.events, "corner")
-      second_phases(match.events, "corner")
-      retention_rate(match.events, "corner")
+      corners = delivery_locations(events, "corner")
+      second_phases(events, "corner")
+      retention_rate(events, "corner")
 
 **Value model**
    Fully supported -- corner is one of the two phase-based types (with
@@ -78,7 +78,7 @@ other type is measured against below.
 
       from wa_setpieces import set_piece_added_value, team_rating, player_rating, corner_report
 
-      set_piece_added_value(match.events, "corner", model)          # per-delivery
+      set_piece_added_value(events, "corner", model)          # per-delivery
       team_rating(corner_report(season_events, model=model))        # 0-100 per team
       player_rating(season_events, "corner", model)                 # delivery/finishing split
 
@@ -132,9 +132,9 @@ curated HTML report and the sonar plot.
 
       from wa_setpieces import delivery_locations, second_phases, restart_routines
 
-      free_kicks = delivery_locations(match.events, "free_kick")
-      second_phases(match.events, "free_kick")
-      restart_routines(match.events, "free_kick")
+      free_kicks = delivery_locations(events, "free_kick")
+      second_phases(events, "free_kick")
+      restart_routines(events, "free_kick")
 
 **Value model**
    Fully supported, identical mechanism to corner -- added value, team
@@ -145,7 +145,7 @@ curated HTML report and the sonar plot.
 
       from wa_setpieces import set_piece_added_value, free_kick_report, team_rating
 
-      set_piece_added_value(match.events, "free_kick", model)
+      set_piece_added_value(events, "free_kick", model)
       team_rating(free_kick_report(season_events, model=model))
 
 **Visualisation**
@@ -192,8 +192,8 @@ top of the shared pipeline.
 
       from wa_setpieces import long_throw_taker_summary, long_throw_second_phases
 
-      long_throw_taker_summary(match.events, min_distance=25.0)
-      long_throw_second_phases(match.events, min_distance=25.0)
+      long_throw_taker_summary(events, min_distance=25.0)
+      long_throw_second_phases(events, min_distance=25.0)
 
 **Value model**
    Not available -- ``added_value``/``player_rating`` are ``None`` for
@@ -222,7 +222,7 @@ top of the shared pipeline.
       from wa_setpieces import delivery_locations
       from wa_setpieces.viz.plots import plot_delivery_map
 
-      throw_ins = delivery_locations(match.events, "throw_in")
+      throw_ins = delivery_locations(events, "throw_in")
       plot_delivery_map(throw_ins, title="Throw-ins")
 
 Penalty
@@ -254,8 +254,8 @@ doesn't apply and isn't run.
 
       from wa_setpieces import penalty_placement_detail, penalty_taker_summary
 
-      penalty_placement_detail(match.events)
-      penalty_taker_summary(match.events)
+      penalty_placement_detail(events)
+      penalty_taker_summary(events)
 
 **Value model**
    Not the xT model -- a penalty's value is its conversion rate and
@@ -276,7 +276,7 @@ doesn't apply and isn't run.
 
    .. code-block:: python
 
-      placement = penalty_placement_detail(match.events)
+      placement = penalty_placement_detail(events)
       placement[["playerName", "result", "corner_zone", "placement_score"]]
 
 Goal kick
@@ -303,9 +303,9 @@ type-specific extras of its own.
 
       from wa_setpieces import delivery_locations, retention_rate, defensive_set_piece_summary
 
-      goal_kicks = delivery_locations(match.events, "goal_kick")
-      retention_rate(match.events, "goal_kick")
-      defensive_set_piece_summary(match.events)
+      goal_kicks = delivery_locations(events, "goal_kick")
+      retention_rate(events, "goal_kick")
+      defensive_set_piece_summary(events)
 
 **Value model**
    Not available -- same reasoning as throw-in: no
@@ -353,9 +353,9 @@ least mature category rather than "not implemented."
 
       from wa_setpieces import extract_kick_offs, delivery_locations, run_workflow
 
-      extract_kick_offs(match.events)
-      delivery_locations(match.events, "kick_off")
-      run_workflow(match.events, "kick_off")  # no model= -- there's no xT path for this type yet
+      extract_kick_offs(events)
+      delivery_locations(events, "kick_off")
+      run_workflow(events, "kick_off")  # no model= -- there's no xT path for this type yet
 
    .. code-block:: bash
 

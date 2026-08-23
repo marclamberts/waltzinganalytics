@@ -25,7 +25,7 @@ import pandas as pd
 from wa_setpieces import (
     XTModel,
     defensive_rating,
-    load_events,
+    load_matches,
     run_workflow,
     validate_events,
     write_html_report,
@@ -56,8 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    match = load_events(args.opta_file)
-    events = validate_events(match.events)
+    events = validate_events(load_matches(args.opta_file))
 
     model = None
     if args.model:

@@ -30,8 +30,8 @@ Routine taxonomy
 
    from wa_setpieces import restart_routines, analyze_routines
 
-   restart_routines(match.events, "corner")
-   analyze_routines(match.events, "corner", min_taker_attempts=3)
+   restart_routines(events, "corner")
+   analyze_routines(events, "corner", min_taker_attempts=3)
    # .detail / .summary / .team_profiles / .taker_profiles / .target_matrix
 
 **Where it's used**
@@ -56,7 +56,7 @@ Data-driven clusters
 
    from wa_setpieces import cluster_routines, cluster_summary
 
-   clustered = cluster_routines(match.events, "corner", n_clusters=5)
+   clustered = cluster_routines(events, "corner", n_clusters=5)
    # restart_routines' detail plus `cluster` (int, -1 = unclustered) and
    # an auto-generated `cluster_label` (e.g. "short, forward, central")
    cluster_summary(clustered)  # per-cluster usage/outcome roll-up
@@ -83,11 +83,11 @@ Long throws
 
    from wa_setpieces import long_throw_taker_summary, long_throw_second_phases
 
-   long_throw_taker_summary(match.events, min_distance=25.0)
+   long_throw_taker_summary(events, min_distance=25.0)
    # per-player usage share and threat created (shots/goals via the
    # assist-chain link) among throw-ins that travel at least min_distance
 
-   long_throw_second_phases(match.events, min_distance=25.0)
+   long_throw_second_phases(events, min_distance=25.0)
    # event-sequence-based flick-on/knockdown detection, restricted to
    # those same long throws
 
@@ -116,8 +116,8 @@ Penalty placement
 
    from wa_setpieces import penalty_placement_detail, penalty_taker_summary
 
-   penalty_placement_detail(match.events)
-   penalty_taker_summary(match.events)
+   penalty_placement_detail(events)
+   penalty_taker_summary(events)
 
 **Where it's used**
    The penalty section of :doc:`categories`; shares its goal-mouth

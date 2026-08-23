@@ -29,11 +29,11 @@ Self-contained HTML reports
    from pathlib import Path
    from wa_setpieces import corner_report_html, opponent_scouting_report_html
 
-   html = corner_report_html(match.events, model=model)
+   html = corner_report_html(events, model=model)
    Path("corner_report.html").write_text(html, encoding="utf-8")
 
    scouting = opponent_scouting_report_html(
-       match.events, opponent_id="...", set_piece_type="corner", team_name="Rivals FC",
+       events, opponent_id="...", set_piece_type="corner", team_name="Rivals FC",
    )
    Path("scouting.html").write_text(scouting, encoding="utf-8")
 
@@ -63,7 +63,7 @@ CSV and Excel export
    import pandas as pd
    from wa_setpieces import save_table, save_tables, corner_report
 
-   save_table(corner_report(match.events, model=model), "corner_report.xlsx")
+   save_table(corner_report(events, model=model), "corner_report.xlsx")
 
    tables = {name: value for name, value in vars(result).items() if isinstance(value, pd.DataFrame)}
    save_tables(tables, "workflow_tables/", fmt="csv")

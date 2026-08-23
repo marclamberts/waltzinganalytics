@@ -89,8 +89,8 @@ Added value
 
    from wa_setpieces import set_piece_added_value, set_piece_value_summary
 
-   set_piece_added_value(match.events, "corner", model)    # per-delivery breakdown
-   set_piece_value_summary(match.events, "corner", model)  # per-team total/average
+   set_piece_added_value(events, "corner", model)    # per-delivery breakdown
+   set_piece_value_summary(events, "corner", model)  # per-team total/average
 
 The shot a delivery "produced" is resolved via Opta's own assist-chain
 qualifier (:func:`~wa_setpieces.link_set_piece_shots`), not a positional
@@ -140,7 +140,7 @@ Shot value (experimental, ML-based)
    from wa_setpieces.ml.shot_value import shot_value, ShotValueModels
 
    models = ShotValueModels.load()     # load once, reuse across matches
-   shot_value(match.events, models)    # one row per shot: on_target_prob, xgot, psxg, shot_value
+   shot_value(events, models)    # one row per shot: on_target_prob, xgot, psxg, shot_value
 
 **Where it's used**
    Standalone today -- not wired into ``added_value`` or the ratings
@@ -229,7 +229,7 @@ Defensive rating
 
    from wa_setpieces import defensive_set_piece_summary, defensive_rating
 
-   defensive_rating(defensive_set_piece_summary(match.events))
+   defensive_rating(defensive_set_piece_summary(events))
 
 **Where it's used**
    Standalone -- the opponent-scouting side of a defensive workflow, not

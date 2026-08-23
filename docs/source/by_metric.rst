@@ -28,8 +28,8 @@ Team and player counts
 
    from wa_setpieces import team_set_piece_counts, player_set_piece_counts
 
-   team_set_piece_counts(match.events)
-   player_set_piece_counts(match.events)
+   team_set_piece_counts(events)
+   player_set_piece_counts(events)
 
 **Where it's used**
    The team-count rows feed :func:`~wa_setpieces.set_piece_summary`
@@ -57,7 +57,7 @@ Delivery locations
 
    from wa_setpieces import delivery_locations
 
-   corners = delivery_locations(match.events, "corner")
+   corners = delivery_locations(events, "corner")
 
 **Where it's used**
    :func:`~wa_setpieces.viz.plots.plot_delivery_map` and every other
@@ -80,8 +80,8 @@ Linking to shots and goals
 
    from wa_setpieces import link_set_piece_shots, set_piece_goal_summary
 
-   link_set_piece_shots(match.events)     # every shot, tagged with its originating set piece
-   set_piece_goal_summary(match.events)   # goals per team per set-piece type
+   link_set_piece_shots(events)     # every shot, tagged with its originating set piece
+   set_piece_goal_summary(events)   # goals per team per set-piece type
 
 .. important::
 
@@ -111,7 +111,7 @@ The all-in-one summary
 
    from wa_setpieces import set_piece_summary
 
-   set_piece_summary(match.events)
+   set_piece_summary(events)
 
 **Where it's used**
    The :doc:`quickstart`'s first real call; ``wa-setpieces match.json``
@@ -137,13 +137,13 @@ Zones, thirds and channels
 
    from wa_setpieces import add_thirds, add_channels, add_zone_grid, zone_counts, delivery_locations
 
-   tagged = add_thirds(match.events)            # "defensive_third" / "middle_third" / "attacking_third"
+   tagged = add_thirds(events)            # "defensive_third" / "middle_third" / "attacking_third"
    tagged = add_channels(tagged, n=5)            # wide / half-space / central
    tagged = add_zone_grid(tagged)                # 6x3 = 18-zone grid label, e.g. "R1C4"
 
-   zone_counts(match.events, group_cols=["contestantId"])  # per-zone counts per team
+   zone_counts(events, group_cols=["contestantId"])  # per-zone counts per team
 
-   corners = add_channels(delivery_locations(match.events, "corner"), y_col="end_y", n=5)
+   corners = add_channels(delivery_locations(events, "corner"), y_col="end_y", n=5)
    corners["channel"].value_counts()             # which channel corners are delivered *into*
 
 **Where it's used**
