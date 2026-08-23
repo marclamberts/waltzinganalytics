@@ -1,6 +1,41 @@
 Changelog
 =========
 
+0.28.0
+------
+
+Three more new chart forms -- a stacked area timeline, a progress ring,
+and a first-half/second-half slope chart -- none of which existed
+anywhere in the module before. Two real bugs caught and fixed during
+verification, not just visual polish.
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_type_area_timeline` --
+  set-piece attempts over match time, binned by type, as a stacked area
+  chart -- the *mix* shifting over the match, not individual events
+  (:func:`plot_match_timeline`) or a single cumulative value
+  (:func:`plot_set_piece_value_flow`). Caught a real bug in
+  verification: two of the categorical palette colors are adjacent
+  shades of orange, fine everywhere else they're used but with no gap
+  between touching stacked bands "throw in" and "goal kick" blended
+  into one indistinguishable region -- fixed with a stroke between
+  every band, which guarantees a visible seam regardless of which two
+  colors happen to land next to each other.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_success_ring` -- a
+  single ratio as a circular progress ring, a different visual metaphor
+  for the same job :func:`plot_success_waffle` does with filled squares.
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_half_comparison_slope`
+  -- each set-piece type's value in the first half versus the second,
+  as a two-point connected line, colored by direction of change. Caught
+  a real correctness issue in verification: a type with an *unchanged*
+  value (first half == second half) was colored the same green as an
+  improvement, which is a misleading claim -- "flat" isn't "better" --
+  fixed with a third neutral color for exact ties.
+- Three new gallery examples (``plot_34``-``plot_36``); module docstring
+  updated.
+- 7 new tests (345 total). Docs build clean (36/36 gallery scripts,
+  zero warnings); every chart rendered and inspected directly, and both
+  issues above were caught that way.
+
 0.27.0
 ------
 

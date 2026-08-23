@@ -636,3 +636,56 @@ def test_plot_value_ridgeline_raises_when_no_type_has_enough_data(events):
     empty_events = events.iloc[0:0]
     with pytest.raises(ValueError, match="enough deliveries"):
         viz.plot_value_ridgeline(empty_events, model)
+
+
+def test_plot_type_area_timeline_returns_fig_and_ax(events):
+    fig, ax = viz.plot_type_area_timeline(events)
+    assert fig is not None
+    assert len(ax.collections) >= 1
+
+
+def test_plot_type_area_timeline_bands_have_a_separating_stroke(events):
+    fig, ax = viz.plot_type_area_timeline(events)
+    for band in ax.collections:
+        assert band.get_linewidth()[0] > 0
+
+
+def test_plot_success_ring_returns_fig_and_ax():
+    fig, ax = viz.plot_success_ring(27, 30, label="Throw-in retention")
+    assert fig is not None
+    assert len(ax.patches) == 2  # success wedge + remainder wedge
+
+
+def test_plot_success_ring_handles_zero_total():
+    fig, ax = viz.plot_success_ring(0, 0)
+    assert fig is not None
+
+
+def test_plot_half_comparison_slope_returns_fig_and_ax(events):
+    summary = set_piece_summary(events)
+    team_id = summary["contestantId"].iloc[0]
+    fig, ax = viz.plot_half_comparison_slope(events, team_id=team_id)
+    assert fig is not None
+    n_types = summary.loc[summary["contestantId"] == team_id, "set_piece_type"].nunique()
+    assert len(ax.lines) == n_types
+
+
+def test_plot_half_comparison_slope_flat_line_is_neutral_colored(events):
+    from wa_setpieces.viz import theme
+
+    summary = set_piece_summary(events)
+    team_id = summary["contestantId"].iloc[0]
+    pal = theme.get_palette(True)
+    fig, ax = viz.plot_half_comparison_slope(events, team_id=team_id)
+    flat_lines = [
+        line for line in ax.lines
+        if line.get_ydata()[0] == line.get_ydata()[1]
+    ]
+    assert flat_lines, "expected at least one flat (no-change) line in this sample"
+    for line in flat_lines:
+        assert line.get_color() == pal.ink_muted
+
+
+def test_plot_half_comparison_slope_rejects_multiple_teams(events):
+    with pytest.raises(ValueError, match="more than one team"):
+        viz.plot_half_comparison_slope(events)

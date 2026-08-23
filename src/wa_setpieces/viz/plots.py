@@ -51,7 +51,7 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Fifteen functions answer questions the "plot the raw numbers" functions
+Eighteen functions answer questions the "plot the raw numbers" functions
 above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
@@ -109,6 +109,19 @@ above can't:
 - :func:`plot_value_ridgeline` -- a joyplot of per-delivery added value,
   one smooth density curve per set-piece type, for a shape (multi-modal?
   skewed?) a violin's mirrored outline shows less clearly.
+- :func:`plot_type_area_timeline` -- a stacked area chart of set-piece
+  volume over match time, binned by type, for the *mix* shifting over
+  the course of the match -- a different question than
+  :func:`plot_match_timeline`'s individual dots (unaggregated) or
+  :func:`plot_set_piece_value_flow`'s cumulative line (one signed
+  value, not a volume breakdown).
+- :func:`plot_success_ring` -- a single ratio as a circular progress
+  ring, a different visual metaphor for the same job
+  :func:`plot_success_waffle` does with filled squares.
+- :func:`plot_half_comparison_slope` -- each set-piece type's value in
+  the first half versus the second, as a two-point connected line, so
+  the *direction of change* is a slope your eye reads directly rather
+  than two numbers to compare mentally.
 """
 
 from __future__ import annotations
@@ -2627,5 +2640,220 @@ def plot_value_ridgeline(
     ax.set_facecolor(pal.surface)
     if title is None:
         title = "Added value distribution shape"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_type_area_timeline(
+    events: pd.DataFrame,
+    bin_minutes: int = 15,
+    team_id: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Stacked area chart of set-piece attempts over match time, binned
+    into ``bin_minutes``-wide windows, one colored band per type.
+
+    A cumulative-*volume* read of the match: which restart types made up
+    the bulk of the traffic in each phase of the game, and whether that
+    mix shifted -- a team leaning on throw-ins early, corners piling up
+    late while chasing a goal. Different from
+    :func:`plot_match_timeline`'s swim-lane dots (every individual
+    event, unaggregated) and :func:`plot_set_piece_value_flow`'s
+    cumulative line (one signed value, not a volume breakdown by type).
+
+    Args:
+        bin_minutes: width of each time window.
+        team_id: filter to one team; ``None`` combines both.
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.constants import SET_PIECE_TYPES
+    from ..core.filters import tag_set_pieces
+
+    pal = theme.get_palette(dark)
+    tagged = tag_set_pieces(events)
+    sp = tagged[tagged["set_piece_type"].notna()].copy()
+    if team_id is not None:
+        sp = sp[sp["contestantId"] == team_id]
+    sp["match_minute"] = pd.to_numeric(sp["timeMin"], errors="coerce")
+    sp = sp.dropna(subset=["match_minute"])
+
+    types = [t for t in SET_PIECE_TYPES if t in set(sp["set_piece_type"])]
+    if not types:
+        raise ValueError("No set-piece events found to plot.")
+
+    max_minute = sp["match_minute"].max()
+    bin_edges = np.arange(0, max_minute + bin_minutes, bin_minutes)
+    sp["bin"] = pd.cut(sp["match_minute"], bin_edges, right=False)
+    counts = (
+        sp.groupby(["bin", "set_piece_type"], observed=True)
+        .size()
+        .unstack(fill_value=0)
+        .reindex(columns=types, fill_value=0)
+    )
+    bin_centers = [interval.left + bin_minutes / 2 for interval in counts.index]
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+    colors = [pal.categorical[i % len(pal.categorical)] for i in range(len(types))]
+    bands = ax.stackplot(
+        bin_centers, [counts[t] for t in types], labels=[t.replace("_", " ") for t in types],
+        colors=colors, alpha=0.85, zorder=3,
+    )
+    # Two of the categorical colors happen to be adjacent shades of
+    # orange -- fine spaced apart elsewhere, but with no gap between
+    # touching stacked bands two neighboring types can blend into one
+    # region (confirmed by rendering: "throw in"/"goal kick" were
+    # indistinguishable without this). A stroke between every band
+    # guarantees a visible seam regardless of which two colors happen to
+    # land next to each other.
+    for band in bands:
+        band.set_edgecolor(pal.surface)
+        band.set_linewidth(1.2)
+    ax.set_xlabel("Match minute")
+    ax.set_ylabel("Attempts")
+    ax.grid(axis="y", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    pal.style_legend(ax, loc="upper left")
+    _style_chart_axis(pal, ax)
+    if title is None:
+        title = "Set-piece volume through the match"
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+def plot_success_ring(
+    n_success: int,
+    n_total: int,
+    label: str = "",
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """A single ratio as a circular progress ring (donut), instead of
+    :func:`plot_success_waffle`'s grid of squares.
+
+    A different visual metaphor for the same "one headline ratio" job --
+    closer to what a KPI dashboard widget typically looks like -- for
+    when a ring reads more naturally than a filled-square count in
+    context (e.g. next to other ring-shaped gauges).
+
+    Args:
+        n_success: numerator (e.g. successful deliveries).
+        n_total: denominator (e.g. total deliveries).
+        label: caption drawn under the percentage, inside the ring.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    pct = n_success / n_total if n_total else 0.0
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+
+    ax.pie(
+        [pct, 1 - pct] if n_total else [0, 1], colors=[pal.good, pal.gridline], startangle=90,
+        counterclock=False, wedgeprops=dict(width=0.28, edgecolor=pal.surface, linewidth=2),
+    )
+    ax.text(0, 0.12, f"{pct * 100:.0f}%", ha="center", va="center", color=pal.ink_primary, fontsize=32, fontweight="bold", zorder=4)
+    ax.text(0, -0.14, label or f"{n_success} / {n_total}", ha="center", va="center", color=pal.ink_muted, fontsize=11, zorder=4)
+
+    header_stats = [(str(n_success), "successful"), (str(n_total), "attempts")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
+def plot_half_comparison_slope(
+    events: pd.DataFrame,
+    metric: str = "attempts",
+    team_id: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Slope chart: each set-piece type's value in the first half versus
+    the second half, as a two-point connected line.
+
+    A genuinely different temporal comparison than
+    :func:`plot_set_piece_value_flow`'s continuous cumulative curve --
+    this collapses the match down to exactly two snapshots and makes
+    each type's *direction of change* (more or less of it after the
+    break) the thing the eye reads directly from the line's slope,
+    green for more, red for less.
+
+    Args:
+        metric: ``"attempts"`` or ``"success_rate"``.
+        team_id: filter to one team; required if ``events`` covers more
+            than one (mixing halves across two teams isn't meaningful).
+    """
+    import matplotlib.pyplot as plt
+
+    from ..core.metrics import team_set_piece_counts
+
+    pal = theme.get_palette(dark)
+    ev = events if team_id is None else events[events["contestantId"] == team_id]
+    if team_id is None and ev["contestantId"].nunique() > 1:
+        raise ValueError(
+            "events covers more than one team -- pass team_id to pick which one to plot."
+        )
+
+    first_half = ev[ev["periodId"] == 1]
+    second_half = ev[ev["periodId"] == 2]
+    s1 = team_set_piece_counts(first_half)
+    s2 = team_set_piece_counts(second_half)
+
+    types = sorted(set(s1["set_piece_type"]) | set(s2["set_piece_type"]))
+    if not types:
+        raise ValueError("No set-piece events found in either half.")
+
+    def _value(summary, t):
+        row = summary[summary["set_piece_type"] == t]
+        if row.empty:
+            return 0.0
+        return float(row["attempts"].sum()) if metric == "attempts" else float(row[metric].iloc[0])
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6.5, 0.7 * len(types) + 2.2))
+
+    values = [(t, _value(s1, t), _value(s2, t)) for t in types]
+    for t, v1, v2 in values:
+        color = pal.ink_muted if v2 == v1 else (pal.good if v2 > v1 else pal.critical)
+        ax.plot([0, 1], [v1, v2], "o-", color=color, linewidth=2.2, markersize=8, zorder=3)
+        dy, va = (9, "bottom") if v1 <= v2 else (-9, "top")
+        ax.annotate(
+            t.replace("_", " "), (0, v1), xytext=(0, dy), textcoords="offset points",
+            ha="center", va=va, color=pal.ink_primary, fontsize=8.5, fontweight="bold", zorder=4,
+        )
+
+    ax.set_xlim(-0.3, 1.3)
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["First half", "Second half"], color=pal.ink_primary, fontsize=10)
+    ax.set_ylabel(metric.replace("_", " "))
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.spines["left"].set_color(pal.gridline)
+    ax.spines["bottom"].set_color(pal.gridline)
+    ax.tick_params(colors=pal.ink_secondary)
+    ax.set_facecolor(pal.surface)
+    if title is None:
+        title = f"{metric.replace('_', ' ').title()} by half"
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
