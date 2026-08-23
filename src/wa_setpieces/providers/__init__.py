@@ -1,19 +1,21 @@
-"""Adapters that convert other providers' event feeds into the internal
-events DataFrame :func:`wa_setpieces.core.loader.load_events` produces from
-Opta's native format, so the rest of the package works unchanged regardless of source.
+"""Per-provider converters that turn another provider's event feed into
+the internal events DataFrame :func:`wa_setpieces.core.loader.load_events`
+produces from Opta's native format, so the rest of the package works
+unchanged regardless of source.
 
-Currently: :mod:`wa_setpieces.providers.statsbomb` (StatsBomb open data).
-Opta needs no adapter -- it's the package's native format, handled
-directly by :mod:`wa_setpieces.core.loader`.
+Currently: :mod:`wa_setpieces.providers.statsbomb` (StatsBomb open data)
+and :mod:`wa_setpieces.providers.impect` (IMPECT event exports). Opta
+needs no converter -- it's the package's native format, handled directly
+by :mod:`wa_setpieces.core.loader`.
 
-Impect is not supported here: it's a closed, proprietary feed with no
-public schema to build and verify an adapter against. Contributing one
-needs a real sample export (or an official schema reference) to check
-qualifier/coordinate mapping against, the same way this module's StatsBomb
-mapping and the Opta constants in :mod:`wa_setpieces.core.constants` were
-verified against real exports (see that module's docstring).
+Most code should not import from here directly. Use
+:func:`wa_setpieces.core.loader.load_matches` with ``provider="opta"``/
+``"statsbomb"``/``"impect"`` instead -- one function, one ``provider``
+argument, works on a single file or a whole folder either way. The
+functions in this subpackage are what it dispatches to internally.
 """
 
+from .impect import load_impect_events
 from .statsbomb import load_statsbomb_events
 
-__all__ = ["load_statsbomb_events"]
+__all__ = ["load_statsbomb_events", "load_impect_events"]

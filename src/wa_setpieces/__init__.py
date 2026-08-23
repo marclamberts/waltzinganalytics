@@ -1,19 +1,28 @@
 """wa-setpieces: set-piece metrics (penalties, kick-offs, free kicks,
-corners, throw-ins, goal kicks) from Opta / Stats Perform -- and, via
-:mod:`wa_setpieces.providers`, StatsBomb -- event data.
+corners, throw-ins, goal kicks) from Opta / Stats Perform, StatsBomb, or
+IMPECT event data.
 
 Layout:
 
 - :mod:`wa_setpieces.core` -- loading, extraction, metrics, phases,
   retention, xT, added-value and :mod:`~wa_setpieces.core.rating` (no
   extra dependencies; imported eagerly).
-- :mod:`wa_setpieces.providers` -- adapters that convert other providers'
-  feeds (currently StatsBomb) into the same internal events frame Opta
-  produces, so everything else works unchanged regardless of source.
+- :mod:`wa_setpieces.providers` -- per-provider converters (StatsBomb,
+  IMPECT) into the same internal events frame Opta produces, so
+  everything else works unchanged regardless of source. Prefer
+  :func:`load_matches` over importing from here directly.
 - :mod:`wa_setpieces.ml` -- pre-trained shot-value scoring (``ml`` extra).
 - :mod:`wa_setpieces.viz` -- mplsoccer/matplotlib plots (``viz`` extra).
 - :mod:`wa_setpieces.convert` -- turn raw Opta exports plus a match
   list into the flat corner/delivery table other tools expect.
+
+:func:`load_matches` is the one loading entry point for any provider and
+either a single match file or a whole folder of them (a season) -- pass
+``provider="opta"`` (default), ``"statsbomb"`` or ``"impect"``. Use
+:func:`load_events` instead only when you specifically want one Opta
+match's raw ``matchDetails`` block alongside its events (the
+:class:`~wa_setpieces.core.loader.Match` object), rather than a
+combined, ``matchId``-tagged events frame.
 
 The names below are the stable public API and are re-exported here so
 ``from wa_setpieces import load_events`` keeps working regardless of which
@@ -32,7 +41,7 @@ from .core.filters import (
     extract_throw_ins,
     tag_set_pieces,
 )
-from .core.loader import Match, load_events, load_events_multi
+from .core.loader import Match, load_events, load_events_multi, load_matches
 from .core.schema import EventCapabilities, EventSchemaError, event_capabilities, validate_events
 from .core.season import SeasonDataset
 from .core.defending import (
@@ -77,6 +86,7 @@ from .core.phases import (
     second_phase_summary,
     second_phases,
 )
+from .providers.impect import load_impect_events
 from .providers.statsbomb import load_statsbomb_events
 from .core.outcomes import OUTCOME_CATEGORIES, aerial_duel_summary, delivery_outcomes, outcome_summary
 from .core.rating import (
@@ -100,13 +110,24 @@ from .core.zones import (
     zone_id,
 )
 
-__version__ = "0.18.3"
+try:
+    # Single source of truth is pyproject.toml's [project] version, read
+    # from the installed package's own metadata -- a hardcoded string
+    # here silently drifted out of sync with real releases before (found
+    # reading "0.18.3" while pyproject.toml was already at 0.29.1).
+    from importlib.metadata import version as _pkg_version
+
+    __version__ = _pkg_version("wa-setpieces")
+except Exception:  # pragma: no cover -- editable/uninstalled checkout
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
     "Match",
     "load_events",
     "load_events_multi",
+    "load_matches",
     "load_statsbomb_events",
+    "load_impect_events",
     "EventCapabilities", "EventSchemaError", "event_capabilities", "validate_events",
     "SeasonDataset", "defensive_set_piece_summary", "defensive_rating",
     "defensive_routine_summary", "defensive_zone_summary",

@@ -1,11 +1,11 @@
 wa-setpieces
 ===============
 
-**Set-piece analytics for football, in pandas.** Point it at an Opta
-match export (or StatsBomb open data, via an adapter) and get every
-corner, free kick, throw-in, penalty, goal kick and kick-off tagged,
-measured and rated -- as tidy DataFrames, plus pitch plots built on
-`mplsoccer <https://mplsoccer.readthedocs.io>`_.
+**Set-piece analytics for football, in pandas.** Point it at an Opta,
+StatsBomb or IMPECT match export -- one file, or a whole folder of them
+for a season -- and get every corner, free kick, throw-in, penalty, goal
+kick and kick-off tagged, measured and rated -- as tidy DataFrames, plus
+pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_.
 
 .. code-block:: python
 
@@ -32,6 +32,23 @@ past that -- second phases, retention, an xT value model, benchmarked
 reports, CSV/Excel export -- is one function call away. The
 :doc:`quickstart` walks through your first match end to end; past that,
 pick a reference page below.
+
+Got StatsBomb or IMPECT data instead, or a whole season rather than one
+match? :func:`~wa_setpieces.load_matches` is the one loading entry point
+for all of it -- swap ``provider`` rather than a differently-named
+function per source, and point it at a single file or a folder either
+way:
+
+.. code-block:: python
+
+   from wa_setpieces import load_matches
+
+   load_matches("match.json")                       # one Opta match
+   load_matches("season/", provider="statsbomb")     # a folder of StatsBomb matches
+   load_matches("impect_export.csv", provider="impect")  # one IMPECT export, often many matches already
+
+Every function above takes the combined result unchanged -- there is no
+separate code path per provider anywhere past this point.
 
 - :doc:`quickstart` -- load a match, get a summary table and a plot on
   screen in five minutes.

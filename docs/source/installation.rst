@@ -43,8 +43,24 @@ Requirements
 Input data
 ----------
 
-``wa_setpieces`` reads **Opta / Stats Perform** match event JSON
-exports -- the feed with top-level ``matchDetails`` and ``event`` keys,
-where each event carries a ``typeId`` and a list of ``qualifier`` objects.
-This is the standard feed format used across most Opta-powered football
-data providers.
+``wa_setpieces`` reads three event-data providers, all through one
+loading function, :func:`~wa_setpieces.load_matches` -- pass
+``provider="opta"`` (default), ``"statsbomb"`` or ``"impect"``:
+
+- **Opta / Stats Perform** -- match event JSON exports with top-level
+  ``matchDetails`` and ``event`` keys, where each event carries a
+  ``typeId`` and a list of ``qualifier`` objects. This is the package's
+  native format and the standard feed shape used across most
+  Opta-powered football data providers.
+- **StatsBomb** -- open-data-shaped events JSON exports, converted via
+  :mod:`wa_setpieces.providers.statsbomb`.
+- **IMPECT** -- CSV event exports, converted via
+  :mod:`wa_setpieces.providers.impect`. A single IMPECT export commonly
+  covers many matches already (its own ``match_id`` column), unlike
+  Opta/StatsBomb's one-file-per-match convention -- see that module's
+  docstring for exactly what's mapped and what isn't.
+
+:func:`~wa_setpieces.load_matches` also accepts a folder instead of a
+single file -- every ``*.json`` (Opta/StatsBomb) or ``*.csv`` (IMPECT) in
+it is loaded and combined into one season-shaped events frame, ready for
+:class:`~wa_setpieces.core.season.SeasonDataset`.

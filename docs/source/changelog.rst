@@ -1,6 +1,81 @@
 Changelog
 =========
 
+0.30.0
+------
+
+A unified, provider-based loading entry point plus a new IMPECT
+converter -- built and verified against two real exports the user
+provided (a StatsBomb open-data match and a 20-match IMPECT CSV, iteration
+2128), not synthetic guesses at either schema.
+
+- **Added**: :func:`~wa_setpieces.core.loader.load_matches` -- the one
+  loading entry point for any provider (``provider="opta"`` default,
+  ``"statsbomb"`` or ``"impect"``) and either a single match file or a
+  whole folder of them (a season): ``load_matches("match.json")``,
+  ``load_matches("season/", provider="statsbomb")``,
+  ``load_matches("impect_export.csv", provider="impect")``. Always
+  returns one combined events DataFrame with a ``matchId`` column, the
+  same shape :func:`~wa_setpieces.core.loader.load_events_multi`
+  produces, ready for :class:`~wa_setpieces.core.season.SeasonDataset`
+  or any match-safe function in this package. Fails loudly (not
+  silently) if two different files would resolve to the same
+  ``matchId`` -- same safety net :func:`load_events_multi` already had.
+- **Added**: :mod:`wa_setpieces.providers.impect` --
+  :func:`~wa_setpieces.providers.impect.load_impect_events` converts an
+  IMPECT CSV export into the same internal events shape every other
+  provider produces. Verified against a real 20-match, ~53k-event
+  export end to end -- :func:`~wa_setpieces.set_piece_summary`,
+  :func:`~wa_setpieces.delivery_locations`,
+  :func:`~wa_setpieces.retention_rate`,
+  :func:`~wa_setpieces.core.phases.second_phases`,
+  :func:`~wa_setpieces.core.chains.link_set_piece_shots` and
+  :func:`~wa_setpieces.viz.plots.plot_delivery_map` all ran against the
+  converted output and produced plausible results cross-checked against
+  the raw export (e.g. a team's real corner count for one match matched
+  exactly). See the module docstring for exactly what's mapped and what
+  isn't, including two coordinate/timing conventions confirmed by
+  inspecting the real export rather than assumed: ``adjCoordinates`` is
+  already attacking-direction-normalized (raw ``coordinates`` flips sign
+  at half-time; ``adjCoordinates`` doesn't), and each period's
+  ``gameTime.gameTimeInSec`` restarts at a ``(periodId - 1) * 10000``
+  offset.
+- Two real bugs caught and fixed during that verification, not just
+  polish: a `KeyError` when the optional ``setPiece.id``/
+  ``setPiece.mainEvent`` columns are absent from a stripped export
+  (assist-chain linking now degrades to "unavailable" instead of
+  crashing), and 423 events with no ``squadId`` (video gaps, the final
+  whistle, referee touches -- confirmed exhaustive against the reference
+  export) getting a null ``eventId`` that
+  :func:`~wa_setpieces.core.schema.validate_events` rejected outright --
+  now dropped, since there's no meaningful team-scoped identity for a
+  teamless event anyway.
+- **Fixed a real bug in the CLI's own new duplicate-matchId check**,
+  caught by running it against the real IMPECT export: the first
+  version checked for duplicated ``matchId`` values across every *row*
+  in the combined frame, which always fires since one match's ``matchId``
+  legitimately repeats across all of that match's own event rows --
+  fixed to compare each input's *set* of match IDs instead.
+- **Fixed an unrelated, adjacent bug found while touching this same
+  file**: ``wa_setpieces.__version__`` was a hardcoded string that had
+  drifted to ``"0.18.3"`` while ``pyproject.toml`` was already at
+  ``0.29.1`` -- now read from the installed package's own metadata via
+  ``importlib.metadata``, a single source of truth that can't silently
+  go stale again.
+- The CLI's ``--provider`` choices gained ``impect`` everywhere they
+  already had ``opta``/``statsbomb``; every command's file argument now
+  also accepts a folder (loaded and combined the same way
+  ``load_matches`` does).
+- ``wa_setpieces.providers.statsbomb.load_statsbomb_events`` and the CLI
+  are otherwise unchanged -- ``load_matches`` is a new entry point in
+  front of them, not a rewrite.
+- :doc:`index`, :doc:`installation`, :doc:`quickstart` and
+  :doc:`by_report` updated for the new loading story.
+- 20 new tests (370 total, up from 350) -- synthetic IMPECT fixtures
+  in the test suite itself (small, fast, no dependency on the external
+  files this feature was verified against), plus regression tests for
+  both bugs above. Docs build clean, zero warnings.
+
 0.29.1
 ------
 

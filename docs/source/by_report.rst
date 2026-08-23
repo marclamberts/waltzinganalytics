@@ -81,7 +81,10 @@ Command line
 
 **Requirements**
    The ``wa-setpieces`` console script (installed with the package).
-   ``--provider statsbomb`` on any command switches the input format.
+   ``--provider {opta,statsbomb,impect}`` on any command switches the
+   input format (default ``opta``). Every command's file argument also
+   accepts a folder -- every match file in it is loaded and combined,
+   the same way :func:`~wa_setpieces.load_matches` does.
 
 **Compute it**
 
@@ -91,6 +94,8 @@ Command line
    wa-setpieces workflow match.json --type corner --model league-model.npz --output tables/ --format xlsx
    wa-setpieces report match.json --type corner --model league-model.npz --output report.html
    wa-setpieces scout match.json --opponent <contestantId> --type corner --output scouting.html
+   wa-setpieces summary season_2024/ --provider statsbomb --output season_summary.csv
+   wa-setpieces summary impect_export.csv --provider impect --output season_summary.csv
    wa-setpieces season match_1.json match_2.json --action season-report --type corner --output season.csv
    wa-setpieces train-xt season/*.json --output league-model.npz
 

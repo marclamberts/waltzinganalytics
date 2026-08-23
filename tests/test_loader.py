@@ -1,8 +1,9 @@
+import shutil
 from pathlib import Path
 
 import pytest
 
-from wa_setpieces import load_events, load_events_multi
+from wa_setpieces import load_events, load_events_multi, load_matches
 
 DATA = Path(__file__).parent / "data" / "sample_match.json"
 
@@ -72,3 +73,41 @@ def test_load_events_multi_rejects_duplicate_default_match_ids():
 def test_load_events_multi_rejects_duplicate_explicit_match_ids():
     with pytest.raises(ValueError, match="duplicate matchId"):
         load_events_multi([DATA, DATA], match_ids=["m1", "m1"])
+
+
+def test_load_matches_single_opta_file():
+    events = load_matches(DATA, provider="opta")
+    assert not events.empty
+    assert set(events["matchId"].unique()) == {"sample_match"}
+
+
+def test_load_matches_provider_is_case_insensitive():
+    events = load_matches(DATA, provider="Opta")
+    assert not events.empty
+
+
+def test_load_matches_rejects_unknown_provider():
+    with pytest.raises(ValueError, match="provider must be one of"):
+        load_matches(DATA, provider="wyscout")
+
+
+def test_load_matches_folder_combines_every_file(tmp_path):
+    # Two copies of the same match under different filenames -- load_matches
+    # doesn't know (or care) they're the "same" match; it just derives one
+    # matchId per file, same convention as load_events_multi.
+    shutil.copy(DATA, tmp_path / "match_a.json")
+    shutil.copy(DATA, tmp_path / "match_b.json")
+    events = load_matches(tmp_path, provider="opta")
+    assert set(events["matchId"].unique()) == {"match_a", "match_b"}
+    assert len(events) == 2 * len(load_events(DATA).events)
+
+
+def test_load_matches_folder_with_no_matching_files_raises(tmp_path):
+    (tmp_path / "not_a_match.txt").write_text("nothing here")
+    with pytest.raises(FileNotFoundError):
+        load_matches(tmp_path, provider="opta")
+
+
+def test_load_matches_missing_path_raises():
+    with pytest.raises(FileNotFoundError):
+        load_matches("tests/data/does_not_exist.json", provider="opta")

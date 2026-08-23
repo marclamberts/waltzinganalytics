@@ -20,9 +20,12 @@ column per qualifierId, named ``q_<id>``.
    match = load_events("tests/data/sample_match.json")
    match.events.head()
 
-On StatsBomb data instead? :func:`~wa_setpieces.load_statsbomb_events`
-converts a StatsBomb open-data export into the same events frame, so
-every example below works unchanged on either source.
+On StatsBomb or IMPECT data instead, or a whole season rather than one
+match? :func:`~wa_setpieces.load_matches` handles a single file or a
+folder for any of the three providers -- ``load_matches("match.json",
+provider="statsbomb")`` -- and returns the same events shape either way,
+so every example below works unchanged regardless of source. See
+:doc:`installation`'s "Input data" section for the full picture.
 
 Summarize every set piece
 --------------------------

@@ -205,3 +205,36 @@ def test_opponent_scouting_report_html_include_figures_requires_viz_extra():
     html = opponent_scouting_report_html(events, opponent_id, "corner", include_figures=True)
     assert "Conceded by routine" in html
     assert "Shots conceded by zone" in html
+
+
+def test_cli_summary_impect_provider(tmp_path):
+    row = {
+        "match_id": 1, "index": 0, "id": 1, "squadId": 100, "periodId": 1,
+        "actionType": "CORNER", "action": "CORNER", "result": "SUCCESS",
+        "gameTime.gameTimeInSec": 600.0, "player.id": 10,
+        "start.adjCoordinates.x": 52.5, "start.adjCoordinates.y": -34.0,
+        "end.adjCoordinates.x": 45.0, "end.adjCoordinates.y": 10.0,
+    }
+    csv_path = tmp_path / "impect.csv"
+    pd.DataFrame([row]).to_csv(csv_path, index=False)
+    output = tmp_path / "summary.csv"
+    assert main(["summary", str(csv_path), "--provider", "impect", "--output", str(output)]) == 0
+    assert "corner" in output.read_text()
+
+
+def test_cli_season_folder_input(tmp_path):
+    import shutil
+
+    folder = tmp_path / "matches"
+    folder.mkdir()
+    shutil.copy(DATA, folder / "match_a.json")
+    shutil.copy(DATA, folder / "match_b.json")
+    output = tmp_path / "season.csv"
+    assert main(["season", str(folder), "--action", "summary", "--output", str(output)]) == 0
+    text = output.read_text()
+    assert "matches" in text and "2" in text
+
+
+def test_cli_season_rejects_duplicate_matchid_across_inputs(tmp_path):
+    with pytest.raises(ValueError, match="duplicate matchId"):
+        main(["season", str(DATA), str(DATA), "--action", "summary", "--output", str(tmp_path / "out.csv")])

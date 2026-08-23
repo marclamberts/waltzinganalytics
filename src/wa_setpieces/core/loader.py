@@ -10,6 +10,8 @@ from typing import Any
 
 import pandas as pd
 
+_PROVIDER_EXTENSIONS = {"opta": ".json", "statsbomb": ".json", "impect": ".csv"}
+
 
 @dataclass(frozen=True)
 class Match:
@@ -175,6 +177,105 @@ def load_events_multi(
         df = match.events.copy()
         df.insert(0, "matchId", match_id)
         frames.append(df)
+
+    if not frames:
+        return pd.DataFrame(columns=["matchId", *_CORE_FIELDS])
+    return pd.concat(frames, ignore_index=True)
+
+
+def _resolve_provider_files(source: str | Path, extension: str) -> list[Path]:
+    path = Path(source)
+    if path.is_dir():
+        files = sorted(path.glob(f"*{extension}"))
+        if not files:
+            raise FileNotFoundError(f"no {extension} files found in directory {path}")
+        return files
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    return [path]
+
+
+def load_matches(source: str | Path, provider: str = "opta") -> pd.DataFrame:
+    """Load one file, or every file in a folder, from any supported
+    provider into a single combined events DataFrame -- the same shape
+    :func:`load_events_multi` produces, with a ``matchId`` column, ready
+    for :class:`~wa_setpieces.core.season.SeasonDataset` or any
+    match-safe function in this package.
+
+    This is the one entry point for "give me a season" regardless of
+    where the data came from: swap ``provider`` rather than reaching for
+    a differently-named loader per source. The actual format-specific
+    parsing still lives in :mod:`wa_setpieces.core.loader` (Opta) and
+    :mod:`wa_setpieces.providers` (StatsBomb, IMPECT) -- this function
+    only resolves *which* files to read and dispatches to the right one.
+
+    Args:
+        source: a single match file, or a directory containing several.
+            Directories are scanned non-recursively for ``*.json``
+            (``provider="opta"``/``"statsbomb"``) or ``*.csv``
+            (``provider="impect"``), sorted by filename.
+        provider: ``"opta"`` (default), ``"statsbomb"`` or ``"impect"``,
+            case-insensitive.
+
+    Returns:
+        One combined events DataFrame with a ``matchId`` column. For
+        ``"opta"``/``"statsbomb"`` each file is one match, tagged with its
+        filename stem (same convention as :func:`load_events_multi`). For
+        ``"impect"``, ``matchId`` comes from the export's own ``match_id``
+        column instead -- a single IMPECT CSV commonly covers many
+        matches already (see :mod:`wa_setpieces.providers.impect`'s
+        module docstring).
+
+    Raises:
+        ValueError: if two different files would resolve to the same
+            ``matchId`` -- see :func:`load_events_multi` for why this
+            fails loudly rather than silently merging.
+        FileNotFoundError: ``source`` doesn't exist, or is a directory
+            with no matching files for this provider.
+    """
+    provider_key = provider.lower()
+    if provider_key not in _PROVIDER_EXTENSIONS:
+        raise ValueError(
+            f"provider must be one of {sorted(_PROVIDER_EXTENSIONS)}, got {provider!r}"
+        )
+    files = _resolve_provider_files(source, _PROVIDER_EXTENSIONS[provider_key])
+
+    frames: list[pd.DataFrame] = []
+    match_id_sources: dict[str, Path] = {}
+
+    def _claim(match_id: str, origin: Path) -> None:
+        if match_id in match_id_sources:
+            raise ValueError(
+                f"duplicate matchId {match_id!r} from {match_id_sources[match_id]} and "
+                f"{origin} would silently merge distinct matches -- rename one of the "
+                "files, or pre-filter the folder."
+            )
+        match_id_sources[match_id] = origin
+
+    if provider_key == "opta":
+        for file in files:
+            df = load_events(file).events.copy()
+            match_id = file.stem
+            _claim(match_id, file)
+            df.insert(0, "matchId", match_id)
+            frames.append(df)
+    elif provider_key == "statsbomb":
+        from ..providers.statsbomb import load_statsbomb_events
+
+        for file in files:
+            df = load_statsbomb_events(file).copy()
+            match_id = file.stem
+            _claim(match_id, file)
+            df.insert(0, "matchId", match_id)
+            frames.append(df)
+    else:  # impect
+        from ..providers.impect import load_impect_events
+
+        for file in files:
+            df = load_impect_events(file)
+            for match_id in df["matchId"].drop_duplicates():
+                _claim(match_id, file)
+            frames.append(df)
 
     if not frames:
         return pd.DataFrame(columns=["matchId", *_CORE_FIELDS])
