@@ -66,7 +66,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("summary", "workflow", "report"):
         cmd = sub.add_parser(name)
-        cmd.add_argument("input", help="A single match file, or a folder of them (*.json/*.csv per --provider)")
+        cmd.add_argument("input", help="A single match file, or a folder of them (*.json and *.csv both scanned, any --provider)")
         cmd.add_argument("--provider", choices=_PROVIDERS, default="opta")
         if name != "summary": cmd.add_argument("--type", choices=_SET_PIECE_TYPES, default="corner")
         if name == "summary":
@@ -89,8 +89,8 @@ def _parser() -> argparse.ArgumentParser:
     season = sub.add_parser("season", help="Multi-match aggregation via SeasonDataset")
     season.add_argument(
         "inputs", nargs="+",
-        help="One or more match files or folders (a folder loads every file in it -- "
-             "*.json for opta/statsbomb, *.csv for impect). Opta/StatsBomb files are "
+        help="One or more match files or folders (a folder loads every *.json and "
+             "*.csv file in it, regardless of --provider). Opta/StatsBomb files are "
              "tagged with their filename as matchId; IMPECT uses the export's own match_id.",
     )
     season.add_argument("--provider", choices=_PROVIDERS, default="opta")

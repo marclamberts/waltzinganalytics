@@ -1,6 +1,33 @@
 Changelog
 =========
 
+0.31.3
+------
+
+Doc-accuracy pass, prompted by the user asking to check every page of the
+published docs for stale or invalid text after 0.31.1/0.31.2's loading-API
+changes. Read every hand-written page (``index``, ``installation``,
+``quickstart``, ``categories``, ``by_metric``, ``by_phase``, ``by_report``,
+``by_routine``, ``value_models``) against the current code -- every
+function/class reference, code example and CLI invocation checked
+individually against its actual signature or ``argparse`` definition.
+
+- **Fixed**: the ``wa-setpieces`` CLI's own ``--help`` text (``summary``/
+  ``workflow``/``report``'s ``input`` argument, and ``season``'s
+  ``inputs`` argument) still described the pre-0.31.1 behaviour --
+  "``*.json for opta/statsbomb, *.csv for impect``" and "``*.json/*.csv
+  per --provider``" -- directly contradicting how ``load_matches``
+  actually resolves a folder's files today (every ``*.json`` and
+  ``*.csv`` file, regardless of provider). The underlying loading code
+  was already correct; only the help strings were stale. Updated both to
+  describe the real behaviour.
+- All nine hand-written docs pages otherwise verified accurate as-is:
+  every ``:func:``/``:class:`` reference resolves to a real symbol,
+  every code example matches its function's real signature, every CLI
+  example matches ``cli.py``'s actual argument definitions. No changes
+  needed there.
+- 382 tests still passing, docs build clean.
+
 0.31.2
 ------
 
