@@ -1,6 +1,52 @@
 Changelog
 =========
 
+0.25.0
+------
+
+A revamp pass across the *older* plotting functions -- not new chart
+types this time, but real defects and thin spots in ones that had been
+sitting unpolished since before this gallery's newer additions. Found by
+rendering every function against the sample match and actually looking
+at the output, the same way every previous chart in this changelog was
+verified.
+
+- **Fixed**: :func:`~wa_setpieces.viz.plots.plot_second_phase`'s default
+  title was silently building "set piece — eventId ... (...)" on *every*
+  call, never "corner" or "free kick" -- ``extract_corners``/
+  ``extract_free_kicks`` never tagged their rows with ``set_piece_type``,
+  so ``classify_phase`` always fell back to the generic label. Also
+  fixed: that title routinely overflowed the figure width and rendered
+  truncated ("...second-phase sh...") -- shortened to a fixed "Corner
+  sequence" / "Free kick sequence" title with the eventId/outcome detail
+  moved to the subtitle; and nearby touches in a goalmouth scramble
+  stacked into one unreadable blob of overlapping numbers -- fixed with
+  a new :func:`~wa_setpieces.viz.plots._declutter_points` helper that
+  spreads near-coincident points onto a small rosette. A legend
+  (Delivery / Touch / Second-phase shot) was also missing entirely.
+- **Fixed**: :func:`~wa_setpieces.viz.plots.plot_defensive_routine_bars`'s
+  default title had the same overflow-truncation bug, from the same
+  root cause (team-id-in-title on a narrow figure) -- fixed the same
+  way, plus added a headline stat strip (``show_stats: bool = True``,
+  new parameter) it never had.
+- **Fixed**: :func:`~wa_setpieces.viz.plots.plot_xt_added_bars`'s value
+  labels used ``bar_label``'s default outside-the-bar placement, which
+  collided with the y-axis category label for whichever bar was
+  longest (the actual point of a top-N-by-magnitude chart). Replaced
+  with labels placed just inside each bar's own tip, which can't
+  collide with anything outside the bar.
+- **Improved**: :func:`~wa_setpieces.viz.plots.plot_xt_grid` was a bare
+  color grid with no way to read an actual value off it -- added
+  per-cell value labels (:meth:`mplsoccer.Pitch.label_heatmap`) and a
+  colorbar.
+- **Improved**: :func:`~wa_setpieces.viz.plots.plot_corner_sonar` had no
+  legend distinguishing successful (green) from unsuccessful (red)
+  deliveries -- added one, matching the convention already used by
+  :func:`~wa_setpieces.viz.plots.plot_delivery_map`.
+- Docs build clean (27/27 gallery scripts, zero warnings), 327 tests
+  still passing (unchanged -- this pass touched rendering, not the
+  underlying data functions).
+
 0.24.0
 ------
 

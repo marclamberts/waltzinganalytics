@@ -181,6 +181,28 @@ def _beeswarm_offsets(values: np.ndarray, bin_width: float, spacing: float = 0.2
     return offsets
 
 
+def _declutter_points(xs: list[float], ys: list[float], min_dist: float = 3.2) -> tuple[list[float], list[float]]:
+    """Nudge points that land within ``min_dist`` of an already-placed
+    point onto a small circle around their own true position, in the
+    order given -- so a cluster of near-coincident events (a goalmouth
+    scramble, several touches in the same square meter) spreads into a
+    readable rosette instead of stacking into one unreadable blob.
+    Points far from anything already placed are left exactly where they
+    are."""
+    out_x: list[float] = []
+    out_y: list[float] = []
+    for x, y in zip(xs, ys):
+        nearby = sum(1 for px, py in zip(out_x, out_y) if abs(px - x) < min_dist and abs(py - y) < min_dist)
+        if nearby:
+            angle = nearby * (2 * np.pi / 6)
+            out_x.append(x + min_dist * 0.65 * np.cos(angle))
+            out_y.append(y + min_dist * 0.65 * np.sin(angle))
+        else:
+            out_x.append(x)
+            out_y.append(y)
+    return out_x, out_y
+
+
 def _flow_ribbon(ax, x0: float, x1: float, ya0: float, ya1: float, yb0: float, yb1: float, color: str, alpha: float = 0.55, zorder: int = 2) -> None:
     """Draw one Sankey-style ribbon: a smooth band connecting segment
     ``[ya0, ya1]`` on the left node (at ``x0``) to segment ``[yb0, yb1]``
@@ -484,11 +506,22 @@ def plot_xt_grid(
     pitch, fig, ax = _draw_pitch(pal, ax, pitch_kwargs, vertical=vertical)
     cmap = cmap if cmap is not None else pal.sequential_green_cmap()
 
+    import matplotlib.patheffects as pe
+
     stats = pitch.bin_statistic(
         [50.0], [50.0], statistic="count", bins=(model.x_bins, model.y_bins)
     )
     stats["statistic"] = model.grid
-    pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
+    mesh = pitch.heatmap(stats, ax=ax, cmap=cmap, edgecolor=pal.surface)
+    pitch.label_heatmap(
+        stats, ax=ax, str_format="{:.3f}", color=pal.ink_primary, fontsize=8, fontweight="bold",
+        ha="center", va="center", exclude_zeros=False,
+        path_effects=[pe.withStroke(linewidth=2, foreground=pal.surface)],
+    )
+    if fig is not None:
+        cbar = fig.colorbar(mesh, ax=ax, fraction=0.035, pad=0.02)
+        cbar.ax.tick_params(colors=pal.ink_secondary, labelsize=8)
+        cbar.outline.set_edgecolor(pal.gridline)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
@@ -535,7 +568,14 @@ def plot_second_phase(
 
     pal = theme.get_palette(dark)
 
-    candidates = pd.concat([extract_corners(events), extract_free_kicks(events)])
+    corners = extract_corners(events).assign(set_piece_type="corner")
+    free_kicks = extract_free_kicks(events).assign(set_piece_type="free_kick")
+    # classify_phase reads `set_piece_type` straight off the delivery row
+    # when present -- extract_corners/extract_free_kicks don't tag it
+    # themselves, so without this the title's set-piece-type fell back to
+    # the generic "set piece" every time, never actually "corner" or
+    # "free kick".
+    candidates = pd.concat([corners, free_kicks])
     matches = candidates[candidates["eventId"] == delivery_event_id]
     if contestant_id is not None:
         matches = matches[matches["contestantId"] == contestant_id]
@@ -581,28 +621,45 @@ def plot_second_phase(
         ax=ax, color=pal.ink_primary, width=2.5, headwidth=7, label="Delivery",
     )
 
+    # A goalmouth scramble often has several touches within a couple of
+    # pitch units of each other -- plotted at their literal coordinates
+    # they'd stack into one unreadable blob of numbers, so nearby points
+    # are nudged apart onto a small circle around their own true spot
+    # rather than moved to some averaged position.
+    touch_x, touch_y = _declutter_points(
+        list(window["x"]) if not window.empty else [], list(window["y"]) if not window.empty else []
+    )
+
+    labeled_touch, labeled_shot = False, False
     for i, (_, row) in enumerate(window.iterrows()):
         is_second_phase_shot = row["eventId"] == result.second_phase_event_id
         color = pal.gold if is_second_phase_shot else pal.ink_muted
         size = 260 if is_second_phase_shot else 140
+        label = None
+        if is_second_phase_shot and not labeled_shot:
+            label, labeled_shot = "Second-phase shot", True
+        elif not is_second_phase_shot and not labeled_touch:
+            label, labeled_touch = "Touch", True
         pitch.scatter(
-            row["x"], row["y"], ax=ax, color=color, s=size,
-            edgecolors=pal.ink_primary, zorder=3,
+            touch_x[i], touch_y[i], ax=ax, color=color, s=size,
+            edgecolors=pal.ink_primary, zorder=3, label=label,
         )
         text_color = "black" if is_second_phase_shot else pal.ink_primary
         ax.annotate(
-            str(i + 1), (row["x"], row["y"]), color=text_color, fontsize=8,
+            str(i + 1), (touch_x[i], touch_y[i]), color=text_color, fontsize=8,
             ha="center", va="center", zorder=4,
         )
 
     pal.style_legend(ax)
+    outcome = (
+        "second-phase shot" if result.second_phase_shot
+        else "cleared" if result.cleared_immediately
+        else "no clear resolution"
+    )
     if title is None:
-        outcome = (
-            "second-phase shot" if result.second_phase_shot
-            else "cleared" if result.cleared_immediately
-            else "no clear resolution"
-        )
-        title = f"{result.set_piece_type or 'set piece'} — eventId {delivery_event_id} ({outcome})"
+        title = f"{(result.set_piece_type or 'set piece').replace('_', ' ').title()} sequence"
+    if subtitle is None:
+        subtitle = f"eventId {delivery_event_id} · {outcome}"
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
 
@@ -803,9 +860,26 @@ def plot_xt_added_bars(
 
     colors = [pal.diverging_positive if v >= 0 else pal.diverging_negative
               for v in valid[value_col]]
+    import matplotlib.patheffects as pe
+
     y = np.arange(len(valid))
-    bars = ax.barh(y, valid[value_col], color=colors, zorder=3)
-    ax.bar_label(bars, fmt="%.3f", color=pal.ink_secondary, fontsize=8, padding=3)
+    ax.barh(y, valid[value_col], color=colors, zorder=3)
+    # Labeled just inside each bar's own tip, not with `bar_label`'s
+    # default outside placement -- for the single longest bar (the whole
+    # point of a top-N-by-magnitude chart) that default position lands
+    # right at the axes' own edge, where it collides with that same row's
+    # y-tick category label. Inside-the-bar placement can never collide
+    # with anything outside the bar itself, and the stroke keeps it
+    # legible over both bar colors and any background it slightly spills
+    # onto for a very short bar.
+    for yi, v in zip(y, valid[value_col]):
+        ha = "right" if v >= 0 else "left"
+        offset = -abs(v) * 0.04 if v >= 0 else abs(v) * 0.04
+        ax.annotate(
+            f"{v:.3f}", (v + offset, yi), color=pal.ink_primary, fontsize=8, fontweight="bold",
+            ha=ha, va="center", zorder=4,
+            path_effects=[pe.withStroke(linewidth=2, foreground=pal.surface)],
+        )
     ax.axvline(0, color=pal.baseline, linewidth=1)
     labels = valid[label_col].fillna(valid["eventId"].astype(str)) if label_col in valid else valid["eventId"]
     ax.set_yticks(y)
@@ -922,14 +996,20 @@ def plot_corner_sonar(
     dy = d["end_y"] - d["y"]
     angle = np.arctan2(dy, dx)
     radius = np.hypot(dx, dy)
-    colors = np.where(d["outcome"] == 1, pal.good, pal.critical)
-
-    ax.scatter(angle, radius, c=colors, s=90, edgecolors=pal.ink_primary, linewidths=0.8, zorder=3)
+    for outcome_val, label, color in ((1, "Successful", pal.good), (0, "Unsuccessful", pal.critical)):
+        mask = d["outcome"] == outcome_val
+        if mask.any():
+            ax.scatter(
+                angle[mask], radius[mask], color=color, s=90, edgecolors=pal.ink_primary,
+                linewidths=0.8, zorder=3, label=label,
+            )
     ax.set_facecolor(pal.surface)
     ax.set_theta_zero_location("E")
     ax.tick_params(colors=pal.ink_secondary)
     ax.spines["polar"].set_color(pal.gridline)
     ax.grid(color=pal.gridline)
+    if d["outcome"].notna().any():
+        pal.style_legend(ax, loc="lower left", bbox_to_anchor=(-0.15, -0.1))
     header_stats = None
     if show_stats and len(d):
         success_rate = (d["outcome"] == 1).mean()
@@ -1436,6 +1516,7 @@ def plot_defensive_routine_bars(
     footer: str | None = None,
     author: str | None = None,
     dark: bool = True,
+    show_stats: bool = True,
     ax=None,
 ):
     """Horizontal bar chart of what a team concedes most, by routine type or
@@ -1485,10 +1566,19 @@ def plot_defensive_routine_bars(
     ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     if title is None:
-        label = team_name or (f"{team_id[:8]}…" if team_id else "Team")
-        title = f"{label} — conceded by {group_col.replace('_', ' ')}"
+        title = f"Conceded by {group_col.replace('_', ' ')}"
+    if subtitle is None:
+        label = team_name or (f"{team_id[:8]}…" if team_id else "All teams")
+        subtitle = f"Team {label}"
     _style_chart_axis(pal, ax)
-    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    header_stats = None
+    if show_stats and len(rows):
+        top_row = rows.iloc[-1]
+        header_stats = [
+            (str(int(rows[metric].sum())) if not metric.endswith("_rate") else f"{rows[metric].mean():.2f}", metric.replace("_", " ")),
+            (str(top_row[group_col]).replace("_", " "), "most exposed to"),
+        ]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
     return fig, ax
 
 
