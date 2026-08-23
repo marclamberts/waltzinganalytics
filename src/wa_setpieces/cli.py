@@ -18,15 +18,17 @@ _SEASON_ACTIONS = ("summary", "report", "season-report", "rolling", "rolling-def
 _PROVIDERS = ("opta", "statsbomb", "impect")
 
 def _events(path: str, provider: str) -> pd.DataFrame:
-    # load_matches handles a single file or a whole folder identically for
-    # every provider, so `input`/`inputs` below accept either -- for a
+    # `input`/`inputs` below accept a single file or a whole folder --
+    # load_matches itself now requires an explicit type=, so this is
+    # where "which one did the user actually pass" gets resolved. For a
     # folder (or a multi-match IMPECT CSV, which covers many matches in
     # one file already) this returns every match's events combined, with
     # a matchId column, same as `season` below. Fine for the aggregate
     # commands (summary/workflow/report); phase-window-sensitive analysis
     # across a genuinely multi-match input should go through `season`
     # instead -- see load_matches' docstring for why.
-    return load_matches(path, provider=provider)
+    type_ = "season" if Path(path).is_dir() else "match"
+    return load_matches(path, provider=provider, type=type_)
 
 def _write(frame: pd.DataFrame, path: str | None, fmt: str) -> None:
     if path is None:
@@ -43,7 +45,10 @@ def _season_from_inputs(inputs: list[str], provider: str) -> SeasonDataset:
     # twice) contributing the same match. A matchId naturally repeats
     # across every one of its own event rows within a single frame, so
     # the check compares each input's *set* of matchIds, not raw rows.
-    frames = [load_matches(path, provider=provider) for path in inputs]
+    frames = [
+        load_matches(path, provider=provider, type="season" if Path(path).is_dir() else "match")
+        for path in inputs
+    ]
     seen: dict[str, str] = {}
     for path, frame in zip(inputs, frames):
         for match_id in frame["matchId"].unique():
@@ -112,7 +117,10 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(args_list)
 
     if args.command == "train-xt":
-        frames = [load_matches(path, provider=args.provider) for path in args.inputs]
+        frames = [
+            load_matches(path, provider=args.provider, type="season" if Path(path).is_dir() else "match")
+            for path in args.inputs
+        ]
         model = XTModel.fit(pd.concat(frames, ignore_index=True), x_bins=args.x_bins, y_bins=args.y_bins)
         model.metadata["sources"] = [str(path) for path in args.inputs]; model.save(args.output)
         print(json.dumps(model.metadata, indent=2)); return 0

@@ -236,3 +236,29 @@ def test_load_statsbomb_events_empty_list_still_has_core_columns():
     for col in ("id", "eventId", "typeId", "periodId", "timeMin", "timeSec", "contestantId", "outcome", "x", "y"):
         assert col in events.columns
     validate_events(events)
+
+
+def test_load_statsbomb_events_rejects_a_non_event_list():
+    # Regression test: a matches.json/competitions.json record (also a
+    # JSON list, but of match metadata, not events) used to silently
+    # produce a row of empty/typeId-0 garbage per record instead of a
+    # clear error -- caught against a real StatsBomb export where this
+    # corrupted a 241-match season-combined frame with no error at all
+    # until validate_events rejected it several steps downstream.
+    matches_json_shaped = [{"match_id": 1, "match_date": "2024-01-01", "home_team": {}}]
+    with pytest.raises(ValueError, match="doesn't look like a StatsBomb events export"):
+        load_statsbomb_events(matches_json_shaped)
+
+
+def test_load_statsbomb_events_rejects_a_non_list_top_level(tmp_path):
+    # A bare dict source is coerced via list(source) before it would ever
+    # reach the shape check, so this specifically exercises the file-path
+    # branch, where json.load can genuinely return a non-list (e.g. an
+    # Opta-shaped {"matchDetails": ..., "event": [...]} file passed with
+    # the wrong provider).
+    import json
+
+    path = tmp_path / "opta_shaped.json"
+    path.write_text(json.dumps({"matchDetails": {}, "event": []}), encoding="utf-8")
+    with pytest.raises(ValueError, match="expected a StatsBomb events export"):
+        load_statsbomb_events(path)

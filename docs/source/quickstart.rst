@@ -12,20 +12,21 @@ Load a match
 tidy events :class:`pandas.DataFrame` -- one row per event, one column
 per qualifierId, named ``q_<id>``, plus a ``matchId`` column. It's the
 one loading function for every provider and either one file or a whole
-folder (a season) -- pass ``provider="opta"`` (default), ``"statsbomb"``
-or ``"impect"``, and every example below works unchanged regardless of
-source.
+folder (a season). Every call takes the same two keywords -- ``provider``
+(``"opta"`` default, ``"statsbomb"`` or ``"impect"``) and ``type``
+(``"match"`` default for a single file, ``"season"`` for a folder) --
+so nothing else about the call changes shape between them:
 
 .. code-block:: python
 
    from wa_setpieces import load_matches
 
-   events = load_matches("tests/data/sample_match.json")
+   events = load_matches("tests/data/sample_match.json", provider="opta", type="match")
    events.head()
 
-   # A folder, or a different provider, work the same way:
-   load_matches("season/", provider="statsbomb")
-   load_matches("impect_export.csv", provider="impect")
+   # A folder, or a different provider, work exactly the same way:
+   load_matches("season/", provider="statsbomb", type="season")
+   load_matches("impect_export.csv", provider="impect", type="match")
 
 Need the raw ``matchDetails`` block (kickoff time, venue, scores) rather
 than just the events? :func:`~wa_setpieces.load_events` reads a single

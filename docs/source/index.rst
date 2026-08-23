@@ -13,7 +13,7 @@ pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_.
    from wa_setpieces.viz.plots import plot_delivery_map
    from wa_setpieces import delivery_locations
 
-   events = load_matches("match.json")
+   events = load_matches("match.json", provider="opta", type="match")
    set_piece_summary(events)
 
    corners = delivery_locations(events, "corner")
@@ -34,12 +34,15 @@ reports, CSV/Excel export -- is one function call away. The
 pick a reference page below.
 
 :func:`~wa_setpieces.load_matches` above is the one loading entry point
-for all three providers, and for a folder instead of a single file:
+for all three providers, both scopes -- every call has the exact same
+two knobs, ``provider`` and ``type``, nothing else about the call
+changes shape between them:
 
 .. code-block:: python
 
-   load_matches("season/", provider="statsbomb")         # a folder of StatsBomb matches
-   load_matches("impect_export.csv", provider="impect")  # one IMPECT export, often many matches already
+   load_matches("match.json", provider="opta", type="match")               # one Opta match
+   load_matches("season/", provider="statsbomb", type="season")            # a folder of StatsBomb matches
+   load_matches("impect_export.csv", provider="impect", type="match")      # one IMPECT export, often many matches already
 
 Every function past this point takes the result unchanged -- there is no
 separate code path per provider anywhere else in the package.

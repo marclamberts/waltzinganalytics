@@ -1,6 +1,58 @@
 Changelog
 =========
 
+0.31.0
+------
+
+Two changes prompted by actually running the new loading API against a
+full real season, not synthetic test fixtures: an API redesign for
+consistency, and a real bug the redesign's own verification run caught.
+
+- **Changed**: :func:`~wa_setpieces.load_matches` gained an explicit
+  ``type: str = "match"`` parameter (``"match"`` or ``"season"``,
+  case-insensitive) instead of silently inferring "single file" versus
+  "folder" from whether ``source`` happens to be a directory. Every call
+  now has the same two keywords regardless of provider or scope --
+  ``load_matches("match.json", provider="opta", type="match")``,
+  ``load_matches("season/", provider="statsbomb", type="season")`` --
+  and passing a directory with ``type="match"`` (or a file with
+  ``type="season"``) raises ``ValueError`` instead of silently doing the
+  other thing. This is a **breaking change** for any code relying on the
+  old auto-detection with a directory ``source`` -- add
+  ``type="season"`` explicitly.
+- **Fixed a real bug**, caught while re-verifying the above against a
+  real ~240-match StatsBomb season folder: the folder also contained a
+  ``matches.json`` (StatsBomb's own match-list metadata file, not an
+  events export) which matched the ``*.json`` glob and got parsed as if
+  it were 242 events, silently corrupting the combined frame with
+  garbage rows (``id``/``eventId`` empty, ``typeId`` 0) until
+  ``validate_events`` rejected it several steps downstream with a
+  confusing "column 'eventId' contains non-numeric values" error nowhere
+  near the actual cause. Fixed at the source
+  (:func:`~wa_setpieces.providers.statsbomb.load_statsbomb_events` now
+  validates its input actually looks like an events list -- has ``id``
+  and ``type`` fields -- before parsing it) and at the call site
+  (:func:`~wa_setpieces.load_matches` catches a bad file per-source
+  during a ``type="season"`` scan, skips it with a
+  :class:`UserWarning` naming it and why, and keeps loading the rest of
+  the folder, rather than either corrupting the frame or aborting over
+  one bad file).
+- The CLI is unaffected -- its own file-or-folder auto-detection on
+  ``input``/``inputs`` is unchanged; it now resolves the explicit
+  ``type=`` internally before calling :func:`load_matches`.
+- ``examples/load_matches_demo.ipynb`` -- a new notebook exercising all
+  three providers (Opta bundled sample, a real StatsBomb match, a real
+  ~240-match StatsBomb season folder, a real 20-match IMPECT export)
+  end to end, actually executed against real data rather than just
+  written -- is what caught the ``matches.json`` bug above in the first
+  place.
+- Every ``provider=``/``type=`` example across :doc:`index`,
+  :doc:`installation`, :doc:`quickstart` and the README updated to show
+  both keywords explicitly and consistently.
+- 7 new tests (377 total, up from 370): explicit ``type`` validation,
+  the ``matches.json``-skip behavior, and the underlying
+  ``providers.statsbomb`` input-shape check. Docs build clean.
+
 0.30.2
 ------
 

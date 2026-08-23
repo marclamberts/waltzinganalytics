@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -183,62 +184,110 @@ def load_events_multi(
     return pd.concat(frames, ignore_index=True)
 
 
-def _resolve_provider_files(source: str | Path, extension: str) -> list[Path]:
+_TYPES = ("match", "season")
+
+
+def _resolve_provider_files(source: str | Path, extension: str, type_key: str) -> list[Path]:
     path = Path(source)
-    if path.is_dir():
+    if type_key == "season":
+        if path.is_file():
+            raise ValueError(
+                f"type='season' expects a directory of files, got a single file: {path} "
+                "-- pass type='match' to load just this one."
+            )
+        if not path.is_dir():
+            raise FileNotFoundError(str(path))
         files = sorted(path.glob(f"*{extension}"))
         if not files:
             raise FileNotFoundError(f"no {extension} files found in directory {path}")
         return files
+    # type == "match"
+    if path.is_dir():
+        raise ValueError(
+            f"type='match' expects a single file, got a directory: {path} -- pass "
+            "type='season' to load every file in it."
+        )
     if not path.exists():
         raise FileNotFoundError(str(path))
     return [path]
 
 
-def load_matches(source: str | Path, provider: str = "opta") -> pd.DataFrame:
-    """Load one file, or every file in a folder, from any supported
-    provider into a single combined events DataFrame -- the same shape
-    :func:`load_events_multi` produces, with a ``matchId`` column, ready
-    for :class:`~wa_setpieces.core.season.SeasonDataset` or any
+def load_matches(source: str | Path, provider: str = "opta", type: str = "match") -> pd.DataFrame:
+    """Load a match export into a combined events DataFrame -- the same
+    shape :func:`load_events_multi` produces, with a ``matchId`` column,
+    ready for :class:`~wa_setpieces.core.season.SeasonDataset` or any
     match-safe function in this package.
 
-    This is the one entry point for "give me a season" regardless of
-    where the data came from: swap ``provider`` rather than reaching for
-    a differently-named loader per source. The actual format-specific
-    parsing still lives in :mod:`wa_setpieces.core.loader` (Opta) and
-    :mod:`wa_setpieces.providers` (StatsBomb, IMPECT) -- this function
-    only resolves *which* files to read and dispatches to the right one.
+    This is the one entry point for loading data regardless of where it
+    came from or how much of it there is: every call has the same two
+    knobs, ``provider`` and ``type``, and nothing else about the call
+    changes shape between them --
+
+    .. code-block:: python
+
+       load_matches("match.json", provider="opta", type="match")
+       load_matches("season/", provider="statsbomb", type="season")
+       load_matches("impect_export.csv", provider="impect", type="match")
+
+    The actual format-specific parsing still lives in
+    :mod:`wa_setpieces.core.loader` (Opta) and :mod:`wa_setpieces.providers`
+    (StatsBomb, IMPECT) -- this function only resolves *which* files to
+    read for the declared ``type`` and dispatches to the right one.
 
     Args:
-        source: a single match file, or a directory containing several.
-            Directories are scanned non-recursively for ``*.json``
-            (``provider="opta"``/``"statsbomb"``) or ``*.csv``
-            (``provider="impect"``), sorted by filename.
+        source: for ``type="match"``, a single match file. For
+            ``type="season"``, a directory containing several -- scanned
+            non-recursively for ``*.json`` (``provider="opta"``/
+            ``"statsbomb"``) or ``*.csv`` (``provider="impect"``), sorted
+            by filename. Passing a directory with ``type="match"`` (or a
+            file with ``type="season"``) raises ``ValueError`` rather
+            than silently doing the other thing.
         provider: ``"opta"`` (default), ``"statsbomb"`` or ``"impect"``,
             case-insensitive.
+        type: ``"match"`` (default) for a single file, ``"season"`` for a
+            directory of them, case-insensitive. IMPECT is the one
+            partial exception worth knowing about: a single
+            ``type="match"`` IMPECT CSV commonly covers many matches
+            *already* (its own ``match_id`` column), unlike Opta/
+            StatsBomb's true one-file-one-match convention -- see
+            :mod:`wa_setpieces.providers.impect`'s module docstring.
 
     Returns:
         One combined events DataFrame with a ``matchId`` column. For
         ``"opta"``/``"statsbomb"`` each file is one match, tagged with its
         filename stem (same convention as :func:`load_events_multi`). For
         ``"impect"``, ``matchId`` comes from the export's own ``match_id``
-        column instead -- a single IMPECT CSV commonly covers many
-        matches already (see :mod:`wa_setpieces.providers.impect`'s
-        module docstring).
+        column instead.
+
+    A ``type="season"`` folder scan matches every file with the right
+    extension, but a real export directory can also contain non-event
+    sidecar files of the same type (a StatsBomb ``matches.json``/
+    ``competitions.json`` sitting next to the per-match event files,
+    say). A file that doesn't parse as a valid match export for the
+    chosen provider is skipped with a :class:`UserWarning` naming it and
+    why, rather than either silently corrupting the combined frame or
+    aborting the whole folder over one bad file.
 
     Raises:
-        ValueError: if two different files would resolve to the same
-            ``matchId`` -- see :func:`load_events_multi` for why this
-            fails loudly rather than silently merging.
-        FileNotFoundError: ``source`` doesn't exist, or is a directory
-            with no matching files for this provider.
+        ValueError: ``type`` isn't ``"match"``/``"season"``, or doesn't
+            match what ``source`` actually is (see ``source`` above); or
+            two different files resolve to the same ``matchId`` -- see
+            :func:`load_events_multi` for why this fails loudly rather
+            than silently merging; or *every* file for this provider
+            failed to parse.
+        FileNotFoundError: ``source`` doesn't exist, or (for
+            ``type="season"``) is a directory with no matching files for
+            this provider.
     """
     provider_key = provider.lower()
     if provider_key not in _PROVIDER_EXTENSIONS:
         raise ValueError(
             f"provider must be one of {sorted(_PROVIDER_EXTENSIONS)}, got {provider!r}"
         )
-    files = _resolve_provider_files(source, _PROVIDER_EXTENSIONS[provider_key])
+    type_key = type.lower()
+    if type_key not in _TYPES:
+        raise ValueError(f"type must be one of {_TYPES}, got {type!r}")
+    files = _resolve_provider_files(source, _PROVIDER_EXTENSIONS[provider_key], type_key)
 
     frames: list[pd.DataFrame] = []
     match_id_sources: dict[str, Path] = {}
@@ -252,9 +301,15 @@ def load_matches(source: str | Path, provider: str = "opta") -> pd.DataFrame:
             )
         match_id_sources[match_id] = origin
 
+    skipped: list[tuple[Path, str]] = []
+
     if provider_key == "opta":
         for file in files:
-            df = load_events(file).events.copy()
+            try:
+                df = load_events(file).events.copy()
+            except (ValueError, KeyError) as exc:
+                skipped.append((file, str(exc)))
+                continue
             match_id = file.stem
             _claim(match_id, file)
             df.insert(0, "matchId", match_id)
@@ -263,7 +318,11 @@ def load_matches(source: str | Path, provider: str = "opta") -> pd.DataFrame:
         from ..providers.statsbomb import load_statsbomb_events
 
         for file in files:
-            df = load_statsbomb_events(file).copy()
+            try:
+                df = load_statsbomb_events(file).copy()
+            except (ValueError, KeyError) as exc:
+                skipped.append((file, str(exc)))
+                continue
             match_id = file.stem
             _claim(match_id, file)
             df.insert(0, "matchId", match_id)
@@ -272,10 +331,32 @@ def load_matches(source: str | Path, provider: str = "opta") -> pd.DataFrame:
         from ..providers.impect import load_impect_events
 
         for file in files:
-            df = load_impect_events(file)
+            try:
+                df = load_impect_events(file)
+            except (ValueError, KeyError) as exc:
+                skipped.append((file, str(exc)))
+                continue
             for match_id in df["matchId"].drop_duplicates():
                 _claim(match_id, file)
             frames.append(df)
+
+    if skipped:
+        # A folder scan matches every file with the right extension, but a
+        # real export directory commonly has non-event sidecar files too
+        # (a StatsBomb matches.json/competitions.json next to the per-match
+        # event files, say) -- caught in practice on a real season folder,
+        # where matches.json silently produced 242 garbage rows before
+        # providers.statsbomb validated its input shape. Skipped loudly
+        # (a warning, not silence) rather than aborting the whole folder.
+        for file, reason in skipped:
+            warnings.warn(
+                f"load_matches: skipped {file} -- {reason}", stacklevel=2
+            )
+        if len(skipped) == len(files):
+            raise ValueError(
+                f"None of the {len(files)} file(s) for provider={provider!r} could be "
+                f"loaded. First error: {skipped[0][1]}"
+            )
 
     if not frames:
         return pd.DataFrame(columns=["matchId", *_CORE_FIELDS])

@@ -98,8 +98,33 @@ def _to_opta_y(y: float | None) -> float | None:
 def _load_raw(source: str | Path | list[dict]) -> list[dict]:
     if isinstance(source, (str, Path)):
         with Path(source).open(encoding="utf-8") as fh:
-            return json.load(fh)
-    return list(source)
+            data = json.load(fh)
+    else:
+        data = list(source)
+
+    # A folder of StatsBomb exports often has a matches.json /
+    # competitions.json sitting alongside the per-match event files --
+    # both are also JSON lists, so a folder-loader (see
+    # core.loader.load_matches) that just globs *.json can hand this
+    # function one by mistake. A real event always has both "id" (a UUID)
+    # and "type" (a dict); a matches.json record has neither -- caught in
+    # practice against a real Liga Pro 2022 export, where matches.json
+    # silently produced 242 rows of empty/typeId-0 garbage before this
+    # check existed, corrupting a season-combined frame with no error at
+    # all until validate_events rejected it several steps downstream.
+    if not isinstance(data, list):
+        raise ValueError(
+            f"expected a StatsBomb events export (a JSON list of event dicts), "
+            f"got {type(data).__name__} from {source!r}"
+        )
+    if data and not (isinstance(data[0], dict) and "id" in data[0] and "type" in data[0]):
+        raise ValueError(
+            f"{source!r} doesn't look like a StatsBomb events export (its first "
+            "record has no 'id'/'type' fields) -- this may be a different "
+            "StatsBomb file, e.g. matches.json or competitions.json, rather than "
+            "one match's events."
+        )
+    return data
 
 
 def _convert_pass(ev: dict, qualifiers: dict[str, Any]) -> tuple[int, int]:

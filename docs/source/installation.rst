@@ -44,8 +44,10 @@ Input data
 ----------
 
 ``wa_setpieces`` reads three event-data providers, all through one
-loading function, :func:`~wa_setpieces.load_matches` -- pass
-``provider="opta"`` (default), ``"statsbomb"`` or ``"impect"``:
+loading function, :func:`~wa_setpieces.load_matches` -- every call takes
+the same two keywords, ``provider`` (``"opta"`` default, ``"statsbomb"``
+or ``"impect"``) and ``type`` (``"match"`` default, or ``"season"`` for a
+folder), so nothing else about the call changes shape between them:
 
 - **Opta / Stats Perform** -- match event JSON exports with top-level
   ``matchDetails`` and ``event`` keys, where each event carries a
@@ -60,7 +62,9 @@ loading function, :func:`~wa_setpieces.load_matches` -- pass
   Opta/StatsBomb's one-file-per-match convention -- see that module's
   docstring for exactly what's mapped and what isn't.
 
-:func:`~wa_setpieces.load_matches` also accepts a folder instead of a
-single file -- every ``*.json`` (Opta/StatsBomb) or ``*.csv`` (IMPECT) in
-it is loaded and combined into one season-shaped events frame, ready for
-:class:`~wa_setpieces.core.season.SeasonDataset`.
+``type="season"`` accepts a folder instead of a single file -- every
+``*.json`` (Opta/StatsBomb) or ``*.csv`` (IMPECT) in it is loaded and
+combined into one season-shaped events frame, ready for
+:class:`~wa_setpieces.core.season.SeasonDataset`. Passing a directory
+with ``type="match"`` (or a single file with ``type="season"``) raises
+``ValueError`` rather than silently doing the other thing.

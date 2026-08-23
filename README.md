@@ -74,7 +74,7 @@ every cell's real output saved in the notebook.
 ```python
 from wa_setpieces import load_matches, set_piece_summary
 
-events = load_matches("match.json")
+events = load_matches("match.json", provider="opta", type="match")
 summary = set_piece_summary(events)
 print(summary)
 ```
@@ -480,9 +480,11 @@ save_tables(tables, "workflow_tables/", fmt="csv")
 
 ## Other data providers
 
-`load_matches(source, provider="opta")` is the one loading entry point
-for every provider — Opta (native, no conversion needed), StatsBomb, or
-IMPECT — and for either a single match file or a whole folder (a season).
+`load_matches(source, provider="opta", type="match")` is the one loading
+entry point for every provider — Opta (native, no conversion needed),
+StatsBomb, or IMPECT — and either scope, one match file or a whole folder
+(a season). Every call takes the same two keywords, `provider` and
+`type`, so nothing else about the call changes shape between them.
 `wa_setpieces.providers` does the actual per-provider conversion into the
 same internal frame Opta produces, so every other module — filters,
 metrics, chains, phases, retention, xT, value, rating, routines,
@@ -491,12 +493,12 @@ defending, viz — works unchanged regardless of source:
 ```python
 from wa_setpieces import load_matches, set_piece_summary
 
-load_matches("match.json")                                   # one Opta match (default provider)
-load_matches("statsbomb_events_export.json", provider="statsbomb")
-load_matches("impect_export.csv", provider="impect")          # often many matches in one export already
-load_matches("season/", provider="statsbomb")                 # a whole folder, combined
+load_matches("match.json", provider="opta", type="match")
+load_matches("statsbomb_events_export.json", provider="statsbomb", type="match")
+load_matches("impect_export.csv", provider="impect", type="match")   # often many matches in one export already
+load_matches("season/", provider="statsbomb", type="season")         # a whole folder, combined
 
-events = load_matches("statsbomb_events_export.json", provider="statsbomb")
+events = load_matches("statsbomb_events_export.json", provider="statsbomb", type="match")
 set_piece_summary(events)  # same functions, same DataFrame shape, regardless of provider
 ```
 
