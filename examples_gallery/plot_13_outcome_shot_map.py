@@ -17,7 +17,7 @@ detection (``typeId`` 44, a contested header -- football's "50/50").
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.outcomes import delivery_outcomes, outcome_summary
 from wa_setpieces.viz.plots import plot_set_piece_outcomes
 
@@ -27,11 +27,11 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Every corner, classified:
-corner_outcomes = delivery_outcomes(match.events, "corner")
+corner_outcomes = delivery_outcomes(events, "corner")
 corner_outcomes
 
 # %%
@@ -40,9 +40,9 @@ fig, ax = plot_set_piece_outcomes(corner_outcomes, title="Corner outcomes")
 # %%
 # Free kicks spread across the whole pitch, not just the box -- they're
 # taken from wherever the foul was:
-fk_outcomes = delivery_outcomes(match.events, "free_kick")
+fk_outcomes = delivery_outcomes(events, "free_kick")
 fig, ax = plot_set_piece_outcomes(fk_outcomes, title="Free-kick outcomes")
 
 # %%
 # Rolled up per team:
-outcome_summary(match.events, "corner")
+outcome_summary(events, "corner")

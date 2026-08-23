@@ -13,7 +13,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.retention import retention_rate
 
 try:
@@ -22,10 +22,10 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
-rates = retention_rate(match.events, "throw_in")
+rates = retention_rate(events, "throw_in")
 rates
 
 # %%

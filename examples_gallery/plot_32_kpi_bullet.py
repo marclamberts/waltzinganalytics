@@ -11,7 +11,7 @@ treatment for the same kind of number.
 
 from pathlib import Path
 
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 from wa_setpieces.viz.plots import plot_kpi_bullet
 
 try:
@@ -20,8 +20,8 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-summary = set_piece_summary(match.events)
+events = load_matches(DATA)
+summary = set_piece_summary(events)
 row = summary[summary["set_piece_type"] == "free_kick"].sort_values("attempts", ascending=False).iloc[0]
 
 # %%

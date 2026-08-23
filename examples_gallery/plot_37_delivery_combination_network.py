@@ -18,7 +18,7 @@ dumbbell) compares a handful of known entities, not a graph.
 
 from pathlib import Path
 
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 from wa_setpieces.viz.plots import plot_delivery_combination_network
 
 try:
@@ -27,9 +27,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-summary = set_piece_summary(match.events)
+events = load_matches(DATA)
+summary = set_piece_summary(events)
 team_id = summary["contestantId"].iloc[0]
 
 # %%
-fig, ax = plot_delivery_combination_network(match.events, "free_kick", team_id)
+fig, ax = plot_delivery_combination_network(events, "free_kick", team_id)

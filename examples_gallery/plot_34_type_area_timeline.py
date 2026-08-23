@@ -13,7 +13,7 @@ cumulative line (one signed value, not a volume breakdown by type).
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.viz.plots import plot_type_area_timeline
 
 try:
@@ -22,7 +22,7 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
-fig, ax = plot_type_area_timeline(match.events, title="Set-piece volume through the match")
+fig, ax = plot_type_area_timeline(events, title="Set-piece volume through the match")

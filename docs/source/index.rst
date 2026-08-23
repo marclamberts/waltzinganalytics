@@ -9,14 +9,14 @@ pitch plots built on `mplsoccer <https://mplsoccer.readthedocs.io>`_.
 
 .. code-block:: python
 
-   from wa_setpieces import load_events, set_piece_summary
+   from wa_setpieces import load_matches, set_piece_summary
    from wa_setpieces.viz.plots import plot_delivery_map
    from wa_setpieces import delivery_locations
 
-   match = load_events("match.json")
-   set_piece_summary(match.events)
+   events = load_matches("match.json")
+   set_piece_summary(events)
 
-   corners = delivery_locations(match.events, "corner")
+   corners = delivery_locations(events, "corner")
    plot_delivery_map(corners, title="Corner deliveries")
 
 .. image:: _static/hero_corners.png
@@ -33,22 +33,16 @@ reports, CSV/Excel export -- is one function call away. The
 :doc:`quickstart` walks through your first match end to end; past that,
 pick a reference page below.
 
-Got StatsBomb or IMPECT data instead, or a whole season rather than one
-match? :func:`~wa_setpieces.load_matches` is the one loading entry point
-for all of it -- swap ``provider`` rather than a differently-named
-function per source, and point it at a single file or a folder either
-way:
+:func:`~wa_setpieces.load_matches` above is the one loading entry point
+for all three providers, and for a folder instead of a single file:
 
 .. code-block:: python
 
-   from wa_setpieces import load_matches
-
-   load_matches("match.json")                       # one Opta match
-   load_matches("season/", provider="statsbomb")     # a folder of StatsBomb matches
+   load_matches("season/", provider="statsbomb")         # a folder of StatsBomb matches
    load_matches("impect_export.csv", provider="impect")  # one IMPECT export, often many matches already
 
-Every function above takes the combined result unchanged -- there is no
-separate code path per provider anywhere past this point.
+Every function past this point takes the result unchanged -- there is no
+separate code path per provider anywhere else in the package.
 
 - :doc:`quickstart` -- load a match, get a summary table and a plot on
   screen in five minutes.

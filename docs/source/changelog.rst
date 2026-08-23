@@ -1,6 +1,33 @@
 Changelog
 =========
 
+0.30.1
+------
+
+Follow-up to 0.30.0: made :func:`~wa_setpieces.load_matches` the
+example code actually shows, not just a function that exists alongside
+the old pattern.
+
+- Every gallery example (all 39 scripts), the README, and the docs'
+  ``index``/``quickstart`` pages now load with
+  ``events = load_matches(DATA)`` instead of ``match = load_events(DATA)``
+  / ``match.events`` -- the pattern the rest of this changelog has been
+  telling people to prefer since 0.30.0, now actually followed
+  everywhere it's demonstrated. :func:`~wa_setpieces.load_events`
+  (returning the ``matchDetails`` block alongside events) is still
+  documented as the lower-level alternative for when that block is
+  actually needed.
+- Caught and fixed two stale example outputs while touching this code,
+  the same kind of drift found in the 0.29.1 docs review: the
+  README's sample ``set_piece_summary()`` table showed a ``shots``
+  column of 1 for two rows where a fresh run against the same sample
+  match gives 0 throughout.
+- No functional changes -- :func:`~wa_setpieces.load_events` and
+  :func:`~wa_setpieces.core.loader.load_events_multi` are unchanged and
+  still exported; this is example code and documentation only.
+- Docs build clean (39/39 gallery scripts, zero warnings), 370 tests
+  unchanged.
+
 0.30.0
 ------
 

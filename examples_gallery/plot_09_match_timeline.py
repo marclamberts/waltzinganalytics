@@ -14,7 +14,7 @@ the final total.
 
 from pathlib import Path
 
-from wa_setpieces import load_events, XTModel
+from wa_setpieces import load_matches, XTModel
 from wa_setpieces.viz.plots import plot_match_timeline, plot_set_piece_value_flow
 
 try:
@@ -23,15 +23,15 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
-fig, ax = plot_match_timeline(match.events)
+fig, ax = plot_match_timeline(events)
 
 # %%
 # Fitting on one match, as below, is illustrative only -- see
 # :doc:`../value_models` on why a real xT model needs a season's worth of
 # data. Corners and free kicks are the only two types with a value model,
 # so they're what gets combined here by default.
-model = XTModel.fit(match.events)
-fig, ax = plot_set_piece_value_flow(match.events, model)
+model = XTModel.fit(events)
+fig, ax = plot_set_piece_value_flow(events, model)

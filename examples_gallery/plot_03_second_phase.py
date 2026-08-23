@@ -16,7 +16,7 @@ that function's docstring for how this was verified against the data.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.phases import second_phases
 from wa_setpieces.viz.plots import plot_second_phase
 
@@ -26,11 +26,11 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Classify every corner in the match:
-corners = second_phases(match.events, "corner")
+corners = second_phases(events, "corner")
 corners[["delivery_event_id", "cleared_immediately", "second_phase_shot", "phase_events_n"]]
 
 # %%
@@ -38,10 +38,10 @@ corners[["delivery_event_id", "cleared_immediately", "second_phase_shot", "phase
 # Numbered grey dots are the contested touches after the delivery; the gold
 # dot is the shot that eventually resulted.
 shot_corners = corners.loc[corners["second_phase_shot"], "delivery_event_id"]
-fig, ax = plot_second_phase(match.events, int(shot_corners.iloc[0]))
+fig, ax = plot_second_phase(events, int(shot_corners.iloc[0]))
 
 # %%
 # And one that was cleared immediately, for contrast:
 cleared = corners.loc[corners["cleared_immediately"], "delivery_event_id"]
 if not cleared.empty:
-    fig, ax = plot_second_phase(match.events, int(cleared.iloc[0]))
+    fig, ax = plot_second_phase(events, int(cleared.iloc[0]))

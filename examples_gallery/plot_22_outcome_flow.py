@@ -17,7 +17,7 @@ up as a visible diagonal sliver breaking off toward "Goal."
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.outcomes import delivery_outcomes
 from wa_setpieces.viz.plots import plot_outcome_flow
 
@@ -27,17 +27,17 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Corners in this sample match: no goal came from any of them, so every
 # band flows straight through to "No goal" with no diagonal split -- a
 # real (if unglamorous) finding a bar chart of counts wouldn't make as
 # immediately obvious.
-corner_outcomes = delivery_outcomes(match.events, "corner")
+corner_outcomes = delivery_outcomes(events, "corner")
 fig, ax = plot_outcome_flow(corner_outcomes, title="Corner outcome flow")
 
 # %%
 # Free kicks, the same way:
-fk_outcomes = delivery_outcomes(match.events, "free_kick")
+fk_outcomes = delivery_outcomes(events, "free_kick")
 fig, ax = plot_outcome_flow(fk_outcomes, title="Free-kick outcome flow")

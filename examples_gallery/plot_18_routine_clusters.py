@@ -16,7 +16,7 @@ Requires the optional ``ml`` extra (scikit-learn).
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.routines import cluster_routines, restart_routines
 from wa_setpieces.viz.plots import plot_routine_clusters
 
@@ -26,18 +26,18 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Delivery technique and post target, alongside the existing taxonomy:
-detail = restart_routines(match.events, "corner")
+detail = restart_routines(events, "corner")
 detail[["eventId", "routine_type", "delivery_technique", "post_target"]]
 
 # %%
 # Data-driven clusters, as an alternative to ``routine_type``'s hand-picked
 # buckets -- each cluster's label is an auto-generated summary of its own
 # average geometry:
-clustered = cluster_routines(match.events, "corner", n_clusters=3, random_state=0)
+clustered = cluster_routines(events, "corner", n_clusters=3, random_state=0)
 clustered[["eventId", "cluster", "cluster_label"]]
 
 # %%

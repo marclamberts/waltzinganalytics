@@ -20,7 +20,7 @@ independent P(goal) estimates -- into one ``shot_value`` column.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.ml.shot_value import ShotValueModels, shot_value
 
 try:
@@ -29,13 +29,13 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Load once, reuse across matches (the .pkl files are a few hundred KB
 # each and slower to load than to run inference with):
 models = ShotValueModels.load()
-shots = shot_value(match.events, models)
+shots = shot_value(events, models)
 shots[["eventId", "playerName", "is_goal", "set_piece_type", "on_target_prob", "xgot", "psxg", "shot_value"]]
 
 # %%

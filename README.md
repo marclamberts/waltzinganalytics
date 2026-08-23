@@ -1,8 +1,9 @@
 # wa-setpieces
 
 Set-piece analytics for football (soccer) matches from **Opta / Stats
-Perform** event-feed JSON exports (natively) and **StatsBomb**
-open-data exports (via an adapter): penalties, kick-offs, free kicks,
+Perform**, **StatsBomb**, or **IMPECT** event data — one loading call,
+`load_matches(source, provider=...)`, for any of the three, a single
+match file or a whole folder (season): penalties, kick-offs, free kicks,
 corners, throw-ins and goal kicks.
 
 Given a match file, this package tags every set-piece restart and covers,
@@ -71,20 +72,20 @@ every cell's real output saved in the notebook.
 ## Quickstart
 
 ```python
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 
-match = load_events("match.json")
-summary = set_piece_summary(match.events)
+events = load_matches("match.json")
+summary = set_piece_summary(events)
 print(summary)
 ```
 
 ```
               contestantId set_piece_type  attempts  successful  success_rate  shots  goals
-cxb4hqite921i...      corner         2           1         0.500      1      0
+cxb4hqite921i...      corner         2           1         0.500      0      0
 cxb4hqite921i...   free_kick        12           9         0.750      0      0
 cxb4hqite921i...   goal_kick         8           5         0.625      0      0
 cxb4hqite921i...    kick_off         1           1         1.000      0      0
-cxb4hqite921i...    throw_in        20          16         0.800      1      0
+cxb4hqite921i...    throw_in        20          16         0.800      0      0
 ...
 ```
 
@@ -101,8 +102,8 @@ calls together yourself:
 ```python
 from wa_setpieces import run_workflow, XTModel
 
-model = XTModel.fit(match.events)         # optional -- unlocks added value + player rating
-result = run_workflow(match.events, "corner", model=model)
+model = XTModel.fit(events)         # optional -- unlocks added value + player rating
+result = run_workflow(events, "corner", model=model)
 
 result.summary                    # attempts, success rate, shots, goals
 result.deliveries                 # start/end coordinates for a delivery map
@@ -143,26 +144,26 @@ from wa_setpieces import (
     aerial_duel_summary,                   # who wins each contested header
 )
 
-second_phases(match.events, "corner")           # per-corner: cleared / first-phase shot / second-phase shot
-second_phase_summary(match.events, "free_kick") # per-team roll-up
+second_phases(events, "corner")           # per-corner: cleared / first-phase shot / second-phase shot
+second_phase_summary(events, "free_kick") # per-team roll-up
 
-retention_rate(match.events, "corner")          # per-team: % of corners where the ball is retained ~8s later
+retention_rate(events, "corner")          # per-team: % of corners where the ball is retained ~8s later
 
-tagged = add_thirds(match.events)               # defensive_third / middle_third / attacking_third
+tagged = add_thirds(events)               # defensive_third / middle_third / attacking_third
 tagged = add_channels(tagged, n=5)              # wide / half-space / central
 
-model = XTModel.fit(match.events)               # fit an xT grid (fit on many matches for real use!)
-set_piece_xt_summary(match.events, "corner", model)  # total/average xT added per team
+model = XTModel.fit(events)               # fit an xT grid (fit on many matches for real use!)
+set_piece_xt_summary(events, "corner", model)  # total/average xT added per team
 
-set_piece_added_value(match.events, "corner", model)  # per-delivery: xT added + resulting shot quality + goal
-corner_report(match.events, model=model)              # attempts, success/retention/second-phase rate, added value -- one table
+set_piece_added_value(events, "corner", model)  # per-delivery: xT added + resulting shot quality + goal
+corner_report(events, model=model)              # attempts, success/retention/second-phase rate, added value -- one table
 
-delivery_outcomes(match.events, "corner")
+delivery_outcomes(events, "corner")
 # per-delivery `delivery_outcome`: short_corner / direct_shot / second_phase_shot /
 # aerial_duel / cleared / first_touch_won / first_touch_lost / no_action, plus
 # aerial_winner_contestant_id/_player_id/_player_name when it's an aerial_duel
 
-team_summary, player_summary = aerial_duel_summary(match.events, "corner")
+team_summary, player_summary = aerial_duel_summary(events, "corner")
 # team_summary: duels_involved, duels_won, win_rate, per team
 # player_summary: duels_won per player who won at least one identified duel
 ```
@@ -184,13 +185,13 @@ view:
 ```python
 from wa_setpieces import first_contact_detail, first_contact_summary
 
-first_contact_detail(match.events, "corner")
+first_contact_detail(events, "corner")
 # per-delivery: who touched the ball next (first_contact_player_id/_name,
 # _team_id), whether their team won it, and seconds_to_contact --
 # explicitly labelled confidence="event_sequence" throughout, since event
 # data can prove ordering but not physical contact the way tracking can
 
-first_contact_summary(match.events, "corner")
+first_contact_summary(events, "corner")
 # per-player: contacts, contacts_won, win_rate
 ```
 
@@ -216,7 +217,7 @@ pip install -e ".[ml]"   # xgboost + scikit-learn + joblib
 from wa_setpieces.ml.shot_value import ShotValueModels, shot_value
 
 models = ShotValueModels.load()          # loads once; reuse across matches
-shots = shot_value(match.events, models)
+shots = shot_value(events, models)
 # eventId, playerName, is_goal, set_piece_type, on_target_prob, xgot, psxg,
 # situational_prob, outcome_class_0..3, shot_value (blended)
 ```
@@ -455,7 +456,7 @@ degrading gracefully to tables-only otherwise:
 from pathlib import Path
 from wa_setpieces import corner_report_html
 
-html = corner_report_html(match.events, model=model)  # a ready-to-write HTML string
+html = corner_report_html(events, model=model)  # a ready-to-write HTML string
 Path("corner_report.html").write_text(html, encoding="utf-8")
 ```
 
@@ -470,7 +471,7 @@ pip install -e ".[xlsx]"   # openpyxl, for .xlsx/.xls output
 import pandas as pd
 from wa_setpieces import save_table, save_tables
 
-save_table(corner_report(match.events, model=model), "corner_report.xlsx")
+save_table(corner_report(events, model=model), "corner_report.xlsx")
 
 # One file per SetPieceWorkflow table (skip the non-table fields, e.g. set_piece_type):
 tables = {name: value for name, value in vars(result).items() if isinstance(value, pd.DataFrame)}
@@ -479,29 +480,34 @@ save_tables(tables, "workflow_tables/", fmt="csv")
 
 ## Other data providers
 
-Opta is the native format (`wa_setpieces.core.loader.load_events`,
-handled directly, no adapter needed). `wa_setpieces.providers` converts
-other providers' feeds into that same internal frame, so every other
-module — filters, metrics, chains, phases, retention, xT, value, rating,
-routines, defending, viz — works unchanged regardless of source:
+`load_matches(source, provider="opta")` is the one loading entry point
+for every provider — Opta (native, no conversion needed), StatsBomb, or
+IMPECT — and for either a single match file or a whole folder (a season).
+`wa_setpieces.providers` does the actual per-provider conversion into the
+same internal frame Opta produces, so every other module — filters,
+metrics, chains, phases, retention, xT, value, rating, routines,
+defending, viz — works unchanged regardless of source:
 
 ```python
-from wa_setpieces import load_statsbomb_events
+from wa_setpieces import load_matches, set_piece_summary
 
-events = load_statsbomb_events("statsbomb_events_export.json")
-set_piece_summary(events)  # same functions, same DataFrame shape
+load_matches("match.json")                                   # one Opta match (default provider)
+load_matches("statsbomb_events_export.json", provider="statsbomb")
+load_matches("impect_export.csv", provider="impect")          # often many matches in one export already
+load_matches("season/", provider="statsbomb")                 # a whole folder, combined
+
+events = load_matches("statsbomb_events_export.json", provider="statsbomb")
+set_piece_summary(events)  # same functions, same DataFrame shape, regardless of provider
 ```
 
-Read `wa_setpieces/providers/statsbomb.py`'s module docstring for exactly
-what is (and isn't) faithfully mapped — set-piece detection, the
-assist-chain shot link, retention, xT and rating are all faithful; one
-narrow edge case in second-phase timing is documented as an approximation.
-
-**Impect is not supported.** It's a closed, proprietary feed with no
-public schema to build and verify an adapter against — contributing one
-needs a real sample export or an official schema reference to check the
-mapping against, the same way the StatsBomb adapter and the Opta constants
-in `wa_setpieces/core/constants.py` were verified against real exports.
+Read `wa_setpieces/providers/statsbomb.py`'s and
+`wa_setpieces/providers/impect.py`'s module docstrings for exactly what
+is (and isn't) faithfully mapped for each — set-piece detection, the
+assist-chain shot link, retention, xT and rating are all faithful for
+both; each has its own narrow, documented edge cases (StatsBomb: one
+second-phase-timing approximation; IMPECT: no player-name field, no
+delivery-technique field). The IMPECT converter was built and verified
+against a real 20-match export, not a schema guess.
 
 ## Plots
 
@@ -529,11 +535,11 @@ from wa_setpieces.viz.plots import (
 )
 
 plot_delivery_map(
-    delivery_locations(match.events, "corner"), title="Corner deliveries",
+    delivery_locations(events, "corner"), title="Corner deliveries",
     subtitle="20 June 2026 · Delivery map", footer="Data: Opta", dark=False,  # or dark=True (default)
 )
-plot_dashboard(match.events, team_id, set_piece_type="corner")  # the "hero" figure
-plot_set_piece_radar(corner_report(match.events, model=model))  # team A vs. team B, one glance
+plot_dashboard(events, team_id, set_piece_type="corner")  # the "hero" figure
+plot_set_piece_radar(corner_report(events, model=model))  # team A vs. team B, one glance
 plot_rating_benchmark(team_rating(corner_report(season_events, model=model)))
 ```
 
@@ -568,7 +574,7 @@ any set-piece type, for handing off to a video-clipping tool:
 ```python
 from wa_setpieces.core.clips import delivery_clip_windows
 
-delivery_clip_windows(match.events, "corner", pre_seconds=5, post_seconds=15)
+delivery_clip_windows(events, "corner", pre_seconds=5, post_seconds=15)
 # eventId, contestantId, playerId, playerName, periodId, timeMin, timeSec,
 # event_seconds, clip_start_seconds, clip_end_seconds
 ```
@@ -591,7 +597,7 @@ location (corner arc, touchline, centre spot, six-yard line).
 
 ## Package layout
 
-- `wa_setpieces.core.loader` — parse Opta JSON into a tidy `pandas.DataFrame`; `load_events_multi` stacks a whole season.
+- `wa_setpieces.core.loader` — parse Opta JSON into a tidy `pandas.DataFrame`; `load_matches` is the one entry point for any provider, a single file or a whole season folder; `load_events_multi` stacks several already-known Opta sources.
 - `wa_setpieces.core.constants` — Opta typeId / qualifierId reference.
 - `wa_setpieces.core.schema` — `validate_events`/`event_capabilities`: the provider-neutral event contract every module assumes.
 - `wa_setpieces.core.filters` — extract/tag each set-piece type.

@@ -16,7 +16,7 @@ shows *which restart type* it came from.
 
 from pathlib import Path
 
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 from wa_setpieces.core.xt import XTModel
 from wa_setpieces.viz.plots import plot_value_waterfall
 
@@ -26,9 +26,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
-team_id = set_piece_summary(match.events)["contestantId"].iloc[0]
+events = load_matches(DATA)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
+team_id = set_piece_summary(events)["contestantId"].iloc[0]
 
 # %%
-fig, ax = plot_value_waterfall(match.events, team_id, model, title="Added value by restart type")
+fig, ax = plot_value_waterfall(events, team_id, model, title="Added value by restart type")

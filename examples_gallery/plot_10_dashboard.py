@@ -9,7 +9,7 @@ single shareable image with :func:`~wa_setpieces.viz.plot_dashboard`.
 
 from pathlib import Path
 
-from wa_setpieces import delivery_locations, load_events
+from wa_setpieces import delivery_locations, load_matches
 from wa_setpieces.viz.plots import plot_dashboard
 
 try:
@@ -18,9 +18,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-corners = delivery_locations(match.events, "corner")
+events = load_matches(DATA)
+corners = delivery_locations(events, "corner")
 team_id = corners["contestantId"].value_counts().idxmax()
 
 # %%
-fig = plot_dashboard(match.events, team_id, set_piece_type="corner")
+fig = plot_dashboard(events, team_id, set_piece_type="corner")

@@ -8,24 +8,30 @@ Five minutes, no data of your own required -- the package ships a real
 Load a match
 ------------
 
-:func:`~wa_setpieces.load_events` reads an Opta JSON file and returns a
-:class:`~wa_setpieces.core.loader.Match`: the raw ``matchDetails`` block,
-plus a tidy events :class:`pandas.DataFrame` -- one row per event, one
-column per qualifierId, named ``q_<id>``.
+:func:`~wa_setpieces.load_matches` reads a match export and returns a
+tidy events :class:`pandas.DataFrame` -- one row per event, one column
+per qualifierId, named ``q_<id>``, plus a ``matchId`` column. It's the
+one loading function for every provider and either one file or a whole
+folder (a season) -- pass ``provider="opta"`` (default), ``"statsbomb"``
+or ``"impect"``, and every example below works unchanged regardless of
+source.
 
 .. code-block:: python
 
-   from wa_setpieces import load_events
+   from wa_setpieces import load_matches
 
-   match = load_events("tests/data/sample_match.json")
-   match.events.head()
+   events = load_matches("tests/data/sample_match.json")
+   events.head()
 
-On StatsBomb or IMPECT data instead, or a whole season rather than one
-match? :func:`~wa_setpieces.load_matches` handles a single file or a
-folder for any of the three providers -- ``load_matches("match.json",
-provider="statsbomb")`` -- and returns the same events shape either way,
-so every example below works unchanged regardless of source. See
-:doc:`installation`'s "Input data" section for the full picture.
+   # A folder, or a different provider, work the same way:
+   load_matches("season/", provider="statsbomb")
+   load_matches("impect_export.csv", provider="impect")
+
+Need the raw ``matchDetails`` block (kickoff time, venue, scores) rather
+than just the events? :func:`~wa_setpieces.load_events` reads a single
+Opta JSON file and returns a :class:`~wa_setpieces.core.loader.Match`
+with both: ``match.match_details`` and ``match.events``. See
+:doc:`installation`'s "Input data" section for the full provider picture.
 
 Summarize every set piece
 --------------------------
@@ -38,7 +44,7 @@ types at once.
 
    from wa_setpieces import set_piece_summary
 
-   set_piece_summary(match.events)
+   set_piece_summary(events)
 
 .. code-block:: text
 
@@ -66,7 +72,7 @@ coordinates for one set-piece type; :func:`~wa_setpieces.viz.plots.plot_delivery
    from wa_setpieces import delivery_locations
    from wa_setpieces.viz.plots import plot_delivery_map
 
-   corners = delivery_locations(match.events, "corner")
+   corners = delivery_locations(events, "corner")
    fig, ax = plot_delivery_map(corners, title="Corner deliveries")
 
 .. image:: _static/hero_corners.png
@@ -88,8 +94,8 @@ set-piece type and hands back every table in a single
 
    from wa_setpieces import run_workflow, XTModel
 
-   model = XTModel.fit(match.events)  # optional -- unlocks added value + player rating
-   result = run_workflow(match.events, "corner", model=model)
+   model = XTModel.fit(events)  # optional -- unlocks added value + player rating
+   result = run_workflow(events, "corner", model=model)
 
    result.report          # everything above, rolled up per team
    result.team_rating      # 0-100 benchmark score per team

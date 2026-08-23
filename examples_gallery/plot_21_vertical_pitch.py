@@ -14,7 +14,7 @@ unchanged.
 
 from pathlib import Path
 
-from wa_setpieces import delivery_locations, load_events
+from wa_setpieces import delivery_locations, load_matches
 from wa_setpieces.viz.plots import plot_delivery_map, plot_zone_heatmap
 
 try:
@@ -23,8 +23,8 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-corners = delivery_locations(match.events, "corner")
+events = load_matches(DATA)
+corners = delivery_locations(events, "corner")
 
 # %%
 # Horizontal (the default):

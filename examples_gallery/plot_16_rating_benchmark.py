@@ -15,7 +15,7 @@ never do the other.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.rating import player_rating, team_rating
 from wa_setpieces.core.report import corner_report
 from wa_setpieces.core.xt import XTModel
@@ -27,13 +27,13 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
+events = load_matches(DATA)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
 
 # %%
 # Team rating -- benchmarked against the (two) teams in this sample match;
 # a real report is only meaningful over a full season:
-report = corner_report(match.events, model=model)
+report = corner_report(events, model=model)
 team_rated = team_rating(report)
 team_rated[["contestantId", "success_rate", "avg_added_value", "rating"]]
 
@@ -43,7 +43,7 @@ fig, ax = plot_rating_benchmark(team_rated, title="Corner rating — by team")
 
 # %%
 # Player rating -- delivery score and finishing score, merged:
-player_rated = player_rating(match.events, "corner", model, min_deliveries=1, min_shots=1)
+player_rated = player_rating(events, "corner", model, min_deliveries=1, min_shots=1)
 player_rated[["playerName", "delivery_score", "finishing_score", "rating"]]
 
 # %%

@@ -18,7 +18,7 @@ needs a full season/competition behind it, not one match.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.rating import player_rating
 from wa_setpieces.core.xt import XTModel
 from wa_setpieces.viz.plots import plot_rating_beeswarm
@@ -29,11 +29,11 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
+events = load_matches(DATA)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
 
 # %%
-rated = player_rating(match.events, "corner", model, min_deliveries=1, min_shots=1)
+rated = player_rating(events, "corner", model, min_deliveries=1, min_shots=1)
 rated[["playerName", "contestantId", "rating"]]
 
 # %%

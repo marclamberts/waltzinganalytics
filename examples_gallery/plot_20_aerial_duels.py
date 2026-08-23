@@ -10,7 +10,7 @@ rate and a per-player win count.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.core.outcomes import aerial_duel_summary
 from wa_setpieces.viz.plots import plot_aerial_duel_win_rate
 
@@ -20,10 +20,10 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
-team_summary, player_summary = aerial_duel_summary(match.events, "corner")
+team_summary, player_summary = aerial_duel_summary(events, "corner")
 team_summary
 
 # %%

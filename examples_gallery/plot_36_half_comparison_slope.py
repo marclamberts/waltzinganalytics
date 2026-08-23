@@ -14,7 +14,7 @@ though the line is flat -- "unchanged" isn't "improved").
 
 from pathlib import Path
 
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 from wa_setpieces.viz.plots import plot_half_comparison_slope
 
 try:
@@ -23,9 +23,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-summary = set_piece_summary(match.events)
+events = load_matches(DATA)
+summary = set_piece_summary(events)
 team_id = summary["contestantId"].iloc[0]
 
 # %%
-fig, ax = plot_half_comparison_slope(match.events, team_id=team_id)
+fig, ax = plot_half_comparison_slope(events, team_id=team_id)

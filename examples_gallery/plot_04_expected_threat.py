@@ -16,7 +16,7 @@ method: fit a grid of zone values from data, then value any pass as
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.viz.plots import plot_xt_grid
 from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt, set_piece_xt_summary
 
@@ -26,24 +26,24 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
+events = load_matches(DATA)
 
 # %%
 # Fit the grid and look at it directly -- value should climb steadily
 # towards the opponent's goal (x=100 in each event's own attacking frame).
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
 fig, ax = plot_xt_grid(model)
 
 # %%
 # xT added by every corner delivery (NaN where the corner didn't find a
 # teammate -- there's no reliable end location to value):
-set_piece_delivery_xt(match.events, "corner", model)[
+set_piece_delivery_xt(events, "corner", model)[
     ["eventId", "contestantId", "outcome", "xt_start", "xt_end", "xt_added"]
 ]
 
 # %%
 # Rolled up per team, for both corners and free kicks:
-set_piece_xt_summary(match.events, "corner", model)
+set_piece_xt_summary(events, "corner", model)
 
 # %%
-set_piece_xt_summary(match.events, "free_kick", model)
+set_piece_xt_summary(events, "free_kick", model)

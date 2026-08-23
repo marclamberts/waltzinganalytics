@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from wa_setpieces import delivery_locations, load_events
+from wa_setpieces import delivery_locations, load_matches
 from wa_setpieces.viz.plots import plot_metric_histogram
 
 try:
@@ -24,9 +24,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-corners = delivery_locations(match.events, "corner")
-free_kicks = delivery_locations(match.events, "free_kick")
+events = load_matches(DATA)
+corners = delivery_locations(events, "corner")
+free_kicks = delivery_locations(events, "free_kick")
 combined = pd.concat([corners, free_kicks])
 distance = ((combined["end_x"] - combined["x"]) ** 2 + (combined["end_y"] - combined["y"]) ** 2) ** 0.5
 

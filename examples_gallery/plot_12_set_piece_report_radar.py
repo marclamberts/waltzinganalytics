@@ -11,7 +11,7 @@ profile comparison, in the same spirit as a scouting radar/pizza chart.
 
 from pathlib import Path
 
-from wa_setpieces import corner_report, free_kick_report, load_events
+from wa_setpieces import corner_report, free_kick_report, load_matches
 from wa_setpieces.viz.plots import plot_set_piece_radar
 from wa_setpieces.core.xt import XTModel
 
@@ -21,12 +21,12 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
+events = load_matches(DATA)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
 
 # %%
 # The full corner report -- one row per team:
-report = corner_report(match.events, model=model)
+report = corner_report(events, model=model)
 report
 
 # %%
@@ -34,5 +34,5 @@ fig, ax = plot_set_piece_radar(report, title="Corner profile")
 
 # %%
 # Same for free kicks:
-fk_report = free_kick_report(match.events, model=model)
+fk_report = free_kick_report(events, model=model)
 fig, ax = plot_set_piece_radar(fk_report, title="Free-kick profile")

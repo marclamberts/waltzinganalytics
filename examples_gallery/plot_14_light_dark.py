@@ -22,7 +22,7 @@ source credit belongs to whoever is publishing the chart.
 
 from pathlib import Path
 
-from wa_setpieces import delivery_locations, load_events, set_piece_summary
+from wa_setpieces import delivery_locations, load_matches, set_piece_summary
 from wa_setpieces.viz.plots import plot_delivery_map, plot_team_comparison
 
 try:
@@ -31,9 +31,9 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-corners = delivery_locations(match.events, "corner")
-summary = set_piece_summary(match.events)
+events = load_matches(DATA)
+corners = delivery_locations(events, "corner")
+summary = set_piece_summary(events)
 
 # %%
 # Dark mode (the default):

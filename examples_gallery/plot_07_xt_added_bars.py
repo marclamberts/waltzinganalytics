@@ -10,7 +10,7 @@ team colors, and not the green/red success-status colors used elsewhere.
 
 from pathlib import Path
 
-from wa_setpieces import load_events
+from wa_setpieces import load_matches
 from wa_setpieces.viz.plots import plot_xt_added_bars
 from wa_setpieces.core.xt import XTModel, set_piece_delivery_xt
 
@@ -20,13 +20,13 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-model = XTModel.fit(match.events, x_bins=8, y_bins=6)
+events = load_matches(DATA)
+model = XTModel.fit(events, x_bins=8, y_bins=6)
 
 # %%
-free_kick_xt = set_piece_delivery_xt(match.events, "free_kick", model)
+free_kick_xt = set_piece_delivery_xt(events, "free_kick", model)
 fig, ax = plot_xt_added_bars(free_kick_xt, title="xT added — free kicks")
 
 # %%
-corner_xt = set_piece_delivery_xt(match.events, "corner", model)
+corner_xt = set_piece_delivery_xt(events, "corner", model)
 fig, ax = plot_xt_added_bars(corner_xt, title="xT added — corners")

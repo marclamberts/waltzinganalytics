@@ -16,7 +16,7 @@ into quadrants by the median.
 
 from pathlib import Path
 
-from wa_setpieces import load_events, set_piece_summary
+from wa_setpieces import load_matches, set_piece_summary
 from wa_setpieces.viz.plots import plot_team_comparison, plot_volume_quality_scatter
 
 try:
@@ -25,8 +25,8 @@ except NameError:
     _here = Path.cwd()
 DATA = _here.parent / "tests" / "data" / "sample_match.json"
 
-match = load_events(DATA)
-summary = set_piece_summary(match.events)
+events = load_matches(DATA)
+summary = set_piece_summary(events)
 
 # %%
 fig, ax = plot_team_comparison(summary, metric="attempts", title="Attempts by set-piece type")
