@@ -56,31 +56,56 @@ _CORE_FIELDS = (
 )
 
 
-def load_events(source: str | Path | dict) -> Match:
-    """Parse an Opta JSON export (path or already-loaded dict).
-
-    Args:
-        source: Path to a ``.json`` file, or a dict already produced by
-            ``json.load`` on an Opta export.
-
-    Returns:
-        A :class:`Match` with a tidy events DataFrame, sorted by match time.
-    """
-    if isinstance(source, dict):
-        data = source
-    else:
-        path = Path(source)
-        with path.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
-
+def _events_from_opta_dict(data: dict) -> pd.DataFrame:
     raw_events = data.get("event", [])
     rows = []
     for e in raw_events:
         row = {field: e.get(field) for field in _CORE_FIELDS}
         row.update(_qualifier_columns(e.get("qualifier", [])))
         rows.append(row)
+    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
 
-    events = pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(_CORE_FIELDS))
+
+def load_events(source: str | Path | dict) -> Match:
+    """Parse an Opta export -- native ``.json``, a previously-exported
+    ``.csv`` of this same internal events shape, or an already-loaded
+    dict (``json.load`` output).
+
+    A ``.csv`` is read as-is (already in the internal events shape --
+    e.g. ``match.events.to_csv(...)`` from an earlier run, reloaded
+    later) rather than converted; it carries no ``matchDetails`` block,
+    so ``match_details`` is ``{}`` for a CSV source. Verified round-trip
+    safe against a real match export: every downstream function
+    (:func:`~wa_setpieces.delivery_locations`,
+    :func:`~wa_setpieces.set_piece_summary`, ...) produces identical
+    output whether fed the original JSON-parsed frame or a CSV
+    round-trip of it, despite pandas relabeling some numeric-qualifier
+    columns from ``object`` to ``float64`` on the way through a CSV --
+    every value that actually gets used goes through
+    :func:`pandas.to_numeric` downstream regardless, which is a no-op on
+    an already-numeric column.
+
+    Args:
+        source: path to a ``.json`` or ``.csv`` file, or a dict already
+            produced by ``json.load`` on an Opta export.
+
+    Returns:
+        A :class:`Match` with a tidy events DataFrame, sorted by match time.
+    """
+    if isinstance(source, dict):
+        events = _events_from_opta_dict(source)
+        match_details = source.get("matchDetails", {})
+    else:
+        path = Path(source)
+        if path.suffix.lower() == ".csv":
+            events = pd.read_csv(path)
+            match_details: dict[str, Any] = {}
+        else:
+            with path.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            events = _events_from_opta_dict(data)
+            match_details = data.get("matchDetails", {})
+
     if not events.empty:
         # eventId is only unique within one team's own stream (see the
         # "By metric" docs page's "Linking to shots and goals" entry), so
@@ -100,7 +125,7 @@ def load_events(source: str | Path | dict) -> Match:
             .reset_index(drop=True)
         )
 
-    return Match(match_details=data.get("matchDetails", {}), events=events)
+    return Match(match_details=match_details, events=events)
 
 
 def load_events_multi(

@@ -1,5 +1,6 @@
-"""Convert an IMPECT event-data export (CSV) into the internal events
-DataFrame every other ``wa_setpieces`` module consumes -- the same shape
+"""Convert an IMPECT event-data export (CSV, or a JSON-encoded version of
+the same raw record shape) into the internal events DataFrame every other
+``wa_setpieces`` module consumes -- the same shape
 :func:`wa_setpieces.core.loader.load_events`'s ``.events`` produces from
 Opta. Once converted, ``wa_setpieces.core``, ``wa_setpieces.ml``,
 ``wa_setpieces.viz`` and ``wa_setpieces.core.rating`` all work unchanged on
@@ -151,7 +152,20 @@ def _cumulative_time(game_time_sec: Any, period_id: Any) -> tuple[int | None, in
 def _load_raw(source: str | Path | pd.DataFrame) -> pd.DataFrame:
     if isinstance(source, pd.DataFrame):
         return source.copy()
-    return pd.read_csv(source)
+    path = Path(source)
+    if path.suffix.lower() == ".json":
+        # A JSON-encoded version of the same raw IMPECT record shape
+        # (e.g. ``raw_df.to_json(orient="records")``), not a different
+        # schema -- read as a plain list of records with the same
+        # column names the native CSV export uses, then handled
+        # identically from here on. Verified round-trip safe against a
+        # real export: every downstream function produces identical
+        # output whether fed the original CSV-parsed frame or a JSON
+        # round-trip of it (a couple of columns relabel from int64 to
+        # float64 or vice versa on the way through, but none of the
+        # columns this module actually reads are affected).
+        return pd.read_json(path)
+    return pd.read_csv(path)
 
 
 def _pass_qualifiers(row: pd.Series) -> dict[str, Any]:
@@ -168,9 +182,10 @@ def _pass_qualifiers(row: pd.Series) -> dict[str, Any]:
 
 
 def load_impect_events(source: str | Path | pd.DataFrame) -> pd.DataFrame:
-    """Parse an IMPECT event export (CSV path, or an already-loaded
-    DataFrame in the raw IMPECT column shape) into the internal events
-    DataFrame the rest of ``wa_setpieces`` consumes.
+    """Parse an IMPECT event export (a ``.csv`` or ``.json`` path in the
+    raw IMPECT column shape, or an already-loaded DataFrame in that same
+    shape) into the internal events DataFrame the rest of ``wa_setpieces``
+    consumes.
 
     Returns the same shape as :func:`wa_setpieces.core.loader.load_events`'s
     ``.events``, plus a populated ``matchId`` column (IMPECT's own

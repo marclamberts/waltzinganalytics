@@ -36,7 +36,10 @@ corrupted :mod:`wa_setpieces.ml.shot_value`'s goal-mouth placement
 features for every StatsBomb-sourced shot.
 
 No extra dependency is needed (unlike the ``viz``/``ml``/``convert``
-extras) -- StatsBomb open-data ships as plain JSON.
+extras) -- StatsBomb open-data ships as plain JSON. A ``.csv`` path is also
+accepted (see :func:`load_statsbomb_events`) -- it's treated as an
+already-converted round-trip of this module's own output, not a native
+StatsBomb format.
 """
 
 from __future__ import annotations
@@ -215,8 +218,18 @@ def _convert_event(ev: dict, id_to_index: dict[str, int]) -> dict:
 
 def load_statsbomb_events(source: str | Path | list[dict]) -> pd.DataFrame:
     """Parse a StatsBomb open-data events export (path to the match's
-    ``events/<id>.json``, or an already-loaded list of event dicts) into
-    the internal events DataFrame the rest of ``wa_setpieces`` consumes.
+    ``events/<id>.json``, a previously-exported ``.csv`` of this same
+    internal events shape, or an already-loaded list of event dicts)
+    into the internal events DataFrame the rest of ``wa_setpieces``
+    consumes.
+
+    A ``.csv`` source is read as-is rather than converted -- it's
+    already in the internal shape this function would otherwise
+    produce (e.g. a previous run's ``events.to_csv(...)``), the same
+    round-trip :func:`wa_setpieces.core.loader.load_events` supports for
+    Opta. Native StatsBomb exports are JSON, never CSV, so a ``.csv``
+    path always means "already converted," not "StatsBomb's own CSV
+    format" (StatsBomb open data doesn't have one).
 
     Returns the same shape as :func:`wa_setpieces.core.loader.load_events`'s
     ``.events``: core columns (``id``, ``eventId``, ``typeId``, ...) plus
@@ -224,6 +237,14 @@ def load_statsbomb_events(source: str | Path | list[dict]) -> pd.DataFrame:
     can derive from StatsBomb's differently-shaped event fields. See the
     module docstring for exactly what is (and isn't) faithfully mapped.
     """
+    if isinstance(source, (str, Path)) and Path(source).suffix.lower() == ".csv":
+        events = pd.read_csv(source)
+        if not events.empty:
+            events = events.sort_values(
+                ["periodId", "timeMin", "timeSec", "eventId"]
+            ).reset_index(drop=True)
+        return events
+
     raw_events = _load_raw(source)
     id_to_index = {ev["id"]: ev.get("index") for ev in raw_events if "id" in ev}
 

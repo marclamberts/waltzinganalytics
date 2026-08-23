@@ -219,6 +219,18 @@ def test_load_statsbomb_events_accepts_a_json_file(tmp_path):
     assert len(events) == 3
 
 
+def test_load_statsbomb_events_accepts_a_csv_round_trip(tmp_path):
+    # A .csv is treated as already-converted (e.g. a previous run's
+    # events.to_csv(...)) rather than a native StatsBomb export -- provider
+    # is what decides how a file is parsed, not its extension.
+    original = load_statsbomb_events(RAW_EVENTS)
+    csv_path = tmp_path / "events.csv"
+    original.to_csv(csv_path, index=False)
+    reloaded = load_statsbomb_events(csv_path)
+    assert list(reloaded["eventId"]) == list(original["eventId"])
+    assert list(reloaded["typeId"]) == list(original["typeId"])
+
+
 def test_load_statsbomb_events_empty_list_returns_empty_frame():
     events = load_statsbomb_events([])
     assert events.empty

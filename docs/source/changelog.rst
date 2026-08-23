@@ -1,6 +1,50 @@
 Changelog
 =========
 
+0.31.2
+------
+
+Follow-up to 0.31.1, prompted directly by user feedback: "every provider
+can be json or csv." 0.31.1 made the ``type="season"`` folder *scan*
+extension-agnostic; this release makes each provider's own *parser*
+extension-agnostic too, so a single ``type="match"`` file works either
+way regardless of which format that provider natively ships as.
+
+- **Changed**: :func:`~wa_setpieces.load_events` (Opta) now accepts a
+  ``.csv`` path in addition to native ``.json`` -- read as-is, since a
+  ``.csv`` here always means a previously-exported round-trip of this
+  same internal events shape (e.g. ``match.events.to_csv(...)`` from an
+  earlier run), never a different Opta feed format. ``match_details`` is
+  ``{}`` for a CSV source, since a CSV round-trip carries no
+  ``matchDetails`` block.
+- **Changed**: :func:`wa_setpieces.providers.statsbomb.load_statsbomb_events`
+  now accepts a ``.csv`` path the same way -- StatsBomb open data itself
+  is JSON-only, so a ``.csv`` source always means "already converted,"
+  read directly rather than run through the StatsBomb-specific event
+  conversion.
+- **Changed**: :func:`wa_setpieces.providers.impect.load_impect_events`
+  now accepts a ``.json`` path in addition to native ``.csv`` -- a
+  JSON-encoded version of the same raw IMPECT record shape (e.g.
+  ``raw_df.to_json(orient="records")``), handled identically to the CSV
+  path from that point on.
+- Verified round-trip safe against real data before writing any of the
+  above, not assumed: an Opta match's events written to CSV and reread
+  produce identical :func:`~wa_setpieces.delivery_locations`/
+  :func:`~wa_setpieces.set_piece_summary` output to the original
+  JSON-parsed frame (despite some ``q_<id>`` columns relabeling
+  ``object`` -> ``float64`` through the round-trip -- harmless, since
+  every value that matters goes through :func:`pandas.to_numeric`
+  downstream regardless); a real IMPECT export's raw records written to
+  JSON and reread produce identical output to the CSV-sourced version
+  (only an unused passthrough ``id`` column's dtype label differs).
+- Docstrings (module-level and per-function, in ``core/loader.py``,
+  ``providers/statsbomb.py`` and ``providers/impect.py``) and the
+  :doc:`installation` page updated to describe the round-trip
+  acceptance.
+- 4 new tests (382 total): Opta CSV round-trip via both
+  :func:`~wa_setpieces.load_events` and :func:`~wa_setpieces.load_matches`,
+  StatsBomb CSV round-trip, IMPECT JSON round-trip. Docs build clean.
+
 0.31.1
 ------
 

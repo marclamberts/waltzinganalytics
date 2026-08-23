@@ -162,6 +162,19 @@ def test_load_impect_events_accepts_a_path(tmp_path):
     assert not events.empty
 
 
+def test_load_impect_events_accepts_a_json_path(tmp_path):
+    # Same raw record shape as the CSV export, just JSON-encoded (e.g.
+    # ``raw_df.to_json(orient="records")``) -- provider is what decides
+    # how a file is parsed, not its extension.
+    json_path = tmp_path / "impect.json"
+    _raw_frame().to_json(json_path, orient="records")
+    csv_events = load_impect_events(_raw_frame())
+    json_events = load_impect_events(json_path)
+    assert not json_events.empty
+    assert list(json_events["id"]) == list(csv_events["id"])
+    assert list(json_events["typeId"]) == list(csv_events["typeId"])
+
+
 def test_load_impect_events_empty_input_returns_empty_frame():
     events = load_impect_events(pd.DataFrame())
     assert events.empty

@@ -73,3 +73,12 @@ non-event sidecar file like StatsBomb's own ``matches.json``) is
 skipped with a warning rather than aborting the whole folder. Passing a
 directory with ``type="match"`` (or a single file with ``type="season"``) raises
 ``ValueError`` rather than silently doing the other thing.
+
+Each provider also accepts either extension on a single file, not just
+the folder scan: any of the three loaders will read a ``.csv`` or
+``.json`` file of a previously-exported events frame in its own
+internal shape (e.g. ``events.to_csv(...)`` or ``events.to_json(...)``
+from an earlier run, reloaded later) round-trip safe -- so a match
+already converted once doesn't need to be re-converted from its
+original native format just because you saved it under the other
+extension.

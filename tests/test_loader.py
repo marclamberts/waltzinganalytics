@@ -36,6 +36,28 @@ def test_load_events_accepts_dict():
     assert not match.events.empty
 
 
+def test_load_events_accepts_a_csv_round_trip(tmp_path):
+    # A .csv is treated as already-converted (e.g. a previous run's
+    # match.events.to_csv(...)) rather than native Opta JSON -- it carries
+    # no matchDetails block, so match_details is {} for a CSV source.
+    original = load_events(DATA)
+    csv_path = tmp_path / "match.csv"
+    original.events.to_csv(csv_path, index=False)
+    reloaded = load_events(csv_path)
+    assert reloaded.match_details == {}
+    assert list(reloaded.events["eventId"]) == list(original.events["eventId"])
+    assert list(reloaded.events["typeId"]) == list(original.events["typeId"])
+
+
+def test_load_matches_accepts_an_opta_csv_file(tmp_path):
+    original = load_events(DATA)
+    csv_path = tmp_path / "match.csv"
+    original.events.to_csv(csv_path, index=False)
+    events = load_matches(csv_path, provider="opta", type="match")
+    assert set(events["matchId"].unique()) == {"match"}
+    assert len(events) == len(original.events)
+
+
 def test_load_events_multi_tags_matchid_and_stacks_rows():
     single = load_events(DATA).events
     combined = load_events_multi([DATA, DATA], match_ids=["m1", "m2"])
