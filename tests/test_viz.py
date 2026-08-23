@@ -419,3 +419,63 @@ def test_plot_aerial_duel_win_rate_returns_fig_and_ax(events):
     fig, ax = viz.plot_aerial_duel_win_rate(team_summary)
     assert fig is not None
     assert len(ax.get_yticklabels()) == len(team_summary)
+
+
+def test_plot_outcome_flow_returns_fig_and_ax(events):
+    outcomes = delivery_outcomes(events, "corner")
+    fig, ax = viz.plot_outcome_flow(outcomes, title="Corner outcome flow")
+    assert fig is not None
+    assert ax is not None
+
+
+def test_plot_outcome_flow_no_goal_node_when_no_goals(events):
+    # The sample match has zero corner goals -- the "Goal" node/ribbons
+    # should be omitted entirely rather than drawn as an empty sliver.
+    outcomes = delivery_outcomes(events, "corner")
+    assert outcomes["is_goal"].sum() == 0
+    fig, ax = viz.plot_outcome_flow(outcomes)
+    n_categories = outcomes["delivery_outcome"].nunique()
+    # deliveries node + one rect per category + no_goal node == n_categories + 2,
+    # each also with a stage0->stage1 ribbon and a stage1->stage2 ribbon.
+    assert len(ax.patches) == (n_categories + 2) + n_categories * 2
+
+
+def test_plot_outcome_flow_splits_into_goal_and_no_goal():
+    outcomes = pd.DataFrame(
+        {
+            "delivery_outcome": ["direct_shot"] * 4 + ["cleared"] * 6,
+            "is_goal": [True, True, False, False] + [False] * 6,
+        }
+    )
+    fig, ax = viz.plot_outcome_flow(outcomes)
+    texts = [t.get_text() for t in ax.texts]
+    assert any("Goal (2)" in t for t in texts)
+    assert any("No goal (8)" in t for t in texts)
+
+
+def test_plot_rating_beeswarm_returns_fig_and_ax(events):
+    model = XTModel.fit(events, x_bins=8, y_bins=6)
+    from wa_setpieces.core.rating import player_rating
+
+    rated = player_rating(events, "corner", model, min_deliveries=1, min_shots=1)
+    fig, ax = viz.plot_rating_beeswarm(rated, title="Corner rating spread")
+    assert fig is not None
+    assert len(ax.collections) >= 1
+
+
+def test_plot_rating_beeswarm_rejects_more_than_two_teams():
+    rated = pd.DataFrame(
+        {
+            "playerName": ["A", "B", "C"],
+            "contestantId": ["team1", "team2", "team3"],
+            "rating": [60.0, 55.0, 50.0],
+        }
+    )
+    with pytest.raises(ValueError, match="at most 2 teams"):
+        viz.plot_rating_beeswarm(rated)
+
+
+def test_beeswarm_offsets_spreads_identical_values():
+    offsets = viz._beeswarm_offsets(pd.Series([50.0, 50.0, 50.0, 50.0]).to_numpy(), bin_width=2.5, spacing=0.22)
+    assert len(set(offsets)) == 4
+    assert offsets[0] == 0.0

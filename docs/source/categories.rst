@@ -89,9 +89,12 @@ other type is measured against below.
    :func:`~wa_setpieces.corner_report_html` self-contained HTML report
    -- the only type with a bespoke report; every other type falls back to
    a generic table dump. :func:`~wa_setpieces.viz.plots.plot_zone_scatter`
-   (individual landing spots, density-shaded) and
+   (individual landing spots, density-shaded),
    :func:`~wa_setpieces.viz.plots.plot_set_piece_value_flow` (cumulative
-   added value over the match) apply here too -- see the :ref:`gallery`.
+   added value over the match), and
+   :func:`~wa_setpieces.viz.plots.plot_outcome_flow` (a Sankey-style funnel
+   from delivery through outcome category down to goal/no goal) apply here
+   too -- see the :ref:`gallery`.
 
    .. code-block:: python
 

@@ -1,6 +1,43 @@
 Changelog
 =========
 
+0.23.0
+------
+
+Two genuinely new chart forms, not more variations on bars/scatter/pitch
+maps -- requested after the gallery rebuild in 0.22.0 still rendered the
+same images as before it (that rebuild only reorganized scripts; the
+plotting functions themselves hadn't changed).
+
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_outcome_flow` -- a
+  Sankey-style flow diagram from every delivery, through its
+  :func:`~wa_setpieces.core.outcomes.delivery_outcomes` category, down to
+  whether it ended in a goal. Ribbon width is proportional to delivery
+  count at every stage, built from scratch on cubic-Bezier ``PathPatch``
+  ribbons (:func:`~wa_setpieces.viz.plots._flow_ribbon`) since matplotlib
+  has no built-in proportional Sankey. No chart in this module previously
+  showed a *funnel* -- verified against both the zero-goal sample-match
+  case (ribbons flow straight through, "Goal" node omitted entirely
+  rather than drawn empty) and a synthetic multi-goal case (diagonal
+  ribbons correctly split and cross into the "Goal" node).
+- **Added**: :func:`~wa_setpieces.viz.plots.plot_rating_beeswarm` -- every
+  player as one dot on a 0-100 rating scale, deterministically spread
+  just enough to avoid overlap
+  (:func:`~wa_setpieces.viz.plots._beeswarm_offsets`, a binned
+  alternate-side stack, not a random jitter or a physics packing).
+  Answers a different question than :func:`plot_rating_benchmark`'s
+  ranked bars: how *spread out* a group's ratings are, not each player's
+  rank. Labels push outward in whichever direction their own dot is
+  already displaced, so they clear a tightly packed cluster instead of
+  colliding with the next dot up.
+- Two new gallery examples (``plot_22_outcome_flow.py``,
+  ``plot_23_rating_beeswarm.py``); ``categories.rst`` updated to mention
+  the flow diagram alongside the corner/free-kick outcome tools.
+- 6 new tests (319 total). Docs build clean (23/23 gallery scripts
+  executed, zero warnings), every new chart rendered and inspected
+  directly, including a synthetic dataset built specifically to exercise
+  the goal-split ribbon path the real (goal-less) sample match can't.
+
 0.22.0
 ------
 

@@ -51,7 +51,7 @@ seaborn, already a dependency of mplsoccer itself); off by default
 since a smooth density surface overstates what a single match's handful
 of deliveries can actually support -- turn it on for a season's worth.
 
-Three functions answer questions the "plot the raw numbers" functions
+Five functions answer questions the "plot the raw numbers" functions
 above can't:
 
 - :func:`plot_zone_scatter` -- every event as its own point (density-shaded
@@ -65,6 +65,15 @@ above can't:
   volume against quality, for when the question is whether doing
   something *often* also means doing it *well* -- a question no single
   bar chart metric answers on its own.
+- :func:`plot_outcome_flow` -- a Sankey-style flow of every delivery from
+  the restart, through its outcome category, down to whether it ended in
+  a goal -- the only chart in this module built to show a *funnel*, not a
+  ranking or a distribution.
+- :func:`plot_rating_beeswarm` -- every player as one dot on a 0-100
+  rating scale, spread just enough to avoid overlap, for when the
+  question is how *spread out* a group's ratings are (one cluster, or a
+  long tail) rather than each player's individual rank, which
+  :func:`plot_rating_benchmark`'s bars already answer.
 """
 
 from __future__ import annotations
@@ -136,6 +145,50 @@ def _reserve_ytick_margin(fig, ax, min_in: float = 0.35, pad_in: float = 0.18) -
     fig_w_in, _ = fig.get_size_inches()
     needed_in = max(widest_px / fig.dpi + pad_in, min_in)
     fig.subplots_adjust(left=min(0.5, needed_in / fig_w_in))
+
+
+def _beeswarm_offsets(values: np.ndarray, bin_width: float, spacing: float = 0.22) -> np.ndarray:
+    """Deterministic vertical offsets for a 1-D beeswarm: bucket ``values``
+    into ``bin_width``-wide bins, then stack each bin's points alternating
+    above/below the center line (0, +1, -1, +2, -2, ...) so points with a
+    close value spread apart just enough not to overlap, instead of a
+    random jitter that can still collide or a physics packing that's
+    overkill for a handful of points."""
+    order = np.argsort(values, kind="stable")
+    counts: dict[int, int] = {}
+    offsets = np.zeros(len(values))
+    for idx in order:
+        b = round(float(values[idx]) / bin_width)
+        n = counts.get(b, 0)
+        if n > 0:
+            k = (n + 1) // 2
+            sign = 1 if n % 2 == 1 else -1
+            offsets[idx] = sign * k * spacing
+        counts[b] = n + 1
+    return offsets
+
+
+def _flow_ribbon(ax, x0: float, x1: float, ya0: float, ya1: float, yb0: float, yb1: float, color: str, alpha: float = 0.55, zorder: int = 2) -> None:
+    """Draw one Sankey-style ribbon: a smooth band connecting segment
+    ``[ya0, ya1]`` on the left node (at ``x0``) to segment ``[yb0, yb1]``
+    on the right node (at ``x1``), via a cubic Bezier on the top and
+    bottom edges with the control points at the horizontal midpoint --
+    the standard construction for a proportional flow diagram."""
+    from matplotlib.path import Path
+    from matplotlib.patches import PathPatch
+
+    xm = (x0 + x1) / 2
+    verts = [
+        (x0, ya1), (xm, ya1), (xm, yb1), (x1, yb1),
+        (x1, yb0), (xm, yb0), (xm, ya0), (x0, ya0),
+        (x0, ya1),
+    ]
+    codes = [
+        Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4,
+        Path.LINETO, Path.CURVE4, Path.CURVE4, Path.CURVE4,
+        Path.CLOSEPOLY,
+    ]
+    ax.add_patch(PathPatch(Path(verts, codes), facecolor=color, edgecolor="none", alpha=alpha, zorder=zorder))
 
 
 def _finish_figure(
@@ -1467,5 +1520,205 @@ def plot_aerial_duel_win_rate(
     ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.6, zorder=0)
     ax.set_axisbelow(True)
     _style_chart_axis(pal, ax)
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
+    return fig, ax
+
+
+_OUTCOME_FLOW_ORDER = [
+    "short_corner", "direct_shot", "second_phase_shot", "aerial_duel",
+    "first_touch_won", "first_touch_lost", "cleared", "no_action",
+]
+
+
+def plot_outcome_flow(
+    outcomes: pd.DataFrame,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    show_stats: bool = True,
+    ax=None,
+):
+    """Sankey-style flow of every delivery from the restart, through its
+    :func:`~wa_setpieces.core.outcomes.delivery_outcomes` category, down to
+    whether it ended in a goal.
+
+    A genuinely different chart form from anything else in this module --
+    no pitch, no bars, no scatter -- built for one question none of them
+    answer directly: of everything that happens after a corner is taken,
+    how much of it actually funnels through to a goal. In practice that's
+    usually "very little," and the ribbon widths make that funnel visible
+    at a glance in a way a table of category counts doesn't.
+
+    Args:
+        outcomes: output of :func:`~wa_setpieces.core.outcomes.delivery_outcomes`
+            -- needs ``delivery_outcome`` and ``is_goal``.
+
+    ``ax`` must not be passed for this one: the flow needs the whole
+    figure's canvas (no meaningful x/y axes to share), so pass ``None``.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows = outcomes.dropna(subset=["delivery_outcome"])
+    total = len(rows)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(9, 5.6))
+
+    present = [o for o in _OUTCOME_FLOW_ORDER if (rows["delivery_outcome"] == o).any()]
+    colors = {o: pal.categorical[i % len(pal.categorical)] for i, o in enumerate(present)}
+    node_w = 0.5
+    x0, x1, x2 = 0.0, 4.5, 9.0
+
+    stage1_ranges: dict[str, tuple[float, float]] = {}
+    y = 0.0
+    for o in present:
+        n = int((rows["delivery_outcome"] == o).sum())
+        stage1_ranges[o] = (y, y + n)
+        y += n
+
+    n_goal = int(rows["is_goal"].sum())
+    n_nogoal = total - n_goal
+
+    ax.add_patch(plt.Rectangle((x0, 0), node_w, total, facecolor=pal.ink_secondary, edgecolor="none", zorder=3))
+    for o in present:
+        y0, y1 = stage1_ranges[o]
+        ax.add_patch(plt.Rectangle((x1, y0), node_w, y1 - y0, facecolor=colors[o], edgecolor="none", zorder=3))
+        ax.text(
+            x1 + node_w + 0.15, (y0 + y1) / 2, f"{o.replace('_', ' ')} ({y1 - y0:.0f})",
+            va="center", ha="left", color=pal.ink_primary, fontsize=9,
+        )
+        _flow_ribbon(ax, x0 + node_w, x1, y0, y1, y0, y1, colors[o], zorder=2)
+
+    ax.add_patch(plt.Rectangle((x2, 0), node_w, n_nogoal, facecolor=pal.ink_muted, edgecolor="none", zorder=3))
+    ax.text(x2 + node_w + 0.15, n_nogoal / 2 if n_nogoal else 0, f"No goal ({n_nogoal})", va="center", ha="left", color=pal.ink_primary, fontsize=9)
+    if n_goal:
+        ax.add_patch(plt.Rectangle((x2, n_nogoal), node_w, n_goal, facecolor=pal.good, edgecolor="none", zorder=3))
+        ax.text(x2 + node_w + 0.15, n_nogoal + n_goal / 2, f"Goal ({n_goal})", va="center", ha="left", color=pal.good, fontsize=9, fontweight="bold")
+
+    cursor_nogoal, cursor_goal = 0.0, float(n_nogoal)
+    for o in present:
+        y0, y1 = stage1_ranges[o]
+        sub = rows[rows["delivery_outcome"] == o]
+        g = int(sub["is_goal"].sum())
+        ng = len(sub) - g
+        if ng:
+            _flow_ribbon(ax, x1 + node_w, x2, y0, y0 + ng, cursor_nogoal, cursor_nogoal + ng, colors[o], alpha=0.4, zorder=2)
+            cursor_nogoal += ng
+        if g:
+            _flow_ribbon(ax, x1 + node_w, x2, y0 + ng, y1, cursor_goal, cursor_goal + g, colors[o], alpha=0.85, zorder=2)
+            cursor_goal += g
+
+    for x, label in ((x0 + node_w / 2, "Deliveries"), (x1 + node_w / 2, "Outcome"), (x2 + node_w / 2, "Result")):
+        ax.text(x, total * 1.03, label, va="bottom", ha="center", color=pal.ink_secondary, fontsize=9.5, fontweight="bold")
+
+    ax.set_xlim(-0.2, x2 + node_w + 2.6)
+    ax.set_ylim(-total * 0.03, total * 1.12)
+    ax.axis("off")
+    ax.set_facecolor(pal.surface)
+
+    header_stats = None
+    if show_stats and total:
+        header_stats = [(str(total), "deliveries"), (f"{n_goal / total * 100:.0f}%", "ended in a goal")]
+    _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author, stats=header_stats)
+    return fig, ax
+
+
+def plot_rating_beeswarm(
+    rated: pd.DataFrame,
+    metric_col: str = "rating",
+    label_col: str = "playerName",
+    team_col: str = "contestantId",
+    team_names: dict | None = None,
+    team_order: list | None = None,
+    label_top_n: int = 3,
+    title: str | None = None,
+    subtitle: str | None = None,
+    eyebrow: str | None = None,
+    footer: str | None = None,
+    author: str | None = None,
+    dark: bool = True,
+    ax=None,
+):
+    """Beeswarm distribution of a per-player rating.
+
+    Unlike :func:`plot_rating_benchmark`'s ranked bars, every player is one
+    dot at its own position on the 0-100 scale, spread vertically only
+    enough to avoid overlapping a close rating (a deterministic binned
+    stack, see :func:`_beeswarm_offsets` -- not a random jitter, which can
+    still collide, and not a physics packing, which is overkill for a
+    squad-sized point count). Answers a different question than the bar
+    chart: how *spread out* the group's ratings are -- one tight cluster,
+    or a long tail -- not just each player's individual rank.
+
+    Colored by team, the same teal/blue convention as
+    :func:`plot_team_comparison` (pass ``team_order`` to fix which team
+    gets teal).
+
+    Args:
+        rated: output of :func:`~wa_setpieces.core.rating.player_rating`
+            (or any table with ``metric_col``, ``label_col``, ``team_col``).
+        label_top_n: label the top-N dots by ``metric_col`` (``0`` labels
+            none) -- labeling every dot in a dense swarm is unreadable.
+    """
+    import matplotlib.pyplot as plt
+
+    pal = theme.get_palette(dark)
+    rows = rated.dropna(subset=[metric_col]).reset_index(drop=True)
+
+    teams = team_order if team_order is not None else list(rows[team_col].drop_duplicates())
+    if len(teams) > 2:
+        raise ValueError(
+            f"plot_rating_beeswarm supports at most 2 teams, got {len(teams)}; "
+            "filter `rated` first."
+        )
+    team_color = {t: pal.team_colors[i] for i, t in enumerate(teams)}
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 3.6))
+
+    x = rows[metric_col].to_numpy(dtype=float)
+    y = _beeswarm_offsets(x, bin_width=2.5, spacing=0.22)
+    colors = [team_color.get(t, pal.ink_muted) for t in rows[team_col]]
+    ax.scatter(x, y, s=130, color=colors, edgecolors=pal.ink_primary, linewidths=0.8, zorder=3)
+
+    if label_top_n > 0 and len(rows):
+        top = rows.assign(_y=y).nlargest(min(label_top_n, len(rows)), metric_col)
+        for _, row in top.iterrows():
+            # Push the label further out in whichever direction the dot is
+            # already displaced from the center line, rather than always
+            # straight up -- straight-up collides with the next dot in a
+            # tightly stacked bin (several equal ratings land close
+            # together), while an outward push clears the cluster.
+            dy = 14 if row["_y"] >= 0 else -14
+            va = "bottom" if row["_y"] >= 0 else "top"
+            ax.annotate(
+                row[label_col], (row[metric_col], row["_y"]),
+                xytext=(0, dy), textcoords="offset points", ha="center", va=va,
+                color=pal.ink_primary, fontsize=9, fontweight="bold", zorder=4,
+            )
+
+    ax.axvline(50, color=pal.baseline, linewidth=1, linestyle="--", zorder=1)
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.6, 1.6)
+    ax.set_yticks([])
+    ax.set_xlabel(metric_col.replace("_", " "))
+    ax.grid(axis="x", color=pal.gridline, linewidth=0.6, alpha=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    handles = [
+        plt.Line2D([0], [0], marker="o", linestyle="", color=team_color[t],
+                   label=(team_names or {}).get(t, f"{t[:8]}…"), markersize=8)
+        for t in teams
+    ]
+    if handles:
+        pal.style_legend(ax, handles=handles, loc="upper left")
+    _style_chart_axis(pal, ax)
+    for spine in ("top", "left", "right"):
+        ax.spines[spine].set_visible(False)
     _finish_figure(pal, fig, ax, title, subtitle, footer, eyebrow, author)
     return fig, ax
